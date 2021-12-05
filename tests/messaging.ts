@@ -3,28 +3,6 @@ import { strict as assert } from 'assert';
 import { Program } from '@project-serum/anchor';
 import { Messaging } from '../target/types/messaging';
 
-/*
-  Wrapping below in a client library TBD
-  Should be really simple. Smtg like this:
-
-  ```
-  // `receiver` can be a pubkey, or a keypair (if keypair, `pop` can be called)
-  const mailbox = new Mailbox(conn, receiver);
-
-  // Send messages like this (`payer` must sign):
-  await mailbox.send("text0", "url0", payer);
-  await mailbox.send("text1", "url1", payer);
-
-  // Read messages like this (nobody has to sign)
-  // Returns all new messages that haven't been popped
-  const messages = await mailbox.fetch();
-
-  // Close messages FIFO and return rent (receiver must sign)
-  await mailbox.pop();
-  await mailbox.pop();
-  ```
-*/
-
 describe('messaging', () => {
 
   // Configure the client to use the local cluster.
