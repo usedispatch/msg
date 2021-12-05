@@ -128,11 +128,12 @@ describe('messaging', () => {
   });
 
   it('Client library test', async () => {
+    // Set up accounts
     const receiver = anchor.web3.Keypair.generate();
-
     const payer = anchor.web3.Keypair.generate();
     await conn.confirmTransaction(await conn.requestAirdrop(payer.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
 
+    // Mailbox usage
     const mailbox = new Mailbox(conn, receiver);
 
     await mailbox.send("text0", "url0", payer);
