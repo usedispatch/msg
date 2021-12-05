@@ -2,6 +2,7 @@ import * as anchor from '@project-serum/anchor';
 import { strict as assert } from 'assert';
 import { Program } from '@project-serum/anchor';
 import { Messaging } from '../target/types/messaging';
+import { Mailbox } from '../lib';
 
 describe('messaging', () => {
 
@@ -9,10 +10,9 @@ describe('messaging', () => {
   anchor.setProvider(anchor.Provider.env());
 
   const program = anchor.workspace.Messaging as Program<Messaging>;
+  const conn = anchor.getProvider().connection;
 
   it('Basic test', async () => {
-    const conn = anchor.getProvider().connection;
-  
     const receiver = anchor.web3.Keypair.generate();
 
     const payer = anchor.web3.Keypair.generate();
@@ -125,5 +125,40 @@ describe('messaging', () => {
 
     const receiverBalance = await conn.getBalance(receiver.publicKey);
     assert.ok(receiverBalance !== 0);
+  });
+
+  it('Client library test', async () => {
+    const receiver = anchor.web3.Keypair.generate();
+
+    const payer = anchor.web3.Keypair.generate();
+    await conn.confirmTransaction(await conn.requestAirdrop(payer.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
+
+    const mailbox = new Mailbox(conn, receiver);
+
+    await mailbox.send("text0", "url0", payer);
+    await mailbox.send("text1", "url1", payer);
+
+    let messages = await mailbox.fetch();
+    assert.ok(messages.length === 2);
+
+    assert.ok(messages[0].sender.equals(payer.publicKey))
+    assert.ok(messages[0].text === "text0");
+    assert.ok(messages[0].url === "url0");
+    
+    assert.ok(messages[1].sender.equals(payer.publicKey))
+    assert.ok(messages[1].text === "text1");
+    assert.ok(messages[1].url === "url1");
+
+    await mailbox.pop();
+    messages = await mailbox.fetch();
+    assert.ok(messages.length === 1);
+    
+    assert.ok(messages[0].sender.equals(payer.publicKey))
+    assert.ok(messages[0].text === "text1");
+    assert.ok(messages[0].url === "url1");
+
+    await mailbox.pop();
+    messages = await mailbox.fetch();
+    assert.ok(messages.length === 0);
   });
 });

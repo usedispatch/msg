@@ -2,27 +2,6 @@ import * as anchor from '@project-serum/anchor';
 import { Program } from '@project-serum/anchor';
 import { Messaging } from '../target/types/messaging';
 
-/*
-  USAGE:
-
-  ```
-  // `receiver` can be a pubkey, or a keypair (if keypair, `pop` can be called)
-  const mailbox = new Mailbox(conn, receiver);
-
-  // Send messages like this (`payer` must sign):
-  await mailbox.send("text0", "url0", payer);
-  await mailbox.send("text1", "url1", payer);
-
-  // Read messages like this (nobody has to sign)
-  // Returns all new messages that haven't been popped
-  const messages = await mailbox.fetch();
-
-  // Close messages FIFO and return rent (receiver must sign)
-  await mailbox.pop();
-  await mailbox.pop();
-  ```
-*/
-
 const program = anchor.workspace.Messaging as Program<Messaging>;
 
 export type MailboxAccount = {
@@ -50,14 +29,24 @@ export class Mailbox {
   }
 
   async send(text: string, url: string, payer: anchor.web3.Keypair) {
-    const mailbox = await this.fetchMailbox();
-    const message = await this.getMessageAddress(mailbox.messageCount);
+    const mailboxAddress = await this.getMailboxAddress();
+    let messageIndex = 0;
+
+    try {
+      const mailbox = await this.fetchMailbox();
+      messageIndex = mailbox.messageCount;
+    } catch(err) {
+      // This may fail if mailbox doesn't exist, which is fine.
+      // It will get created on first send.
+    }
+
+    const messageAddress = await this.getMessageAddress(messageIndex);
 
     const tx = await program.rpc.sendMessage(text, url, {
       accounts: {
-        mailbox: mailbox,
+        mailbox: mailboxAddress,
         receiver: this.receiverAddress,
-        message: message,
+        message: messageAddress,
         payer: payer.publicKey,
         systemProgram: anchor.web3.SystemProgram.programId,
       },
@@ -73,12 +62,13 @@ export class Mailbox {
       throw new Error("`receiver` must be a Keypair to `pop`, is `PublicKey`");
     }
 
+    const mailboxAddress = await this.getMailboxAddress();
     const mailbox = await this.fetchMailbox();
     const message = await this.getMessageAddress(mailbox.readMessageCount);
 
     const tx = await program.rpc.closeMessage({
       accounts: {
-        mailbox: mailbox,
+        mailbox: mailboxAddress,
         receiver: this.receiverAddress,
         message: message,
         rentDestination: this.receiverAddress,
@@ -117,11 +107,6 @@ export class Mailbox {
     return mailbox;
   }
   
-  async fetchMailbox() {
-    const mailboxAccount = await program.account.mailbox.fetch(await this.getMailboxAddress());
-    return mailboxAccount;
-  }
-
   async getMessageAddress(index: number) {
     const msgCountBuf = Buffer.allocUnsafe(4);
     msgCountBuf.writeInt32LE(index);
@@ -133,5 +118,10 @@ export class Mailbox {
     ], program.programId);
 
     return message;
+  }
+
+  private async fetchMailbox() {
+    const mailboxAccount = await program.account.mailbox.fetch(await this.getMailboxAddress());
+    return mailboxAccount;
   }
 }
