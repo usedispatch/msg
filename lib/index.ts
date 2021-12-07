@@ -14,20 +14,34 @@ export type MessageAccount = {
   data: string,
 }
 
+export type MailboxOpts = {
+  receiver: anchor.web3.PublicKey | anchor.web3.Keypair,
+  payer: anchor.web3.PublicKey | anchor.web3.Keypair,
+}
+
 export class Mailbox {
   public receiverAddress: anchor.web3.PublicKey;
-  public signer: anchor.web3.Keypair | undefined;
+  public receiverKeypair: anchor.web3.Keypair | undefined;
 
-  constructor(public conn: anchor.web3.Connection, public receiver: anchor.web3.PublicKey | anchor.web3.Keypair) {
-    if (receiver instanceof anchor.web3.PublicKey) {
-      this.receiverAddress = receiver;
+  public payerAddress: anchor.web3.PublicKey;
+  public payerKeypair: anchor.web3.Keypair | undefined;
+
+  constructor(public conn: anchor.web3.Connection, opts: MailboxOpts) {
+    if (opts.receiver instanceof anchor.web3.PublicKey) {
+      this.receiverAddress = opts.receiver;
     } else {
-      this.signer = receiver;
-      this.receiverAddress = receiver.publicKey;
+      this.receiverKeypair = opts.receiver;
+      this.receiverAddress = opts.receiver.publicKey;
+    }
+    if (opts.payer instanceof anchor.web3.PublicKey) {
+      this.payerAddress = opts.payer;
+    } else {
+      this.payerKeypair = opts.payer;
+      this.payerAddress = opts.payer.publicKey;
     }
   }
 
-  async send(data: unknown, payer: anchor.web3.Keypair) {
+  async send(data: unknown) {
     const mailboxAddress = await this.getMailboxAddress();
     let messageIndex = 0;
 
@@ -41,43 +55,45 @@ export class Mailbox {
 
     const messageAddress = await this.getMessageAddress(messageIndex);
 
-    const tx = await program.rpc.sendMessage(data, {
+    const tx = program.transaction.sendMessage(data, {
       accounts: {
         mailbox: mailboxAddress,
         receiver: this.receiverAddress,
         message: messageAddress,
-        payer: payer.publicKey,
+        payer: this.payerKeypair.publicKey,
         systemProgram: anchor.web3.SystemProgram.programId,
       },
-      signers: [
-        payer,
-      ],
     });
-    return tx;
+    tx.feePayer = this.payerAddress;
+
+    const sig = await this.conn.sendTransaction(tx, [this.payerKeypair]);
+    await this.conn.confirmTransaction(sig, "recent");
+    return sig;
   }
 
   async pop() {
-    if (!this.signer) {
+    if (!this.receiverKeypair) {
       throw new Error("`receiver` must be a Keypair to `pop`, is `PublicKey`");
     }
 
     const mailboxAddress = await this.getMailboxAddress();
     const mailbox = await this.fetchMailbox();
-    const message = await this.getMessageAddress(mailbox.readMessageCount);
+    const messageAddress = await this.getMessageAddress(mailbox.readMessageCount);
 
-    const tx = await program.rpc.closeMessage({
+    const tx = await program.transaction.closeMessage({
       accounts: {
         mailbox: mailboxAddress,
         receiver: this.receiverAddress,
-        message: message,
+        message: messageAddress,
         rentDestination: this.receiverAddress,
         systemProgram: anchor.web3.SystemProgram.programId,
       },
-      signers: [
-        this.signer,
-      ],
     });
-    return tx;
+    tx.feePayer = this.payerAddress;
+
+    const sig = await this.conn.sendTransaction(tx, [this.receiverKeypair, this.payerKeypair]);
+    await this.conn.confirmTransaction(sig, "recent");
+    return sig;
   }
 
   async fetch() {

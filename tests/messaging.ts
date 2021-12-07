@@ -132,10 +132,12 @@ describe('messaging', () => {
     await conn.confirmTransaction(await conn.requestAirdrop(payer.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
 
     // Mailbox usage
-    const mailbox = new Mailbox(conn, receiver);
+    const mailbox = new Mailbox(conn, {
+      receiver, payer,
+    });
 
-    await mailbox.send("text0", payer);
-    await mailbox.send("text1", payer);
+    await mailbox.send("text0");
+    await mailbox.send("text1");
 
     let messages = await mailbox.fetch();
     assert.ok(messages.length === 2);

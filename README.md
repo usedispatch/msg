@@ -2,11 +2,11 @@ Usage:
 
 ```ts
 // Initialize mailbox for `receiver` address
-const mailbox = new Mailbox(conn, receiver);
+const mailbox = new Mailbox(conn, { receiver, payer, });
 
 // Send messages
-await mailbox.send("text0", payer);
-await mailbox.send("text1", payer);
+await mailbox.send("text0");
+await mailbox.send("text1");
 
 // Fetch messages
 const messages = await mailbox.fetch();
