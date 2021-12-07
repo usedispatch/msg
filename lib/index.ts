@@ -41,7 +41,54 @@ export class Mailbox {
     }
   }
 
-  async send(data: unknown) {
+  /*
+    Porcelain commands
+  */
+  async send(data: string) {
+    if (!this.payerKeypair) {
+      throw new Error("`payer` must be a Keypair")
+    }
+
+    const tx = await this.makeSendTx(data);
+    tx.feePayer = this.payerAddress;
+
+    const sig = await this.conn.sendTransaction(tx, [this.payerKeypair]);
+    await this.conn.confirmTransaction(sig, "recent");
+    return sig;
+  }
+
+  async pop() {
+    if (!this.receiverKeypair) {
+      throw new Error("`receiver` must be a Keypair to `pop`, is `PublicKey`");
+    }
+    if (!this.payerKeypair) {
+      throw new Error("`payer` must be a Keypair")
+    }
+
+    const tx = await this.makePopTx();
+    tx.feePayer = this.payerAddress;
+
+    const sig = await this.conn.sendTransaction(tx, [this.receiverKeypair, this.payerKeypair]);
+    await this.conn.confirmTransaction(sig, "recent");
+    return sig;
+  }
+
+  async fetch() {
+    const mailbox = await this.fetchMailbox();
+    const messages: MessageAccount[] = [];
+    for (let i = mailbox.readMessageCount; i < mailbox.messageCount; i++) {
+      const message = await this.getMessageAddress(i);
+      const messageAccount = await program.account.message.fetch(message);
+      messages.push(messageAccount as MessageAccount);
+    }
+
+    return messages;
+  }
+
+  /*
+    Transaction generation commands
+  */
+  async makeSendTx(data: string): Promise<anchor.web3.Transaction> {
     const mailboxAddress = await this.getMailboxAddress();
     let messageIndex = 0;
 
@@ -60,22 +107,15 @@ export class Mailbox {
         mailbox: mailboxAddress,
         receiver: this.receiverAddress,
         message: messageAddress,
-        payer: this.payerKeypair.publicKey,
+        payer: this.payerAddress,
         systemProgram: anchor.web3.SystemProgram.programId,
       },
     });
-    tx.feePayer = this.payerAddress;
 
-    const sig = await this.conn.sendTransaction(tx, [this.payerKeypair]);
-    await this.conn.confirmTransaction(sig, "recent");
-    return sig;
+    return tx;
   }
 
-  async pop() {
-    if (!this.receiverKeypair) {
-      throw new Error("`receiver` must be a Keypair to `pop`, is `PublicKey`");
-    }
-
+  async makePopTx(): Promise<anchor.web3.Transaction> {
     const mailboxAddress = await this.getMailboxAddress();
     const mailbox = await this.fetchMailbox();
     const messageAddress = await this.getMessageAddress(mailbox.readMessageCount);
@@ -89,23 +129,8 @@ export class Mailbox {
         systemProgram: anchor.web3.SystemProgram.programId,
       },
     });
-    tx.feePayer = this.payerAddress;
 
-    const sig = await this.conn.sendTransaction(tx, [this.receiverKeypair, this.payerKeypair]);
-    await this.conn.confirmTransaction(sig, "recent");
-    return sig;
-  }
-
-  async fetch() {
-    const mailbox = await this.fetchMailbox();
-    const messages: MessageAccount[] = [];
-    for (let i = mailbox.readMessageCount; i < mailbox.messageCount; i++) {
-      const message = await this.getMessageAddress(i);
-      const messageAccount = await program.account.message.fetch(message);
-      messages.push(messageAccount as MessageAccount);
-    }
-
-    return messages;
+    return tx;
   }
 
   /*

@@ -125,7 +125,7 @@ describe('messaging', () => {
     assert.ok(receiverBalance !== 0);
   });
 
-  it('Client library test', async () => {
+  it('Client library porcelain commands test', async () => {
     // Set up accounts
     const receiver = anchor.web3.Keypair.generate();
     const payer = anchor.web3.Keypair.generate();
@@ -156,6 +156,44 @@ describe('messaging', () => {
     assert.ok(messages[0].data === "text1");
 
     await mailbox.pop();
+    messages = await mailbox.fetch();
+    assert.ok(messages.length === 0);
+  });
+
+  it('Client library tx commands test', async () => {
+    // Set up accounts
+    const receiver = anchor.web3.Keypair.generate();
+    const payer = anchor.web3.Keypair.generate();
+    await conn.confirmTransaction(await conn.requestAirdrop(payer.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
+
+    // Mailbox usage
+    const mailbox = new Mailbox(conn, {
+      receiver: receiver.publicKey,
+      payer: payer.publicKey,
+    });
+
+    // Send a message
+    const sendTx = await mailbox.makeSendTx("test1");
+
+    sendTx.feePayer = payer.publicKey;
+    const sendSig = await conn.sendTransaction(sendTx, [payer]);
+    await conn.confirmTransaction(sendSig, "recent");
+
+    // Fetch messages
+    let messages = await mailbox.fetch();
+    assert.ok(messages.length === 1);
+
+    assert.ok(messages[0].sender.equals(payer.publicKey))
+    assert.ok(messages[0].data === "test1");
+
+    // Free message account and send rent to receiver
+    const popTx = await mailbox.makePopTx();
+
+    popTx.feePayer = payer.publicKey;
+    const popSig = await conn.sendTransaction(popTx, [payer, receiver]);
+    await conn.confirmTransaction(popSig, "recent");
+    
+    // Fetch messages
     messages = await mailbox.fetch();
     assert.ok(messages.length === 0);
   });
