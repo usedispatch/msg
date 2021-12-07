@@ -11,14 +11,13 @@ pub mod messaging {
     use super::*;
     /// Send a message to the receiver. Note that anyone can create a mailbox for the receiver
     /// and send messages.
-    pub fn send_message(ctx: Context<SendMessage>, text: String, url: String) -> ProgramResult {
+    pub fn send_message(ctx: Context<SendMessage>, data: String) -> ProgramResult {
         let mailbox = &mut ctx.accounts.mailbox;
         mailbox.message_count = mailbox.message_count + 1;
 
         let message = &mut ctx.accounts.message;
         message.sender = ctx.accounts.payer.key().clone();
-        message.text = text;
-        message.url = url;
+        message.data = data;
 
         Ok(())
     }
@@ -38,7 +37,7 @@ pub mod messaging {
 }
 
 #[derive(Accounts)]
-#[instruction(text: String, url: String)]
+#[instruction(data: String)]
 pub struct SendMessage<'info> {
     #[account(init_if_needed,
         payer = payer,
@@ -53,8 +52,7 @@ pub struct SendMessage<'info> {
         space =
             8                               // account discriminator
             + 32                            // sender pubkey
-            + 4 + text.as_bytes().len()     // text string
-            + 4 + url.as_bytes().len(),     // url string
+            + 4 + data.as_bytes().len(),    // payload string
         seeds = [_PROTOCOL_SEED, _MESSAGE_SEED, receiver.key().as_ref(), &mailbox.message_count.to_le_bytes()],
         bump,
     )]
@@ -99,6 +97,5 @@ pub struct Mailbox {
 #[derive(Default)]
 pub struct Message {
     pub sender: Pubkey,
-    pub text: String,
-    pub url: String,
+    pub data: String,
 }

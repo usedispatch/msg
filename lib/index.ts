@@ -11,8 +11,7 @@ export type MailboxAccount = {
 
 export type MessageAccount = {
   sender: anchor.web3.PublicKey,
-  text: string,
-  url: string,
+  data: string,
 }
 
 export class Mailbox {
@@ -28,7 +27,7 @@ export class Mailbox {
     }
   }
 
-  async send(text: string, url: string, payer: anchor.web3.Keypair) {
+  async send(data: unknown, payer: anchor.web3.Keypair) {
     const mailboxAddress = await this.getMailboxAddress();
     let messageIndex = 0;
 
@@ -42,7 +41,7 @@ export class Mailbox {
 
     const messageAddress = await this.getMessageAddress(messageIndex);
 
-    const tx = await program.rpc.sendMessage(text, url, {
+    const tx = await program.rpc.sendMessage(data, {
       accounts: {
         mailbox: mailboxAddress,
         receiver: this.receiverAddress,

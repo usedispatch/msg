@@ -35,7 +35,7 @@ describe('messaging', () => {
       msgCountBuf0,
     ], program.programId);
 
-    const tx0 = await program.rpc.sendMessage("text0", "url0", {
+    const tx0 = await program.rpc.sendMessage("text0", {
       accounts: {
         mailbox: mailbox,
         receiver: receiver.publicKey,
@@ -59,7 +59,7 @@ describe('messaging', () => {
       msgCountBuf1,
     ], program.programId);
 
-    const tx1 = await program.rpc.sendMessage("text1", "url1", {
+    const tx1 = await program.rpc.sendMessage("text1", {
       accounts: {
         mailbox: mailbox,
         receiver: receiver.publicKey,
@@ -81,13 +81,11 @@ describe('messaging', () => {
     const messageAccount0 = await program.account.message.fetch(message0);
 
     assert.ok(messageAccount0.sender.equals(payer.publicKey))
-    assert.ok(messageAccount0.text === "text0");
-    assert.ok(messageAccount0.url === "url0");
+    assert.ok(messageAccount0.data === "text0");
     
     const messageAccount1 = await program.account.message.fetch(message1);
     assert.ok(messageAccount1.sender.equals(payer.publicKey))
-    assert.ok(messageAccount1.text === "text1");
-    assert.ok(messageAccount1.url === "url1");
+    assert.ok(messageAccount1.data === "text1");
 
     // close messages
     const tx2 = await program.rpc.closeMessage({
@@ -136,27 +134,24 @@ describe('messaging', () => {
     // Mailbox usage
     const mailbox = new Mailbox(conn, receiver);
 
-    await mailbox.send("text0", "url0", payer);
-    await mailbox.send("text1", "url1", payer);
+    await mailbox.send("text0", payer);
+    await mailbox.send("text1", payer);
 
     let messages = await mailbox.fetch();
     assert.ok(messages.length === 2);
 
     assert.ok(messages[0].sender.equals(payer.publicKey))
-    assert.ok(messages[0].text === "text0");
-    assert.ok(messages[0].url === "url0");
+    assert.ok(messages[0].data === "text0");
     
     assert.ok(messages[1].sender.equals(payer.publicKey))
-    assert.ok(messages[1].text === "text1");
-    assert.ok(messages[1].url === "url1");
+    assert.ok(messages[1].data === "text1");
 
     await mailbox.pop();
     messages = await mailbox.fetch();
     assert.ok(messages.length === 1);
     
     assert.ok(messages[0].sender.equals(payer.publicKey))
-    assert.ok(messages[0].text === "text1");
-    assert.ok(messages[0].url === "url1");
+    assert.ok(messages[0].data === "text1");
 
     await mailbox.pop();
     messages = await mailbox.fetch();

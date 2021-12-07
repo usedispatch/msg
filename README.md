@@ -5,8 +5,8 @@ Usage:
 const mailbox = new Mailbox(conn, receiver);
 
 // Send messages
-await mailbox.send("text0", "url0", payer);
-await mailbox.send("text1", "url1", payer);
+await mailbox.send("text0", payer);
+await mailbox.send("text1", payer);
 
 // Fetch messages
 const messages = await mailbox.fetch();
