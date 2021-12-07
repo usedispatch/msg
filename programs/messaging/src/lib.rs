@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
+declare_id!("G3mefhJTnrSAtkrGFtztYeAo9nkM1kyNXkqaFkikfAmD");
 
 const _PROTOCOL_SEED: &[u8] = "messaging".as_bytes();
 const _MAILBOX_SEED: &[u8] = "mailbox".as_bytes();
