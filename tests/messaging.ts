@@ -2,7 +2,7 @@ import * as anchor from '@project-serum/anchor';
 import { strict as assert } from 'assert';
 import { Program } from '@project-serum/anchor';
 import { Messaging } from '../target/types/messaging';
-import { Mailbox } from '../lib';
+import { Mailbox } from '../0xengage_client/src';
 
 describe('messaging', () => {
 
@@ -82,7 +82,7 @@ describe('messaging', () => {
 
     assert.ok(messageAccount0.sender.equals(payer.publicKey))
     assert.ok(messageAccount0.data === "text0");
-    
+
     const messageAccount1 = await program.account.message.fetch(message1);
     assert.ok(messageAccount1.sender.equals(payer.publicKey))
     assert.ok(messageAccount1.data === "text1");
@@ -144,14 +144,14 @@ describe('messaging', () => {
 
     assert.ok(messages[0].sender.equals(payer.publicKey))
     assert.ok(messages[0].data === "text0");
-    
+
     assert.ok(messages[1].sender.equals(payer.publicKey))
     assert.ok(messages[1].data === "text1");
 
     await mailbox.pop();
     messages = await mailbox.fetch();
     assert.ok(messages.length === 1);
-    
+
     assert.ok(messages[0].sender.equals(payer.publicKey))
     assert.ok(messages[0].data === "text1");
 
@@ -192,7 +192,7 @@ describe('messaging', () => {
     popTx.feePayer = payer.publicKey;
     const popSig = await conn.sendTransaction(popTx, [payer, receiver]);
     await conn.confirmTransaction(popSig, "recent");
-    
+
     // Fetch messages
     messages = await mailbox.fetch();
     assert.ok(messages.length === 0);
