@@ -25,8 +25,8 @@ describe("Test for initial Mailbox setup.", () => {
             expect(received).toBe(expected);
 
             // Actual test starts here
-            console.log('receiver', receiver.publicKey);
-            console.log('payer', payer.publicKey);
+            console.log('receiver', receiver.publicKey.toBase58());
+            console.log('payer', payer.publicKey.toBase58());
 
             // await conn.confirmTransaction(
             //     await conn.requestAirdrop(payer.publicKey,
