@@ -1,6 +1,6 @@
 {
   "name": "@0xengage/client",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Client for 0xEngage",
   "main": "src/index.ts",
   "scripts": {
@@ -8,7 +8,7 @@
     "build": "tsc",
     "format": "prettier --write \"src/*.ts\"",
     "lint": "tslint -p tsconfig.json",
-    "prepare": "npm run build",
+    "prepare": "npm run build && echo 'Please run the tests manually before publish'",
     "prepublishOnly": "npm run lint",
     "preversion": "npm run lint",
     "version": "npm run format && git add -A src",
