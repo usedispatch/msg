@@ -1,11 +1,10 @@
-import { expect } from 'chai';
-import 'mocha';
-
-describe('Hello function', () => {
-  it('should return hello world', () => {
-    const expected = 'hello world';
-    const actual = 'hello world';
-    expect(expected).to.equal(actual);
-  });
+describe("Test for initial Jest setup.", () => {
+    describe("practiceTest", () => {
+        test("Given 'Hello World!', return 'Hello World!'", () => {
+            const received = "Hello World!";
+            const expected = "Hello World!";
+            expect(received).toBe(expected);
+        });
+    });
 
 });
