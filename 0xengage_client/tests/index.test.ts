@@ -12,6 +12,8 @@ const mailbox = new Mailbox(conn, {
     receiver, payer,
 });
 
+console.log('receiver', receiver.publicKey.toBase58());
+console.log('payer', payer.publicKey.toBase58());
 
 describe("Test for initial Mailbox setup.", () => {
     describe("mailboxTest", () => {
@@ -20,21 +22,35 @@ describe("Test for initial Mailbox setup.", () => {
             console.log(`wallet secret key ${walletSecretKey}`);
 
             // Something to make this run
-            const received = "Hello World!";
-            const expected = "Hello World!";
-            expect(received).toBe(expected);
+            // const received = "Hello World!";
+            // const expected = "Hello World!";
+            // expect(received).toBe(expected);
 
             // Actual test starts here
-            console.log('receiver', receiver.publicKey.toBase58());
-            console.log('payer', payer.publicKey.toBase58());
-
-            // await conn.confirmTransaction(
-            //     await conn.requestAirdrop(payer.publicKey,
-            //                               2 * web3.LAMPORTS_PER_SOL))
-
 
             await mailbox.send("text0");
             await mailbox.send("text1");
+
+            let messages = await mailbox.fetch();
+            // expect(messages.length).toEqual(2);
+
+            // expect(messages[0].sender.equals(payer.publicKey))
+            // assert.ok(messages[0].data === "text0");
+
+            // assert.ok(messages[1].sender.equals(payer.publicKey))
+            // assert.ok(messages[1].data === "text1");
+
+            // await mailbox.pop();
+            // messages = await mailbox.fetch();
+            // assert.ok(messages.length === 1);
+
+            // assert.ok(messages[0].sender.equals(payer.publicKey))
+            // assert.ok(messages[0].data === "text1");
+
+            // await mailbox.pop();
+            // messages = await mailbox.fetch();
+            // assert.ok(messages.length === 0);
+
         });
     });
 });
