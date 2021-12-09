@@ -1,7 +1,7 @@
 import * as anchor from '@project-serum/anchor';
 import { Program } from '@project-serum/anchor';
-import { Messaging } from '../target/types/messaging';
-import messagingProgramIdl from '../target/idl/messaging.json';
+import { Messaging } from '../../target/types/messaging';
+import messagingProgramIdl from '../../target/idl/messaging.json';
 
 const program = new Program<Messaging>(messagingProgramIdl as any, messagingProgramIdl.metadata.address);
 
@@ -147,7 +147,7 @@ export class Mailbox {
 
     return mailbox;
   }
-  
+
   async getMessageAddress(index: number) {
     const msgCountBuf = Buffer.allocUnsafe(4);
     msgCountBuf.writeInt32LE(index);
