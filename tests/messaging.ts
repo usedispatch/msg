@@ -168,8 +168,8 @@ describe('messaging', () => {
 
     // Mailbox usage
     const mailbox = new Mailbox(conn, {
-      receiver: receiver.publicKey,
-      payer: payer.publicKey,
+      receiverAddress: receiver.publicKey,
+      payerAddress: payer.publicKey,
     });
 
     // Send a message

@@ -15,10 +15,19 @@ export type MessageAccount = {
   data: string;
 };
 
-export type MailboxOpts = {
-  receiver: anchor.web3.PublicKey | anchor.web3.Keypair;
-  payer: anchor.web3.PublicKey | anchor.web3.Keypair;
+export type MailboxReceiver = {
+  receiverAddress: anchor.web3.PublicKey,
+} | {
+  receiver: anchor.web3.Keypair,
 };
+
+export type MailboxPayer = {
+  payerAddress: anchor.web3.PublicKey,
+} | {
+  payer: anchor.web3.Keypair,
+};
+
+export type MailboxOpts = MailboxReceiver & MailboxPayer;
 
 export class Mailbox {
   public receiverAddress: anchor.web3.PublicKey;
@@ -28,14 +37,15 @@ export class Mailbox {
   public payerKeypair: anchor.web3.Keypair | undefined;
 
   constructor(public conn: anchor.web3.Connection, opts: MailboxOpts) {
-    if (opts.receiver instanceof anchor.web3.PublicKey) {
-      this.receiverAddress = opts.receiver;
+    if ("receiverAddress" in opts) {
+      this.receiverAddress = opts.receiverAddress;
     } else {
-      this.receiverKeypair = opts.receiver;
       this.receiverAddress = opts.receiver.publicKey;
+      this.receiverKeypair = opts.receiver;
     }
-    if (opts.payer instanceof anchor.web3.PublicKey) {
-      this.payerAddress = opts.payer;
+
+    if ("payerAddress" in opts) {
+      this.payerAddress = opts.payerAddress;
     } else {
       this.payerKeypair = opts.payer;
       this.payerAddress = opts.payer.publicKey;
