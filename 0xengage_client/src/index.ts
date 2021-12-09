@@ -6,19 +6,19 @@ import messagingProgramIdl from '../../target/idl/messaging.json';
 const program = new Program<Messaging>(messagingProgramIdl as any, messagingProgramIdl.metadata.address);
 
 export type MailboxAccount = {
-  messageCount: number,
-  readMessageCount: number,
-}
+  messageCount: number;
+  readMessageCount: number;
+};
 
 export type MessageAccount = {
-  sender: anchor.web3.PublicKey,
-  data: string,
-}
+  sender: anchor.web3.PublicKey;
+  data: string;
+};
 
 export type MailboxOpts = {
-  receiver: anchor.web3.PublicKey | anchor.web3.Keypair,
-  payer: anchor.web3.PublicKey | anchor.web3.Keypair,
-}
+  receiver: anchor.web3.PublicKey | anchor.web3.Keypair;
+  payer: anchor.web3.PublicKey | anchor.web3.Keypair;
+};
 
 export class Mailbox {
   public receiverAddress: anchor.web3.PublicKey;
@@ -47,30 +47,30 @@ export class Mailbox {
   */
   async send(data: string) {
     if (!this.payerKeypair) {
-      throw new Error("`payer` must be a Keypair")
+      throw new Error('`payer` must be a Keypair');
     }
 
     const tx = await this.makeSendTx(data);
     tx.feePayer = this.payerAddress;
 
     const sig = await this.conn.sendTransaction(tx, [this.payerKeypair]);
-    await this.conn.confirmTransaction(sig, "recent");
+    await this.conn.confirmTransaction(sig, 'recent');
     return sig;
   }
 
   async pop() {
     if (!this.receiverKeypair) {
-      throw new Error("`receiver` must be a Keypair to `pop`, is `PublicKey`");
+      throw new Error('`receiver` must be a Keypair to `pop`, is `PublicKey`');
     }
     if (!this.payerKeypair) {
-      throw new Error("`payer` must be a Keypair")
+      throw new Error('`payer` must be a Keypair');
     }
 
     const tx = await this.makePopTx();
     tx.feePayer = this.payerAddress;
 
     const sig = await this.conn.sendTransaction(tx, [this.receiverKeypair, this.payerKeypair]);
-    await this.conn.confirmTransaction(sig, "recent");
+    await this.conn.confirmTransaction(sig, 'recent');
     return sig;
   }
 
@@ -96,7 +96,7 @@ export class Mailbox {
     try {
       const mailbox = await this.fetchMailbox();
       messageIndex = mailbox.messageCount;
-    } catch(err) {
+    } catch (err) {
       // This may fail if mailbox doesn't exist, which is fine.
       // It will get created on first send.
     }
@@ -139,11 +139,10 @@ export class Mailbox {
   */
 
   async getMailboxAddress() {
-    const [mailbox] = await anchor.web3.PublicKey.findProgramAddress([
-      Buffer.from("messaging"),
-      Buffer.from("mailbox"),
-      this.receiverAddress.toBuffer(),
-    ], program.programId);
+    const [mailbox] = await anchor.web3.PublicKey.findProgramAddress(
+      [Buffer.from('messaging'), Buffer.from('mailbox'), this.receiverAddress.toBuffer()],
+      program.programId,
+    );
 
     return mailbox;
   }
@@ -151,12 +150,10 @@ export class Mailbox {
   async getMessageAddress(index: number) {
     const msgCountBuf = Buffer.allocUnsafe(4);
     msgCountBuf.writeInt32LE(index);
-    const [message] = await anchor.web3.PublicKey.findProgramAddress([
-      Buffer.from("messaging"),
-      Buffer.from("message"),
-      this.receiverAddress.toBuffer(),
-      msgCountBuf,
-    ], program.programId);
+    const [message] = await anchor.web3.PublicKey.findProgramAddress(
+      [Buffer.from('messaging'), Buffer.from('message'), this.receiverAddress.toBuffer(), msgCountBuf],
+      program.programId,
+    );
 
     return message;
   }
