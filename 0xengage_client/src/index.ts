@@ -3,8 +3,6 @@ import { Program } from '@project-serum/anchor';
 import { Messaging } from '../../target/types/messaging';
 import messagingProgramIdl from '../../target/idl/messaging.json';
 
-const program = new Program<Messaging>(messagingProgramIdl as any, "G3mefhJTnrSAtkrGFtztYeAo9nkM1kyNXkqaFkikfAmD");
-
 export type MailboxAccount = {
   messageCount: number;
   readMessageCount: number;
@@ -27,7 +25,9 @@ export type MailboxPayer = {
   payer: anchor.web3.Keypair,
 };
 
-export type MailboxOpts = MailboxReceiver & MailboxPayer;
+export type MailboxOpts = MailboxReceiver & MailboxPayer & {
+  skipAnchorProvider?: boolean,
+};
 
 export class Mailbox {
   public receiverAddress: anchor.web3.PublicKey;
@@ -35,6 +35,8 @@ export class Mailbox {
 
   public payerAddress: anchor.web3.PublicKey;
   public payerKeypair: anchor.web3.Keypair | undefined;
+
+  public program: Program<Messaging>;
 
   constructor(public conn: anchor.web3.Connection, opts: MailboxOpts) {
     if ("receiverAddress" in opts) {
@@ -50,6 +52,13 @@ export class Mailbox {
       this.payerKeypair = opts.payer;
       this.payerAddress = opts.payer.publicKey;
     }
+
+    // Initialize anchor
+    if (!opts.skipAnchorProvider) {
+      const wallet = this.payerKeypair ?? anchor.web3.Keypair.generate();
+      anchor.setProvider(new anchor.Provider(conn, new anchor.Wallet(wallet), {}));
+    }
+    this.program = new Program<Messaging>(messagingProgramIdl as any, "G3mefhJTnrSAtkrGFtztYeAo9nkM1kyNXkqaFkikfAmD");
   }
 
   /*
@@ -89,7 +98,7 @@ export class Mailbox {
     const messages: MessageAccount[] = [];
     for (let i = mailbox.readMessageCount; i < mailbox.messageCount; i++) {
       const message = await this.getMessageAddress(i);
-      const messageAccount = await program.account.message.fetch(message);
+      const messageAccount = await this.program.account.message.fetch(message);
       messages.push(messageAccount as MessageAccount);
     }
 
@@ -113,7 +122,7 @@ export class Mailbox {
 
     const messageAddress = await this.getMessageAddress(messageIndex);
 
-    const tx = program.transaction.sendMessage(data, {
+    const tx = this.program.transaction.sendMessage(data, {
       accounts: {
         mailbox: mailboxAddress,
         receiver: this.receiverAddress,
@@ -131,7 +140,7 @@ export class Mailbox {
     const mailbox = await this.fetchMailbox();
     const messageAddress = await this.getMessageAddress(mailbox.readMessageCount);
 
-    const tx = await program.transaction.closeMessage({
+    const tx = await this.program.transaction.closeMessage({
       accounts: {
         mailbox: mailboxAddress,
         receiver: this.receiverAddress,
@@ -151,7 +160,7 @@ export class Mailbox {
   async getMailboxAddress() {
     const [mailbox] = await anchor.web3.PublicKey.findProgramAddress(
       [Buffer.from('messaging'), Buffer.from('mailbox'), this.receiverAddress.toBuffer()],
-      program.programId,
+      this.program.programId,
     );
 
     return mailbox;
@@ -162,14 +171,14 @@ export class Mailbox {
     msgCountBuf.writeInt32LE(index);
     const [message] = await anchor.web3.PublicKey.findProgramAddress(
       [Buffer.from('messaging'), Buffer.from('message'), this.receiverAddress.toBuffer(), msgCountBuf],
-      program.programId,
+      this.program.programId,
     );
 
     return message;
   }
 
   private async fetchMailbox() {
-    const mailboxAccount = await program.account.mailbox.fetch(await this.getMailboxAddress());
+    const mailboxAccount = await this.program.account.mailbox.fetch(await this.getMailboxAddress());
     return mailboxAccount;
   }
 }
