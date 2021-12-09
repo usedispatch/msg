@@ -3,7 +3,7 @@ import { Program } from '@project-serum/anchor';
 import { Messaging } from '../../target/types/messaging';
 import messagingProgramIdl from '../../target/idl/messaging.json';
 
-const program = new Program<Messaging>(messagingProgramIdl as any, messagingProgramIdl.metadata.address);
+const program = new Program<Messaging>(messagingProgramIdl as any, "G3mefhJTnrSAtkrGFtztYeAo9nkM1kyNXkqaFkikfAmD");
 
 export type MailboxAccount = {
   messageCount: number;
