@@ -1,12 +1,15 @@
 {
   "compilerOptions": {
     "target": "es6",
+    "lib": ["es2015"],
+    "module": "commonjs",
     "declaration": true,
     "outDir": "./lib",
     "strict": true,
     "esModuleInterop": true,
-    "moduleResolution": "node"
-
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "noImplicitAny": true
   },
   "include": ["src"],
   "exclude": ["node_modules", "**/__tests__/*"]
