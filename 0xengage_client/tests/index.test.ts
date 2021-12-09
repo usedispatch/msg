@@ -10,14 +10,17 @@ const payer = Keypair.fromSecretKey(bs58.decode(walletSecretKey));
 const receiver = Keypair.generate();
 
 
-describe("Test for initial Jest setup.", () => {
-    describe("practiceTest", () => {
-        test("Given 'Hello World!', return 'Hello World!'", async () => {
+describe("Test for initial Mailbox setup.", () => {
+    describe("mailboxTest", () => {
+        test("Mailbox init", async () => {
             console.log(`wallet secret key ${walletSecretKey}`);
+
+            // Something to make this run
             const received = "Hello World!";
             const expected = "Hello World!";
             expect(received).toBe(expected);
 
+            // Actual test starts here
             console.log('receiver', receiver.publicKey);
             console.log('payer', payer.publicKey);
 
@@ -25,8 +28,8 @@ describe("Test for initial Jest setup.", () => {
                 receiver, payer,
             });
 
-            await mailbox.send("text0");
-            await mailbox.send("text1");
+            // await mailbox.send("text0");
+            // await mailbox.send("text1");
 
 
         });
