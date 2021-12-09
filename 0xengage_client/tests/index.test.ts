@@ -17,39 +17,42 @@ console.log('payer', payer.publicKey.toBase58());
 
 describe("Test for initial Mailbox setup.", () => {
     describe("mailboxTest", () => {
+        test("Mailbox Send, receive, pop test", async () => {
 
-        test("Mailbox init", async () => {
-            console.log(`wallet secret key ${walletSecretKey}`);
+            console.log('Send message 1');
+            const txSig0 = await mailbox.send("text0");
+            await conn.confirmTransaction(txSig0, 'finalized');
 
-            // Something to make this run
-            // const received = "Hello World!";
-            // const expected = "Hello World!";
-            // expect(received).toBe(expected);
+            console.log('Send message 2');
+            const txSig1 = await mailbox.send("text1");
+            await conn.confirmTransaction(txSig1, 'finalized');
 
-            // Actual test starts here
-
-            await mailbox.send("text0");
-            await mailbox.send("text1");
-
+            console.log('Fetch messages from mailbox');
             let messages = await mailbox.fetch();
-            // expect(messages.length).toEqual(2);
+            expect(messages.length).toEqual(2);
 
-            // expect(messages[0].sender.equals(payer.publicKey))
-            // assert.ok(messages[0].data === "text0");
+            expect(messages[0].sender.equals(payer.publicKey))
+            expect(messages[0].data).toEqual("text0");
 
-            // assert.ok(messages[1].sender.equals(payer.publicKey))
-            // assert.ok(messages[1].data === "text1");
+            expect(messages[1].sender).toEqual(payer.publicKey);
+            expect(messages[1].data).toEqual("text1");
 
-            // await mailbox.pop();
-            // messages = await mailbox.fetch();
-            // assert.ok(messages.length === 1);
+            console.log('Pop 1 message from mailbox');
+            const txSig2 = await mailbox.pop();
+            await conn.confirmTransaction(txSig2, 'finalized');
 
-            // assert.ok(messages[0].sender.equals(payer.publicKey))
-            // assert.ok(messages[0].data === "text1");
+            let _messages = await mailbox.fetch();
+            expect(_messages.length).toEqual(1);
 
-            // await mailbox.pop();
-            // messages = await mailbox.fetch();
-            // assert.ok(messages.length === 0);
+            expect(_messages[0].sender).toEqual(payer.publicKey);
+            expect(_messages[0].data).toEqual("text1");
+
+            console.log('Pop 1 message from mailbox');
+            const txSig3 = await mailbox.pop();
+            await conn.confirmTransaction(txSig3, 'finalized');
+
+            let __messages = await mailbox.fetch();
+            expect(__messages.length).toEqual(0);
 
         });
     });
