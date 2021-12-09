@@ -1,8 +1,9 @@
 import * as anchor from '@project-serum/anchor';
 import { Program } from '@project-serum/anchor';
 import { Messaging } from '../target/types/messaging';
+import messagingProgramIdl from '../target/idl/messaging.json';
 
-const program = anchor.workspace.Messaging as Program<Messaging>;
+const program = new Program<Messaging>(messagingProgramIdl as any, messagingProgramIdl.metadata.address);
 
 export type MailboxAccount = {
   messageCount: number,
