@@ -1,8 +1,9 @@
 {
   "name": "@0xengage/client",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Client for 0xEngage",
-  "main": "src/index.ts",
+  "main": "lib/0xengage_client/src/index.js",
+  "types": "lib/0xengage_client/src/index.d.ts",
   "scripts": {
     "test": "jest --config jestconfig.json",
     "build": "tsc",

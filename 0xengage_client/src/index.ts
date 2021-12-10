@@ -13,21 +13,26 @@ export type MessageAccount = {
   data: string;
 };
 
-export type MailboxReceiver = {
-  receiverAddress: anchor.web3.PublicKey,
-} | {
-  receiver: anchor.web3.Keypair,
-};
+export type MailboxReceiver =
+  | {
+      receiverAddress: anchor.web3.PublicKey;
+    }
+  | {
+      receiver: anchor.web3.Keypair;
+    };
 
-export type MailboxPayer = {
-  payerAddress: anchor.web3.PublicKey,
-} | {
-  payer: anchor.web3.Keypair,
-};
+export type MailboxPayer =
+  | {
+      payerAddress: anchor.web3.PublicKey;
+    }
+  | {
+      payer: anchor.web3.Keypair;
+    };
 
-export type MailboxOpts = MailboxReceiver & MailboxPayer & {
-  skipAnchorProvider?: boolean,
-};
+export type MailboxOpts = MailboxReceiver &
+  MailboxPayer & {
+    skipAnchorProvider?: boolean;
+  };
 
 export class Mailbox {
   public receiverAddress: anchor.web3.PublicKey;
@@ -39,14 +44,14 @@ export class Mailbox {
   public program: Program<Messaging>;
 
   constructor(public conn: anchor.web3.Connection, opts: MailboxOpts) {
-    if ("receiverAddress" in opts) {
+    if ('receiverAddress' in opts) {
       this.receiverAddress = opts.receiverAddress;
     } else {
       this.receiverAddress = opts.receiver.publicKey;
       this.receiverKeypair = opts.receiver;
     }
 
-    if ("payerAddress" in opts) {
+    if ('payerAddress' in opts) {
       this.payerAddress = opts.payerAddress;
     } else {
       this.payerKeypair = opts.payer;
@@ -58,7 +63,7 @@ export class Mailbox {
       const wallet = this.payerKeypair ?? anchor.web3.Keypair.generate();
       anchor.setProvider(new anchor.Provider(conn, new anchor.Wallet(wallet), {}));
     }
-    this.program = new Program<Messaging>(messagingProgramIdl as any, "G3mefhJTnrSAtkrGFtztYeAo9nkM1kyNXkqaFkikfAmD");
+    this.program = new Program<Messaging>(messagingProgramIdl as any, 'G3mefhJTnrSAtkrGFtztYeAo9nkM1kyNXkqaFkikfAmD');
   }
 
   /*
