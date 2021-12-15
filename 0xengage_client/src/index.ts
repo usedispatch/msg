@@ -105,6 +105,11 @@ export class Mailbox {
     return messages;
   }
 
+  async count() {
+    const mailbox = await this.fetchMailbox();
+    return mailbox.messageCount - mailbox.readMessageCount;
+  }
+
   /*
     Transaction generation commands
   */
