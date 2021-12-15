@@ -139,6 +139,8 @@ describe('messaging', () => {
     await mailbox.send("text0");
     await mailbox.send("text1");
 
+    assert.ok(await mailbox.count() === 2);
+
     let messages = await mailbox.fetch();
     assert.ok(messages.length === 2);
 
@@ -149,6 +151,8 @@ describe('messaging', () => {
     assert.ok(messages[1].data === "text1");
 
     await mailbox.pop();
+    assert.ok(await mailbox.count() === 1);
+
     messages = await mailbox.fetch();
     assert.ok(messages.length === 1);
 
@@ -156,6 +160,8 @@ describe('messaging', () => {
     assert.ok(messages[0].data === "text1");
 
     await mailbox.pop();
+    assert.ok(await mailbox.count() === 0);
+
     messages = await mailbox.fetch();
     assert.ok(messages.length === 0);
   });
