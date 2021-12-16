@@ -28,8 +28,7 @@ pub mod messaging {
         let mailbox = &mut ctx.accounts.mailbox;
         mailbox.read_message_count = mailbox.read_message_count + 1;
 
-        if mail
-            box.read_message_count > mailbox.message_count {
+        if mailbox.read_message_count > mailbox.message_count {
             return Err(ProgramError::InvalidArgument);
         }
 
