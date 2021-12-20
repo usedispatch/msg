@@ -136,10 +136,21 @@ describe('messaging', () => {
       receiver, payer,
     });
 
+    assert.ok((await mailbox.fetch()).length === 0);
+    assert.ok(await mailbox.count() === 0);
+
+    const emptyCountEx = await mailbox.countEx();
+    assert.ok(emptyCountEx.messageCount === 0);
+    assert.ok(emptyCountEx.readMessageCount === 0);
+
     await mailbox.send("text0");
     await mailbox.send("text1");
 
     assert.ok(await mailbox.count() === 2);
+
+    const fullCountEx1 = await mailbox.countEx();
+    assert.ok(fullCountEx1.messageCount === 2);
+    assert.ok(fullCountEx1.readMessageCount === 0);
 
     let messages = await mailbox.fetch();
     assert.ok(messages.length === 2);
@@ -161,6 +172,10 @@ describe('messaging', () => {
 
     await mailbox.pop();
     assert.ok(await mailbox.count() === 0);
+
+    const fullCountEx2 = await mailbox.countEx();
+    assert.ok(fullCountEx2.messageCount === 2);
+    assert.ok(fullCountEx2.readMessageCount === 2);
 
     messages = await mailbox.fetch();
     assert.ok(messages.length === 0);
