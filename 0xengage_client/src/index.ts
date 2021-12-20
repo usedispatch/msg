@@ -98,8 +98,12 @@ export class Mailbox {
     return sig;
   }
 
-  async fetch() {
+  async fetch(): Promise<MessageAccount[]> {
     const mailbox = await this.fetchMailbox();
+    if (!mailbox) {
+      return [];
+    }
+
     const messages: MessageAccount[] = [];
     for (let i = mailbox.readMessageCount; i < mailbox.messageCount; i++) {
       const message = await this.getMessageAddress(i);
@@ -112,7 +116,26 @@ export class Mailbox {
 
   async count() {
     const mailbox = await this.fetchMailbox();
+    if (!mailbox) {
+      return 0;
+    }
+  
     return mailbox.messageCount - mailbox.readMessageCount;
+  }
+
+  async countEx() {
+    const mailbox = await this.fetchMailbox();
+    if (!mailbox) {
+      return {
+        messageCount: 0,
+        readMessageCount: 0,
+      };
+    }
+  
+    return {
+      messageCount: mailbox.messageCount,
+      readMessageCount: mailbox.readMessageCount,
+    };
   }
 
   /*
@@ -122,12 +145,9 @@ export class Mailbox {
     const mailboxAddress = await this.getMailboxAddress();
     let messageIndex = 0;
 
-    try {
-      const mailbox = await this.fetchMailbox();
+    const mailbox = await this.fetchMailbox();
+    if (mailbox) {
       messageIndex = mailbox.messageCount;
-    } catch (err) {
-      // This may fail if mailbox doesn't exist, which is fine.
-      // It will get created on first send.
     }
 
     const messageAddress = await this.getMessageAddress(messageIndex);
@@ -148,6 +168,10 @@ export class Mailbox {
   async makePopTx(): Promise<anchor.web3.Transaction> {
     const mailboxAddress = await this.getMailboxAddress();
     const mailbox = await this.fetchMailbox();
+    if (!mailbox) {
+      throw new Error(`Mailbox ${mailboxAddress.toBase58()} not found`);
+    }
+
     const messageAddress = await this.getMessageAddress(mailbox.readMessageCount);
 
     const tx = await this.program.transaction.closeMessage({
@@ -188,7 +212,7 @@ export class Mailbox {
   }
 
   private async fetchMailbox() {
-    const mailboxAccount = await this.program.account.mailbox.fetch(await this.getMailboxAddress());
+    const mailboxAccount = await this.program.account.mailbox.fetchNullable(await this.getMailboxAddress());
     return mailboxAccount;
   }
 }
