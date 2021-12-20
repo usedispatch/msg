@@ -119,7 +119,7 @@ export class Mailbox {
     if (!mailbox) {
       return 0;
     }
-  
+
     return mailbox.messageCount - mailbox.readMessageCount;
   }
 
@@ -131,7 +131,7 @@ export class Mailbox {
         readMessageCount: 0,
       };
     }
-  
+
     return {
       messageCount: mailbox.messageCount,
       readMessageCount: mailbox.readMessageCount,

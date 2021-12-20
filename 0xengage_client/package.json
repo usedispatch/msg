@@ -1,6 +1,6 @@
 {
   "name": "@0xengage/client",
-  "version": "0.0.5",
+  "version": "0.0.7",
   "description": "Client for 0xEngage",
   "main": "lib/0xengage_client/src/index.js",
   "types": "lib/0xengage_client/src/index.d.ts",
