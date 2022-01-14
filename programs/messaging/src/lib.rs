@@ -17,6 +17,7 @@ pub mod messaging {
 
         let message = &mut ctx.accounts.message;
         message.sender = ctx.accounts.payer.key().clone();
+        message.payer = ctx.accounts.payer.key().clone();
         message.data = data;
 
         Ok(())
@@ -52,6 +53,7 @@ pub struct SendMessage<'info> {
         space =
             8                               // account discriminator
             + 32                            // sender pubkey
+            + 32                            // payer pubkey
             + 4 + data.as_bytes().len(),    // payload string
         seeds = [_PROTOCOL_SEED, _MESSAGE_SEED, receiver.key().as_ref(), &mailbox.message_count.to_le_bytes()],
         bump,
@@ -80,7 +82,9 @@ pub struct CloseMessage<'info> {
     )]
     pub message: Account<'info, Message>,
 
-    #[account(mut)]
+    #[account(mut,
+        address = message.payer,
+    )]
     pub rent_destination: AccountInfo<'info>,
 
     pub system_program: Program<'info, System>,
@@ -97,5 +101,6 @@ pub struct Mailbox {
 #[derive(Default)]
 pub struct Message {
     pub sender: Pubkey,
+    pub payer: Pubkey,
     pub data: String,
 }

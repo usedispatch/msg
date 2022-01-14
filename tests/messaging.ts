@@ -93,7 +93,7 @@ describe('messaging', () => {
         mailbox: mailbox,
         receiver: receiver.publicKey,
         message: message0,
-        rentDestination: receiver.publicKey,
+        rentDestination: payer.publicKey,
         systemProgram: anchor.web3.SystemProgram.programId,
       },
       signers: [
@@ -107,7 +107,7 @@ describe('messaging', () => {
         mailbox: mailbox,
         receiver: receiver.publicKey,
         message: message1,
-        rentDestination: receiver.publicKey,
+        rentDestination: payer.publicKey,
         systemProgram: anchor.web3.SystemProgram.programId,
       },
       signers: [
@@ -121,8 +121,8 @@ describe('messaging', () => {
     assert.ok(mailboxAccount.messageCount === 2);
     assert.ok(mailboxAccount.readMessageCount === 2);
 
-    const receiverBalance = await conn.getBalance(receiver.publicKey);
-    assert.ok(receiverBalance !== 0);
+    const payerBalance = await conn.getBalance(payer.publicKey);
+    assert.ok(payerBalance >= 199899760);
   });
 
   it('Client library porcelain commands test', async () => {
