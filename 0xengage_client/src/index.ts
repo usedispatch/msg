@@ -29,8 +29,15 @@ export type MailboxPayer =
       payer: anchor.web3.Keypair;
     };
 
+export type MailboxSender = 
+  | {
+      senderAddress: anchor.web3.PublicKey;
+    }
+  | {};
+
 export type MailboxOpts = MailboxReceiver &
-  MailboxPayer & {
+  MailboxPayer &
+  MailboxSender & {
     skipAnchorProvider?: boolean;
   };
 
@@ -40,6 +47,8 @@ export class Mailbox {
 
   public payerAddress: anchor.web3.PublicKey;
   public payerKeypair: anchor.web3.Keypair | undefined;
+
+  public senderAddress: anchor.web3.PublicKey;
 
   public program: Program<Messaging>;
 
@@ -56,6 +65,12 @@ export class Mailbox {
     } else {
       this.payerKeypair = opts.payer;
       this.payerAddress = opts.payer.publicKey;
+    }
+
+    if ('senderAddress' in opts) {
+      this.senderAddress = opts.senderAddress;
+    } else {
+      this.senderAddress = this.payerAddress;
     }
 
     // Initialize anchor
@@ -158,6 +173,7 @@ export class Mailbox {
         receiver: this.receiverAddress,
         message: messageAddress,
         payer: this.payerAddress,
+        sender: this.payerAddress,
         systemProgram: anchor.web3.SystemProgram.programId,
       },
     });
