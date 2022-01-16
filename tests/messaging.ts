@@ -218,4 +218,61 @@ describe('messaging', () => {
     messages = await mailbox.fetch();
     assert.ok(messages.length === 0);
   });
+
+  it('Returns rent to original payer', async () => {
+    const receiver = anchor.web3.Keypair.generate();
+
+    const payer = anchor.web3.Keypair.generate();
+    await conn.confirmTransaction(await conn.requestAirdrop(payer.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
+
+    // Get mailbox address
+    const [mailbox] = await anchor.web3.PublicKey.findProgramAddress([
+      Buffer.from("messaging"),
+      Buffer.from("mailbox"),
+      receiver.publicKey.toBuffer(),
+    ], program.programId)
+
+    // Send first message
+    const msgCountBuf0 = Buffer.allocUnsafe(4);
+    msgCountBuf0.writeInt32LE(0);
+    const [message0] = await anchor.web3.PublicKey.findProgramAddress([
+      Buffer.from("messaging"),
+      Buffer.from("message"),
+      receiver.publicKey.toBuffer(),
+      msgCountBuf0,
+    ], program.programId);
+
+    const tx0 = await program.rpc.sendMessage("text0", {
+      accounts: {
+        mailbox: mailbox,
+        receiver: receiver.publicKey,
+        message: message0,
+        payer: payer.publicKey,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      },
+      signers: [
+        payer,
+      ],
+    });
+    await conn.confirmTransaction(tx0);
+
+    // close messages
+    try {
+      const tx1 = await program.rpc.closeMessage({
+        accounts: {
+          mailbox: mailbox,
+          receiver: receiver.publicKey,
+          message: message0,
+          rentDestination: receiver.publicKey,  // Intentionally wrong
+          systemProgram: anchor.web3.SystemProgram.programId,
+        },
+        signers: [
+          receiver,
+        ],
+      });
+      await conn.confirmTransaction(tx1);
+    } catch (e) {
+      assert.ok(e instanceof anchor.ProgramError);
+    }
+  });
 });
