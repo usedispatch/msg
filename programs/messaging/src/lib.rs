@@ -1,10 +1,20 @@
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::system_instruction;
+mod treasury;
 
 declare_id!("G3mefhJTnrSAtkrGFtztYeAo9nkM1kyNXkqaFkikfAmD");
 
-const _PROTOCOL_SEED: &[u8] = "messaging".as_bytes();
-const _MAILBOX_SEED: &[u8] = "mailbox".as_bytes();
-const _MESSAGE_SEED: &[u8] = "message".as_bytes();
+#[constant]
+const MESSAGE_FEE_LAMPORTS: u64 = 50000;
+#[constant]
+const PROTOCOL_SEED: & str = "messaging";
+#[constant]
+const MAILBOX_SEED: & str = "mailbox";
+#[constant]
+const MESSAGE_SEED: & str = "message";
+const _PROTOCOL_SEED: &[u8] = PROTOCOL_SEED.as_bytes();
+const _MAILBOX_SEED: &[u8] = MAILBOX_SEED.as_bytes();
+const _MESSAGE_SEED: &[u8] = MESSAGE_SEED.as_bytes();
 
 #[program]
 pub mod messaging {
@@ -19,6 +29,8 @@ pub mod messaging {
         message.sender = ctx.accounts.sender.key().clone();
         message.payer = ctx.accounts.payer.key().clone();
         message.data = data;
+
+        system_instruction::transfer(ctx.accounts.payer.key, ctx.accounts.fee_receiver.key, MESSAGE_FEE_LAMPORTS);
 
         Ok(())
     }
@@ -63,6 +75,10 @@ pub struct SendMessage<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
     pub sender: AccountInfo<'info>,
+    #[account(mut,
+        address = treasury::TREASURY_ADDRESS,
+    )]
+    pub fee_receiver: AccountInfo<'info>,
 
     pub system_program: Program<'info, System>,
 }
