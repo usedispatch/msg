@@ -16,7 +16,7 @@ pub mod messaging {
         mailbox.message_count = mailbox.message_count + 1;
 
         let message = &mut ctx.accounts.message;
-        message.sender = ctx.accounts.payer.key().clone();
+        message.sender = ctx.accounts.sender.key().clone();
         message.payer = ctx.accounts.payer.key().clone();
         message.data = data;
 
@@ -62,6 +62,7 @@ pub struct SendMessage<'info> {
 
     #[account(mut)]
     pub payer: Signer<'info>,
+    pub sender: AccountInfo<'info>,
 
     pub system_program: Program<'info, System>,
 }
