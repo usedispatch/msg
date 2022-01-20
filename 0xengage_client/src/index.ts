@@ -173,13 +173,14 @@ export class Mailbox {
     }
 
     const messageAddress = await this.getMessageAddress(mailbox.readMessageCount);
+    const messageAccount = await this.program.account.message.fetch(messageAddress);
 
     const tx = await this.program.transaction.closeMessage({
       accounts: {
         mailbox: mailboxAddress,
         receiver: this.receiverAddress,
         message: messageAddress,
-        rentDestination: this.receiverAddress,
+        rentDestination: messageAccount.payer,
         systemProgram: anchor.web3.SystemProgram.programId,
       },
     });
