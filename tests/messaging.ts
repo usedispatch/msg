@@ -14,6 +14,7 @@ describe('messaging', () => {
 
   it('Basic test', async () => {
     const receiver = anchor.web3.Keypair.generate();
+    const sender = anchor.web3.Keypair.generate();
 
     const payer = anchor.web3.Keypair.generate();
     await conn.confirmTransaction(await conn.requestAirdrop(payer.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
@@ -41,6 +42,7 @@ describe('messaging', () => {
         receiver: receiver.publicKey,
         message: message0,
         payer: payer.publicKey,
+        sender: sender.publicKey,
         systemProgram: anchor.web3.SystemProgram.programId,
       },
       signers: [
@@ -65,6 +67,7 @@ describe('messaging', () => {
         receiver: receiver.publicKey,
         message: message1,
         payer: payer.publicKey,
+        sender: sender.publicKey,
         systemProgram: anchor.web3.SystemProgram.programId,
       },
       signers: [
@@ -80,11 +83,11 @@ describe('messaging', () => {
 
     const messageAccount0 = await program.account.message.fetch(message0);
 
-    assert.ok(messageAccount0.sender.equals(payer.publicKey))
+    assert.ok(messageAccount0.sender.equals(sender.publicKey))
     assert.ok(messageAccount0.data === "text0");
 
     const messageAccount1 = await program.account.message.fetch(message1);
-    assert.ok(messageAccount1.sender.equals(payer.publicKey))
+    assert.ok(messageAccount1.sender.equals(sender.publicKey))
     assert.ok(messageAccount1.data === "text1");
 
     // close messages
@@ -128,12 +131,14 @@ describe('messaging', () => {
   it('Client library porcelain commands test', async () => {
     // Set up accounts
     const receiver = anchor.web3.Keypair.generate();
+    const sender = anchor.web3.Keypair.generate();
+    const senderAddress = sender.publicKey;
     const payer = anchor.web3.Keypair.generate();
     await conn.confirmTransaction(await conn.requestAirdrop(payer.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
 
     // Mailbox usage
     const mailbox = new Mailbox(conn, {
-      receiver, payer,
+      receiver, payer, senderAddress,
     });
 
     assert.ok((await mailbox.fetch()).length === 0);
@@ -248,6 +253,7 @@ describe('messaging', () => {
         receiver: receiver.publicKey,
         message: message0,
         payer: payer.publicKey,
+        sender: payer.publicKey,
         systemProgram: anchor.web3.SystemProgram.programId,
       },
       signers: [
