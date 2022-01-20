@@ -2,7 +2,7 @@ import * as anchor from '@project-serum/anchor';
 import { strict as assert } from 'assert';
 import { Program } from '@project-serum/anchor';
 import { Messaging } from '../target/types/messaging';
-import { Mailbox } from '../0xengage_client/src';
+import { Mailbox, TREASURY, MESSAGE_FEE_LAMPORTS } from '../0xengage_client/src';
 
 describe('messaging', () => {
 
@@ -18,6 +18,8 @@ describe('messaging', () => {
 
     const payer = anchor.web3.Keypair.generate();
     await conn.confirmTransaction(await conn.requestAirdrop(payer.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
+
+    const treasuryBalance = await conn.getBalance(TREASURY);
 
     // send a couple of messages
     const [mailbox] = await anchor.web3.PublicKey.findProgramAddress([
@@ -43,6 +45,7 @@ describe('messaging', () => {
         message: message0,
         payer: payer.publicKey,
         sender: sender.publicKey,
+        feeReceiver: TREASURY,
         systemProgram: anchor.web3.SystemProgram.programId,
       },
       signers: [
@@ -68,6 +71,7 @@ describe('messaging', () => {
         message: message1,
         payer: payer.publicKey,
         sender: sender.publicKey,
+        feeReceiver: TREASURY,
         systemProgram: anchor.web3.SystemProgram.programId,
       },
       signers: [
@@ -89,6 +93,9 @@ describe('messaging', () => {
     const messageAccount1 = await program.account.message.fetch(message1);
     assert.ok(messageAccount1.sender.equals(sender.publicKey))
     assert.ok(messageAccount1.data === "text1");
+
+    // const endTreasuryBalance = await conn.getBalance(TREASURY);
+    // assert.equal(endTreasuryBalance, treasuryBalance + 2 * MESSAGE_FEE_LAMPORTS);
 
     // close messages
     const tx2 = await program.rpc.closeMessage({
@@ -254,6 +261,7 @@ describe('messaging', () => {
         message: message0,
         payer: payer.publicKey,
         sender: payer.publicKey,
+        feeReceiver: TREASURY,
         systemProgram: anchor.web3.SystemProgram.programId,
       },
       signers: [
@@ -276,9 +284,8 @@ describe('messaging', () => {
           receiver,
         ],
       });
-      await conn.confirmTransaction(tx1);
     } catch (e) {
-      assert.ok(e instanceof anchor.ProgramError);
+      assert.ok(String(e).startsWith('Error: failed to send transaction'));
     }
   });
 });

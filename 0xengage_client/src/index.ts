@@ -174,6 +174,7 @@ export class Mailbox {
         message: messageAddress,
         payer: this.payerAddress,
         sender: this.payerAddress,
+        feeReceiver: TREASURY,
         systemProgram: anchor.web3.SystemProgram.programId,
       },
     });
@@ -210,7 +211,7 @@ export class Mailbox {
 
   async getMailboxAddress() {
     const [mailbox] = await anchor.web3.PublicKey.findProgramAddress(
-      [Buffer.from('messaging'), Buffer.from('mailbox'), this.receiverAddress.toBuffer()],
+      [Buffer.from(PROTOCOL_SEED), Buffer.from(MAILBOX_SEED), this.receiverAddress.toBuffer()],
       this.program.programId,
     );
 
@@ -221,7 +222,7 @@ export class Mailbox {
     const msgCountBuf = Buffer.allocUnsafe(4);
     msgCountBuf.writeInt32LE(index);
     const [message] = await anchor.web3.PublicKey.findProgramAddress(
-      [Buffer.from('messaging'), Buffer.from('message'), this.receiverAddress.toBuffer(), msgCountBuf],
+      [Buffer.from(PROTOCOL_SEED), Buffer.from(MESSAGE_SEED), this.receiverAddress.toBuffer(), msgCountBuf],
       this.program.programId,
     );
 
@@ -233,3 +234,16 @@ export class Mailbox {
     return mailboxAccount;
   }
 }
+
+// Some constants
+export const TREASURY = new anchor.web3.PublicKey(messagingProgramIdl.constants.find(
+  c => c.name === "TREASURY_ADDRESS")!.value.replace(
+  'solana_program :: pubkey ! ("', '').replace('")', ''));
+export const PROTOCOL_SEED = messagingProgramIdl.constants.find(
+  c => c.name === "PROTOCOL_SEED")!.value.replace(/"/g, '');
+export const MAILBOX_SEED = messagingProgramIdl.constants.find(
+  c => c.name === "MAILBOX_SEED")!.value.replace(/"/g, '');
+export const MESSAGE_SEED = messagingProgramIdl.constants.find(
+  c => c.name === "MESSAGE_SEED")!.value.replace(/"/g, '');
+export const MESSAGE_FEE_LAMPORTS = +messagingProgramIdl.constants.find(
+  c => c.name === "MESSAGE_FEE_LAMPORTS")!.value;
