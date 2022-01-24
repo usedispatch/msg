@@ -78,7 +78,7 @@ export class Mailbox {
       const wallet = this.payerKeypair ?? anchor.web3.Keypair.generate();
       anchor.setProvider(new anchor.Provider(conn, new anchor.Wallet(wallet), {}));
     }
-    this.program = new Program<Messaging>(messagingProgramIdl as any, 'G3mefhJTnrSAtkrGFtztYeAo9nkM1kyNXkqaFkikfAmD');
+    this.program = new Program<Messaging>(messagingProgramIdl as any, messagingProgramIdl.metadata.address);
   }
 
   /*
