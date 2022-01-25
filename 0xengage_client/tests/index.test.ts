@@ -1,13 +1,24 @@
-import { Keypair, clusterApiUrl } from '@solana/web3.js';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 import * as web3 from '@solana/web3.js';
 import * as bs58 from 'bs58';
 import { Mailbox } from "../src/";
 
+const getPayer = () : web3.Keypair => {
+    if (process.env.WALLET_SECRET_KEY) {
+        const walletSecretKey = process.env.WALLET_SECRET_KEY;
+        return web3.Keypair.fromSecretKey(bs58.decode(walletSecretKey));
+    }
+    const walletFile = process.env.WALLET_FILE || path.join(os.homedir(), '.config', 'solana', 'id.json');
+    const secretKeyString = fs.readFileSync(walletFile, 'utf-8');
+    const secretKey = Uint8Array.from(JSON.parse(secretKeyString));
+    return web3.Keypair.fromSecretKey(secretKey);
+};
 
-const walletSecretKey = process.env.WALLET_SECRET_KEY!;
 const conn = new web3.Connection(web3.clusterApiUrl('devnet'));
-const payer = Keypair.fromSecretKey(bs58.decode(walletSecretKey));
-const receiver = Keypair.generate();
+const payer = getPayer();
+const receiver = web3.Keypair.generate();
 const mailbox = new Mailbox(conn, {
     receiver, payer,
 });
