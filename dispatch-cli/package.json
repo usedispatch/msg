@@ -1,0 +1,36 @@
+{
+  "name": "dispatch-cli",
+  "version": "0.1.0",
+  "description": "Basic command line interface to send/receive messages on solana using Dispatch",
+  "main": "./lib/index.js",
+  "bin": {
+    "dispatch-cli": "./lib/index.js"
+  },
+  "scripts": {
+    "start": "ts-node src/index.ts",
+    "create": "npm run build && npm run test",
+    "build": "tsc -p .",
+    "local": "sudo npm i -g && dispatch-cli",
+    "refresh": "rm -rf ./node_modules ./package-lock.json && npm install",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "run-list": "ts-node src/index.ts list",
+    "run-send": "ts-node src/index.ts send G2GGDc89qpuk21WgRUVPDY517uc6qR5yT4KX7AakyVR1 message1",
+    "run-pop": "ts-node src/index.ts pop"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/0xengage/msg/dispatch-cli"
+  },
+  "author": "Dispatch team",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^17.0.10",
+    "@types/yargs": "^17.0.8",
+    "ts-node": "^10.4.0",
+    "typescript": "^4.5.5"
+  },
+  "dependencies": {
+    "yargs": "^17.3.1",
+    "@0xengage/client": "^0.0.8"
+  }
+}
