@@ -29,7 +29,7 @@ export type MailboxPayer =
       payer: anchor.web3.Keypair;
     };
 
-export type MailboxSender = 
+export type MailboxSender =
   | {
       senderAddress: anchor.web3.PublicKey;
     }
@@ -78,7 +78,7 @@ export class Mailbox {
       const wallet = this.payerKeypair ?? anchor.web3.Keypair.generate();
       anchor.setProvider(new anchor.Provider(conn, new anchor.Wallet(wallet), {}));
     }
-    this.program = new Program<Messaging>(messagingProgramIdl as any, 'G3mefhJTnrSAtkrGFtztYeAo9nkM1kyNXkqaFkikfAmD');
+    this.program = new Program<Messaging>(messagingProgramIdl as any, messagingProgramIdl.metadata.address);
   }
 
   /*
@@ -236,14 +236,20 @@ export class Mailbox {
 }
 
 // Some constants
-export const TREASURY = new anchor.web3.PublicKey(messagingProgramIdl.constants.find(
-  c => c.name === "TREASURY_ADDRESS")!.value.replace(
-  'solana_program :: pubkey ! ("', '').replace('")', ''));
-export const PROTOCOL_SEED = messagingProgramIdl.constants.find(
-  c => c.name === "PROTOCOL_SEED")!.value.replace(/"/g, '');
-export const MAILBOX_SEED = messagingProgramIdl.constants.find(
-  c => c.name === "MAILBOX_SEED")!.value.replace(/"/g, '');
-export const MESSAGE_SEED = messagingProgramIdl.constants.find(
-  c => c.name === "MESSAGE_SEED")!.value.replace(/"/g, '');
-export const MESSAGE_FEE_LAMPORTS = +messagingProgramIdl.constants.find(
-  c => c.name === "MESSAGE_FEE_LAMPORTS")!.value;
+export const TREASURY = new anchor.web3.PublicKey(
+  messagingProgramIdl.constants
+    .find((c) => c.name === 'TREASURY_ADDRESS')!
+    .value.replace('solana_program :: pubkey ! ("', '')
+    .replace('")', ''),
+);
+export const PROTOCOL_SEED = messagingProgramIdl.constants
+  .find((c) => c.name === 'PROTOCOL_SEED')!
+  .value.replace(/"/g, '');
+export const MAILBOX_SEED = messagingProgramIdl.constants
+  .find((c) => c.name === 'MAILBOX_SEED')!
+  .value.replace(/"/g, '');
+export const MESSAGE_SEED = messagingProgramIdl.constants
+  .find((c) => c.name === 'MESSAGE_SEED')!
+  .value.replace(/"/g, '');
+export const MESSAGE_FEE_LAMPORTS = +messagingProgramIdl.constants.find((c) => c.name === 'MESSAGE_FEE_LAMPORTS')!
+  .value;
