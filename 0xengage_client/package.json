@@ -1,12 +1,12 @@
 {
   "name": "@0xengage/client",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "Client for 0xEngage",
   "main": "lib/0xengage_client/src/index.js",
   "types": "lib/0xengage_client/src/index.d.ts",
   "scripts": {
     "test": "jest --config jestconfig.json",
-    "build": "tsc",
+    "build": "cp ../target/idl/* ./lib/target/idl/ && cp ../target/types/* ./lib/target/types/ && tsc",
     "format": "prettier --write \"src/*.ts\"",
     "lint": "tslint -p tsconfig.json",
     "prepare": "npm run build && echo 'Please run the tests manually before publish'",
