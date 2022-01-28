@@ -271,6 +271,10 @@ describe('messaging', () => {
     await conn.confirmTransaction(tx0);
 
     // close messages
+    const oldConsoleLog = console.log;
+    const oldConsoleError = console.error;
+    console.log = () => {};
+    console.error = () => {};
     try {
       const tx1 = await program.rpc.closeMessage({
         accounts: {
@@ -287,5 +291,7 @@ describe('messaging', () => {
     } catch (e) {
       assert.ok(String(e).startsWith('Error: failed to send transaction'));
     }
+    console.log = oldConsoleLog;
+    console.error = oldConsoleError;
   });
 });
