@@ -7,7 +7,7 @@ import * as web3 from '@solana/web3.js';
 import yargs from 'yargs/yargs';
 import { hideBin } from 'yargs/helpers';
 
-import * as dispatch from '@0xengage/client';
+import * as dispatch from '@usedispatch/client';
 
 const getLocalConn = (cluster: web3.Cluster) => {
   console.log(`Using cluster ${cluster}`);

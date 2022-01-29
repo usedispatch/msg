@@ -2,8 +2,8 @@
   "name": "@usedispatch/client",
   "version": "0.0.9",
   "description": "Client for Dispatch Protocol",
-  "main": "lib/0xengage_client/src/index.js",
-  "types": "lib/0xengage_client/src/index.d.ts",
+  "main": "lib/usedispatch_client/src/index.js",
+  "types": "lib/usedispatch_client/src/index.d.ts",
   "scripts": {
     "test": "jest --config jestconfig.json",
     "build": "npm run idl && tsc",
