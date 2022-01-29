@@ -2,7 +2,7 @@ import * as anchor from '@project-serum/anchor';
 import { strict as assert } from 'assert';
 import { Program } from '@project-serum/anchor';
 import { Messaging } from '../target/types/messaging';
-import { Mailbox, TREASURY, MESSAGE_FEE_LAMPORTS } from '../0xengage_client/src';
+import { Mailbox, TREASURY, MESSAGE_FEE_LAMPORTS } from '../usedispatch_client/src';
 
 describe('messaging', () => {
 
