@@ -1,7 +1,7 @@
 {
-  "name": "@0xengage/client",
-  "version": "0.0.8",
-  "description": "Client for 0xEngage",
+  "name": "@usedispatch/client",
+  "version": "0.0.9",
+  "description": "Client for Dispatch Protocol",
   "main": "lib/0xengage_client/src/index.js",
   "types": "lib/0xengage_client/src/index.d.ts",
   "scripts": {
@@ -21,7 +21,7 @@
     "lib/**/*"
   ],
   "author": "",
-  "homepage": "https://0xengage.github.io/",
+  "homepage": "https://usedispatch.net/",
   "license": "MIT or Apache 2.0",
   "devDependencies": {
     "@types/bs58": "^4.0.1",
