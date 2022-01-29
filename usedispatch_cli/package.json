@@ -15,14 +15,22 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "run-list": "ts-node src/index.ts list",
     "run-send": "ts-node src/index.ts send G2GGDc89qpuk21WgRUVPDY517uc6qR5yT4KX7AakyVR1 message1",
-    "run-pop": "ts-node src/index.ts pop"
+    "run-pop": "ts-node src/index.ts pop",
+    "format": "prettier --write \"src/*.ts\"",
+    "lint": "tslint -p tsconfig.json",
+    "prepare": "npm run build && echo 'Please run the tests manually before publish'",
+    "prepublishOnly": "npm run lint",
+    "preversion": "npm run lint",
+    "version": "npm run format && git add -A src",
+    "postversion": "git push && git push --tags"
   },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/0xengage/msg/dispatch-cli"
-  },
-  "author": "Dispatch team",
-  "license": "ISC",
+  "keywords": [],
+  "files": [
+    "lib/**/*"
+  ],
+  "author": "Dispatch Protocol",
+  "homepage": "https://usedispatch.net/",
+  "license": "MIT or Apache 2.0",
   "devDependencies": {
     "@types/node": "^17.0.10",
     "@types/yargs": "^17.0.8",
@@ -31,6 +39,6 @@
   },
   "dependencies": {
     "yargs": "^17.3.1",
-    "@0xengage/client": "^0.0.8"
+    "@usedispatch/client": "^0.0.9"
   }
 }
