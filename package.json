@@ -9,5 +9,6 @@
         "@types/mocha": "^9.0.0",
         "@types/chai": "^4.3.0",
         "typescript": "^4.3.5"
-    }
+    },
+    "version": "0.0.1"
 }
