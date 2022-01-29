@@ -20,7 +20,7 @@
   "files": [
     "lib/**/*"
   ],
-  "author": "",
+  "author": "Dispatch Protocol",
   "homepage": "https://usedispatch.net/",
   "license": "MIT or Apache 2.0",
   "devDependencies": {

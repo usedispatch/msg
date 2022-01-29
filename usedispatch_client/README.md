@@ -1,6 +1,6 @@
-# 0xengage/client
+# usedispatch/client
 
-[Site](https://0xengage.github.io) |
+[Site](https://usedispatch.net) |
 [Docs](https://0xengage.github.io)
 
 
@@ -8,7 +8,7 @@
 
 Using npm:
 ```shell
-$ npm install @0xengage/client
+$ npm install @usedispatch/client
 ```
 
 # Quickstart
