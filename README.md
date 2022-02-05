@@ -5,10 +5,10 @@
 1. `yarn` - Install JS packages
 1. `cargo build` - Install Rust deps
 1. `cargo install --git https://github.com/project-serum/anchor --tag v0.20.1 anchor-cli --locked` - Install [Anchor](https://project-serum.github.io/anchor/getting-started/installation.html#build-from-source-for-other-operating-systems)
-1. `anchor test
-1. `cd usedispatch_client/ && npm install
-1. `npm run test
-1. `cd ../usedispatch_cli
+1. `anchor test`
+1. `cd usedispatch_client/ && npm install`
+1. `npm run test`
+1. `cd ../usedispatch_cli`
 1. `npm install && cd ..`
 
 ### After every change
