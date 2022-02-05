@@ -7,14 +7,14 @@ import * as web3 from '@solana/web3.js';
 import yargs from 'yargs/yargs';
 import { hideBin } from 'yargs/helpers';
 
-import * as dispatch from '@0xengage/client';
+import * as dispatch from '@usedispatch/client';
 
 const getLocalConn = (cluster: web3.Cluster) => {
   console.log(`Using cluster ${cluster}`);
   return new web3.Connection(web3.clusterApiUrl(cluster));
 };
 
-const getLocalWallet = () : web3.Keypair => {
+const getLocalWallet = (): web3.Keypair => {
   const walletFile = process.env.WALLET_FILE || path.join(os.homedir(), '.config', 'solana', 'id.json');
   const secretKeyString = fs.readFileSync(walletFile, 'utf-8');
   const secretKey = Uint8Array.from(JSON.parse(secretKeyString));
@@ -55,7 +55,7 @@ const popMessage = async (cluster: web3.Cluster) => {
     payer: wallet,
   });
   const count = await mailbox.count();
-  if (count == 0) {
+  if (count === 0) {
     console.log('No messages remaining to pop');
   } else {
     const trans = await mailbox.pop();
@@ -67,38 +67,53 @@ const popMessage = async (cluster: web3.Cluster) => {
 
 export const processArgs = () => {
   yargs(hideBin(process.argv))
-  .option('cluster', {
-    choices: ["mainnet-beta", "devnet", "testnet"] as const,
-    default: "devnet",
-  })
-  .command('send <address> <message>', 'Send a message', (yargs) => {
-    return yargs
-      .positional('address', {
-        describe: 'Base58 address to send message to',
-        type: 'string',
-        demandOption: true,
-      })
-      .positional('message', {
-        describe: 'Message to send (as string)',
-        type: 'string',
-        demandOption: true,
-      });
-  }, async (argv) => {
-    await sendMessage(argv.cluster as web3.Cluster, argv.address, argv.message);
-  })
-  .command('list', 'show available messages', (yargs) => {
-      return yargs;
-    }, async (argv) => {
-    await listMessages(argv.cluster as web3.Cluster);
-  })
-  .command('pop', 'display and delete oldest message', (yargs) => {
-    return yargs;
-  }, async (argv) => {
-    await popMessage(argv.cluster as web3.Cluster);
-  })
-  .demandCommand(1, 'A command is required')
-  .help()
-  .parse();
+    .option('cluster', {
+      choices: ['mainnet-beta', 'devnet', 'testnet'] as const,
+      default: 'devnet',
+    })
+    .command(
+      'send <address> <message>',
+      'Send a message',
+      (yargs2) => {
+        return yargs2
+          .positional('address', {
+            describe: 'Base58 address to send message to',
+            type: 'string',
+            demandOption: true,
+          })
+          .positional('message', {
+            describe: 'Message to send (as string)',
+            type: 'string',
+            demandOption: true,
+          });
+      },
+      async (argv) => {
+        await sendMessage(argv.cluster as web3.Cluster, argv.address, argv.message);
+      },
+    )
+    .command(
+      'list',
+      'show available messages',
+      (yargs2) => {
+        return yargs2;
+      },
+      async (argv) => {
+        await listMessages(argv.cluster as web3.Cluster);
+      },
+    )
+    .command(
+      'pop',
+      'display and delete oldest message',
+      (yargs2) => {
+        return yargs2;
+      },
+      async (argv) => {
+        await popMessage(argv.cluster as web3.Cluster);
+      },
+    )
+    .demandCommand(1, 'A command is required')
+    .help()
+    .parse();
 };
 
 processArgs();

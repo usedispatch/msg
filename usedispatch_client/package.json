@@ -1,9 +1,9 @@
 {
-  "name": "@0xengage/client",
-  "version": "0.0.8",
-  "description": "Client for 0xEngage",
-  "main": "lib/0xengage_client/src/index.js",
-  "types": "lib/0xengage_client/src/index.d.ts",
+  "name": "@usedispatch/client",
+  "version": "0.0.10",
+  "description": "Client for Dispatch Protocol",
+  "main": "lib/usedispatch_client/src/index.js",
+  "types": "lib/usedispatch_client/src/index.d.ts",
   "scripts": {
     "test": "jest --config jestconfig.json",
     "build": "npm run idl && tsc",
@@ -20,8 +20,8 @@
   "files": [
     "lib/**/*"
   ],
-  "author": "",
-  "homepage": "https://0xengage.github.io/",
+  "author": "Dispatch Protocol",
+  "homepage": "https://usedispatch.net/",
   "license": "MIT or Apache 2.0",
   "devDependencies": {
     "@types/bs58": "^4.0.1",
