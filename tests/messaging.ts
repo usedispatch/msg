@@ -294,4 +294,55 @@ describe('messaging', () => {
     console.log = oldConsoleLog;
     console.error = oldConsoleError;
   });
+
+  it('Emits an event when sending', async () => {
+    const receiver = anchor.web3.Keypair.generate();
+
+    const payer = anchor.web3.Keypair.generate();
+    await conn.confirmTransaction(await conn.requestAirdrop(payer.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
+
+    let eventEmitted = false
+    const eventListener = program.addEventListener("DispatchMessage", async (event, slot) => {
+      await program.removeEventListener(eventListener);
+      assert.ok(receiver.publicKey.equals(event.receiver));
+      assert.ok(payer.publicKey.equals(event.sender));
+      assert.ok(event.messageIndex === 0);
+      eventEmitted = true;
+    });
+
+    // Get mailbox address
+    const [mailbox] = await anchor.web3.PublicKey.findProgramAddress([
+      Buffer.from("messaging"),
+      Buffer.from("mailbox"),
+      receiver.publicKey.toBuffer(),
+    ], program.programId)
+
+    // Send first message
+    const msgCountBuf0 = Buffer.allocUnsafe(4);
+    msgCountBuf0.writeInt32LE(0);
+    const [message0] = await anchor.web3.PublicKey.findProgramAddress([
+      Buffer.from("messaging"),
+      Buffer.from("message"),
+      receiver.publicKey.toBuffer(),
+      msgCountBuf0,
+    ], program.programId);
+
+    const tx0 = await program.rpc.sendMessage("text0", {
+      accounts: {
+        mailbox: mailbox,
+        receiver: receiver.publicKey,
+        message: message0,
+        payer: payer.publicKey,
+        sender: payer.publicKey,
+        feeReceiver: TREASURY,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      },
+      signers: [
+        payer,
+      ],
+    });
+    await conn.confirmTransaction(tx0);
+
+    assert.ok(eventEmitted);
+  });
 });
