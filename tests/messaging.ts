@@ -304,9 +304,10 @@ describe('messaging', () => {
     let eventEmitted = false
     const eventListener = program.addEventListener("DispatchMessage", async (event, slot) => {
       await program.removeEventListener(eventListener);
-      assert.ok(receiver.publicKey.equals(event.receiver));
-      assert.ok(payer.publicKey.equals(event.sender));
+      assert.ok(receiver.publicKey.equals(event.receiverPubkey));
+      assert.ok(payer.publicKey.equals(event.senderPubkey));
       assert.ok(event.messageIndex === 0);
+      assert.ok(event.message === "text0");
       eventEmitted = true;
     });
 

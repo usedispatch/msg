@@ -33,9 +33,10 @@ pub mod messaging {
         system_instruction::transfer(ctx.accounts.payer.key, ctx.accounts.fee_receiver.key, MESSAGE_FEE_LAMPORTS);
 
         emit!(DispatchMessage {
-            sender: message.sender,
-            receiver: ctx.accounts.receiver.key(),
+            sender_pubkey: message.sender,
+            receiver_pubkey: ctx.accounts.receiver.key(),
             message_index: mailbox.message_count - 1,
+            message: message.data.clone(),
         });
 
         Ok(())
@@ -130,7 +131,8 @@ pub struct Message {
 
 #[event]
 pub struct DispatchMessage {
-    pub sender: Pubkey,
-    pub receiver: Pubkey,
+    pub sender_pubkey: Pubkey,
+    pub receiver_pubkey: Pubkey,
     pub message_index: u32,
+    pub message: String,
 }
