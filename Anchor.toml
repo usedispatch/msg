@@ -1,8 +1,8 @@
 [programs.localnet]
-messaging = "7hSwrtqHAKjLNsj3KauwcCDxuqC3pbkshZWYs28xWtwU"
+messaging = "BHJ4tRcogS88tUhYotPfYWDjR4q7MGdizdiguY3N54rb"
 
 [programs.devnet]
-messaging = "7hSwrtqHAKjLNsj3KauwcCDxuqC3pbkshZWYs28xWtwU"
+messaging = "BHJ4tRcogS88tUhYotPfYWDjR4q7MGdizdiguY3N54rb"
 
 [registry]
 url = "https://anchor.projectserum.com"
