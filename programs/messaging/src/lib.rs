@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_lang::solana_program::system_instruction;
 mod treasury;
 
-declare_id!("7hSwrtqHAKjLNsj3KauwcCDxuqC3pbkshZWYs28xWtwU");
+declare_id!("BHJ4tRcogS88tUhYotPfYWDjR4q7MGdizdiguY3N54rb");
 
 #[constant]
 const MESSAGE_FEE_LAMPORTS: u64 = 50000;
