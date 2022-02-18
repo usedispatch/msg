@@ -29,7 +29,7 @@ jobs:
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
     - name: Build
       run: cargo build --verbose
-    - name: Install Anchor
-      run: cargo install --git https://github.com/project-serum/anchor --tag v0.20.1 anchor-cli --locked
+    - name: Install Anchor (if not already in the cache)
+      run: anchor || cargo install --git https://github.com/project-serum/anchor --tag v0.20.1 anchor-cli --locked
     - name: Run Anchor test
       run: anchor test
