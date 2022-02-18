@@ -27,6 +27,12 @@ jobs:
           ~/.cargo/git/db/
           target/
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+    - name: Install Rust via Rustup (Rquired for Solana's Anchor)
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        override: true
+        components: rustfmt, clippy
     - name: Build
       run: cargo build --verbose
     - name: Install Anchor (if not already in the cache)
