@@ -30,11 +30,12 @@ jobs:
           #- name: Remove existing rust binaries
           #  run: rm ~/.cargo/bin/{rustc,cargo} || true
     - name: Install Rust via Rustup (Rquired for Solana's Anchor)
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
-        override: true
-        components: rustfmt, clippy
+      run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+        #      uses: actions-rs/toolchain@v1
+        #      with:
+        #        toolchain: stable
+        #        override: true
+        #        components: rustfmt, clippy
     - name: Test bpf is present # This is faster than building anchor first
       run: cargo build-bpf
     - name: Build
