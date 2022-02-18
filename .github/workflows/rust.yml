@@ -27,6 +27,8 @@ jobs:
           ~/.cargo/git/db/
           target/
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+    - name: Remove existing rust binaries
+      run: rm ~/.cargo/bin/*
     - name: Install Rust via Rustup (Rquired for Solana's Anchor)
       uses: actions-rs/toolchain@v1
       with:
