@@ -31,3 +31,5 @@ jobs:
       run: cargo build --verbose
     - name: Install Anchor
       run: cargo install --git https://github.com/project-serum/anchor --tag v0.20.1 anchor-cli --locked
+    - name: Run Anchor test
+      run: anchor test
