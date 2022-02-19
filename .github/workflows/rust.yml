@@ -31,6 +31,10 @@ jobs:
 
       - name: print solana version
         run: solana --version
+      - name: gen wallet
+        run: solana-keygen new
+      - name: view config detail
+        run: solana config get
 
       - name: Install Anchor
         run: npm install -g @project-serum/anchor-cli
