@@ -15,40 +15,40 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
-    # Without this anchor install fails with "'Unable to find libudev"
-    - run: sudo apt-get update && sudo apt-get install -y pkg-config build-essential libudev-dev
-    - name: Install BPF dependencies
-      run: sudo apt-get -y install build-essential zlib1g-dev \
-        llvm-12-dev libclang-12-dev linux-headers-$(uname -r) \
-        libelf-dev
-    - uses: actions/cache@v2
-      with:
-        path: |
-          ~/.cargo/bin/
-          ~/.cargo/registry/index/
-          ~/.cargo/registry/cache/
-          ~/.cargo/git/db/
-          target/
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-2
-    - name: Remove existing rust binaries
-      run: rm -rf ~/.cargo/ || true
-    - name: Install Rust via Rustup (Rquired for Solana's Anchor)
-      run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-        #      uses: actions-rs/toolchain@v1
-        #      with:
-        #        toolchain: stable
-        #        override: true
-        #        components: rustfmt, clippy
-    - name: Control rust via rustup
-      run: rustup update && source $HOME/.cargo/env
-    - name: Install BPF
-      run: cargo install cargo-bpf
-    - name: Test bpf is present # This is faster than building anchor first
-      run: cargo build-bpf
-    - name: Build
-      run: cargo build --verbose
-    - name: Install Anchor (if not already in the cache)
-      run: anchor || cargo install --git https://github.com/project-serum/anchor --tag v0.20.1 anchor-cli --locked
-    - name: Run Anchor test
-      run: anchor test
+      - uses: actions/checkout@v2
+      #    # Without this anchor install fails with "'Unable to find libudev"
+      #    - run: sudo apt-get update && sudo apt-get install -y pkg-config build-essential libudev-dev
+      #    - name: Install BPF dependencies
+      #      run: sudo apt-get -y install build-essential zlib1g-dev \
+      #        llvm-12-dev libclang-12-dev linux-headers-$(uname -r) \
+      #        libelf-dev
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      #    - name: Remove existing rust binaries
+      #      run: rm -rf ~/.cargo/ || true
+      #    - name: Install Rust via Rustup (Rquired for Solana's Anchor)
+      #      run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+      #        #      uses: actions-rs/toolchain@v1
+      #        #      with:
+      #        #        toolchain: stable
+      #        #        override: true
+      #        #        components: rustfmt, clippy
+      #    - name: Control rust via rustup
+      #      run: rustup update && source $HOME/.cargo/env
+      #    - name: Install BPF
+      #      run: cargo install cargo-bpf
+      #    - name: Test bpf is present # This is faster than building anchor first
+      #      run: cargo build-bpf
+      #    - name: Build
+      #      run: cargo build --verbose
+      - name: Install Anchor (if not already in the cache)
+        run: npm install -g @project-serum/anchor-cli
+      - name: Run Anchor test
+        run: anchor test
