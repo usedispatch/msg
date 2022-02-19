@@ -1,4 +1,4 @@
-name: Build Rust
+name: Test full codebase (Solana Program and Typescript library)
 
 on:
   push:
@@ -45,3 +45,7 @@ jobs:
       - run: yarn install
       - name: Run Anchor test
         run: anchor test
+      - name: Test Dispatch client
+        run: cd usedispatch_client && npm install && cd ..
+      - name: Build Dispatch CLI (no tests yet)
+        run: cd usedispatch_cli && npm install && cd ..
