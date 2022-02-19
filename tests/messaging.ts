@@ -289,7 +289,7 @@ describe('messaging', () => {
         ],
       });
     } catch (e) {
-      assert.ok(String(e).startsWith('Error: failed to send transaction'));
+      assert.ok(String(e).startsWith('An address constraint was violated'));
     }
     console.log = oldConsoleLog;
     console.error = oldConsoleError;
