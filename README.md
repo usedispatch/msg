@@ -1,4 +1,4 @@
-[![Build and Test Solana Program](https://github.com/0xengage/msg/actions/workflows/rust.yml/badge.svg)](https://github.com/0xengage/msg/actions/workflows/rust.yml)
+[![Build and Test Solana Program, usedispatch library, and usedispatch CLI](https://github.com/0xengage/msg/actions/workflows/rust.yml/badge.svg)](https://github.com/0xengage/msg/actions/workflows/rust.yml)
 
 ### Setup
 
