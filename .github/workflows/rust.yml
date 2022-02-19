@@ -16,18 +16,28 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/cache@v2
+      - name: install rust toolchain
+        uses: actions-rs/toolchain@v1
         with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      - name: Install Anchor (if not already in the cache)
+          toolchain: stable
+      - uses: Swatinem/rust-cache@v1
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v2
+      - name: install solana
+        run: sh -c "$(curl -sSfL https://release.solana.com/v1.8.0/install)"
+
+      - name: add solana to path
+        run: echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
+
+      - name: print solana version
+        run: solana --version
+
+      - name: Install Anchor
         run: npm install -g @project-serum/anchor-cli
       - name: Test cargo bpf
         run: cargo build-bpf
+      - name: install yarn
+        run: npm install -g yarn
+      - run: yarn install
       - name: Run Anchor test
         run: anchor test
