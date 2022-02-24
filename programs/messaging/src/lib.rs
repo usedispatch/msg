@@ -21,7 +21,7 @@ pub mod messaging {
     use super::*;
     /// Send a message to the receiver. Note that anyone can create a mailbox for the receiver
     /// and send messages.
-    pub fn send_message(ctx: Context<SendMessage>, data: String) -> ProgramResult {
+    pub fn send_message(ctx: Context<SendMessage>, data: String) -> Result<()> {
         let mailbox = &mut ctx.accounts.mailbox;
         mailbox.message_count = mailbox.message_count + 1;
 
@@ -44,12 +44,12 @@ pub mod messaging {
 
     /// Close the next message account and send rent to the receiver. Note, only
     /// the receiver can do this.
-    pub fn close_message(ctx: Context<CloseMessage>) -> ProgramResult {
+    pub fn close_message(ctx: Context<CloseMessage>) -> Result<()> {
         let mailbox = &mut ctx.accounts.mailbox;
         mailbox.read_message_count = mailbox.read_message_count + 1;
 
         if mailbox.read_message_count > mailbox.message_count {
-            return Err(ProgramError::InvalidArgument);
+            return Err(Error::from(ProgramError::InvalidArgument).with_source(source!()));
         }
 
         Ok(())
@@ -65,7 +65,8 @@ pub struct SendMessage<'info> {
         bump,
     )]
     pub mailbox: Account<'info, Mailbox>,
-    pub receiver: AccountInfo<'info>,
+    /// CHECK: we do not access the data in the receiver
+    pub receiver: UncheckedAccount<'info>,
 
     #[account(init,
         payer = payer,
@@ -81,11 +82,13 @@ pub struct SendMessage<'info> {
 
     #[account(mut)]
     pub payer: Signer<'info>,
-    pub sender: AccountInfo<'info>,
+    /// CHECK: we do not access the data in the sender
+    pub sender: UncheckedAccount<'info>,
+    /// CHECK: we do not access the data in the fee_receiver other than to transfer lamports to it
     #[account(mut,
         address = treasury::TREASURY_ADDRESS,
     )]
-    pub fee_receiver: AccountInfo<'info>,
+    pub fee_receiver: UncheckedAccount<'info>,
 
     pub system_program: Program<'info, System>,
 }
@@ -106,10 +109,11 @@ pub struct CloseMessage<'info> {
     )]
     pub message: Account<'info, Message>,
 
+    /// CHECK: we do not access the data in the rent_destination other than to transfer lamports to it
     #[account(mut,
         address = message.payer,
     )]
-    pub rent_destination: AccountInfo<'info>,
+    pub rent_destination: UncheckedAccount<'info>,
 
     pub system_program: Program<'info, System>,
 }
