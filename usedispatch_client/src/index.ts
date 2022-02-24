@@ -39,7 +39,16 @@ export type MailboxOpts = MailboxReceiver &
   MailboxPayer &
   MailboxSender & {
     skipAnchorProvider?: boolean;
+    wallet?: WalletInterface;
   };
+
+export interface WalletInterface {
+    signTransaction(tx: anchor.web3.Transaction): Promise<anchor.web3.Transaction>;
+  
+    signAllTransactions(txs: anchor.web3.Transaction[]): Promise<anchor.web3.Transaction[]>;
+  
+    get publicKey(): anchor.web3.PublicKey;
+}
 
 export class Mailbox {
   public receiverAddress: anchor.web3.PublicKey;
@@ -75,8 +84,11 @@ export class Mailbox {
 
     // Initialize anchor
     if (!opts.skipAnchorProvider) {
-      const wallet = this.payerKeypair ?? anchor.web3.Keypair.generate();
-      anchor.setProvider(new anchor.Provider(conn, new anchor.Wallet(wallet), {}));
+      let wallet = opts.wallet;
+      if (!wallet) {
+        wallet = new anchor.Wallet(this.payerKeypair ?? anchor.web3.Keypair.generate());
+      }
+      anchor.setProvider(new anchor.Provider(conn, wallet, {}));
     }
     this.program = new Program<Messaging>(messagingProgramIdl as any, messagingProgramIdl.metadata.address);
   }
