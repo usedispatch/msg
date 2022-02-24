@@ -39,16 +39,8 @@ export type MailboxOpts = MailboxReceiver &
   MailboxPayer &
   MailboxSender & {
     skipAnchorProvider?: boolean;
-    wallet?: WalletInterface;
+    wallet?: anchor.Wallet;
   };
-
-export interface WalletInterface {
-    signTransaction(tx: anchor.web3.Transaction): Promise<anchor.web3.Transaction>;
-  
-    signAllTransactions(txs: anchor.web3.Transaction[]): Promise<anchor.web3.Transaction[]>;
-  
-    get publicKey(): anchor.web3.PublicKey;
-}
 
 export class Mailbox {
   public receiverAddress: anchor.web3.PublicKey;
