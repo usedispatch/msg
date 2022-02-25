@@ -137,10 +137,10 @@ describe('messaging', () => {
 
   it('Client library porcelain commands test', async () => {
     // Set up accounts
-    const receiver = anchor.web3.Keypair.generate();
+    const receiver = new anchor.Wallet(anchor.web3.Keypair.generate());
     const sender = anchor.web3.Keypair.generate();
     const senderAddress = sender.publicKey;
-    const payer = anchor.web3.Keypair.generate();
+    const payer = new anchor.Wallet(anchor.web3.Keypair.generate());
     await conn.confirmTransaction(await conn.requestAirdrop(payer.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
 
     // Mailbox usage
