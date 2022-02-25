@@ -18,7 +18,7 @@ export type MailboxReceiver =
       receiverAddress: anchor.web3.PublicKey;
     }
   | {
-      receiver: anchor.web3.Keypair;
+      receiver: WalletInterface;
     };
 
 export type MailboxPayer =
@@ -26,12 +26,15 @@ export type MailboxPayer =
       payerAddress: anchor.web3.PublicKey;
     }
   | {
-      payer: anchor.web3.Keypair;
+      payer: WalletInterface;
     };
 
 export type MailboxSender =
   | {
       senderAddress: anchor.web3.PublicKey;
+    }
+  | {
+      sender: WalletInterface;
     }
   | {};
 
@@ -43,21 +46,20 @@ export type MailboxOpts = MailboxReceiver &
   };
 
 export interface WalletInterface {
-    signTransaction(tx: anchor.web3.Transaction): Promise<anchor.web3.Transaction>;
-  
-    signAllTransactions(txs: anchor.web3.Transaction[]): Promise<anchor.web3.Transaction[]>;
-  
-    get publicKey(): anchor.web3.PublicKey;
+  signTransaction(tx: anchor.web3.Transaction): Promise<anchor.web3.Transaction>;
+  signAllTransactions(txs: anchor.web3.Transaction[]): Promise<anchor.web3.Transaction[]>;
+  get publicKey(): anchor.web3.PublicKey;
 }
 
 export class Mailbox {
   public receiverAddress: anchor.web3.PublicKey;
-  public receiverKeypair: anchor.web3.Keypair | undefined;
+  public receiverWallet: WalletInterface | undefined;
 
   public payerAddress: anchor.web3.PublicKey;
-  public payerKeypair: anchor.web3.Keypair | undefined;
+  public payerWallet: WalletInterface | undefined;
 
   public senderAddress: anchor.web3.PublicKey;
+  public senderWallet: WalletInterface | undefined;
 
   public program: Program<Messaging>;
 
@@ -66,28 +68,32 @@ export class Mailbox {
       this.receiverAddress = opts.receiverAddress;
     } else {
       this.receiverAddress = opts.receiver.publicKey;
-      this.receiverKeypair = opts.receiver;
+      this.receiverWallet = opts.receiver;
     }
 
     if ('payerAddress' in opts) {
       this.payerAddress = opts.payerAddress;
     } else {
-      this.payerKeypair = opts.payer;
+      this.payerWallet = opts.payer;
       this.payerAddress = opts.payer.publicKey;
     }
 
     if ('senderAddress' in opts) {
       this.senderAddress = opts.senderAddress;
+    } else if ('sender' in opts) {
+      this.senderWallet = opts.sender;
+      this.senderAddress = this.senderWallet.publicKey;
     } else {
       this.senderAddress = this.payerAddress;
     }
 
     // Initialize anchor
     if (!opts.skipAnchorProvider) {
-      let wallet = opts.wallet;
-      if (!wallet) {
-        wallet = new anchor.Wallet(this.payerKeypair ?? anchor.web3.Keypair.generate());
-      }
+      let wallet = opts.wallet
+        ?? this.payerWallet
+        ?? this.receiverWallet
+        ?? this.senderWallet
+        ?? new anchor.Wallet(anchor.web3.Keypair.generate());
       anchor.setProvider(new anchor.Provider(conn, wallet, {}));
     }
     this.program = new Program<Messaging>(messagingProgramIdl as any, messagingProgramIdl.metadata.address);
@@ -97,30 +103,37 @@ export class Mailbox {
     Porcelain commands
   */
   async send(data: string) {
-    if (!this.payerKeypair) {
+    if (!this.payerWallet) {
       throw new Error('`payer` must be a Keypair');
     }
 
     const tx = await this.makeSendTx(data);
     tx.feePayer = this.payerAddress;
 
-    const sig = await this.conn.sendTransaction(tx, [this.payerKeypair]);
+    const signedTx = await this.payerWallet.signTransaction(tx);
+    const sig = await this.conn.sendTransaction(signedTx, []);
     await this.conn.confirmTransaction(sig, 'recent');
     return sig;
   }
 
   async pop() {
-    if (!this.receiverKeypair) {
+    if (!this.receiverWallet) {
       throw new Error('`receiver` must be a Keypair to `pop`, is `PublicKey`');
     }
-    if (!this.payerKeypair) {
+    if (!this.payerWallet) {
       throw new Error('`payer` must be a Keypair');
     }
 
     const tx = await this.makePopTx();
     tx.feePayer = this.payerAddress;
 
-    const sig = await this.conn.sendTransaction(tx, [this.receiverKeypair, this.payerKeypair]);
+    let signedTx = tx;
+    for (let wallet of [this.payerWallet, this.receiverWallet]) {
+      if (wallet) {
+        signedTx = await wallet.signTransaction(tx);
+      }
+    }
+    const sig = await this.conn.sendTransaction(signedTx, []);
     await this.conn.confirmTransaction(sig, 'recent');
     return sig;
   }
