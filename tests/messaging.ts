@@ -2,7 +2,7 @@ import * as anchor from '@project-serum/anchor';
 import { strict as assert } from 'assert';
 import { Program } from '@project-serum/anchor';
 import { Messaging } from '../target/types/messaging';
-import { Mailbox, TREASURY, MESSAGE_FEE_LAMPORTS } from '../usedispatch_client/src';
+import { Mailbox, clusterAddresses } from '../usedispatch_client/src';
 
 describe('messaging', () => {
 
@@ -11,6 +11,7 @@ describe('messaging', () => {
 
   const program = anchor.workspace.Messaging as Program<Messaging>;
   const conn = anchor.getProvider().connection;
+  const TREASURY = clusterAddresses.get("devnet").treasuryAddress;
 
   it('Basic test', async () => {
     const receiver = anchor.web3.Keypair.generate();
