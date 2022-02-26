@@ -19,9 +19,9 @@ clusterAddresses.set("devnet", {
   treasuryAddress: new web3.PublicKey("G2GGDc89qpuk21WgRUVPDY517uc6qR5yT4KX7AakyVR1"),
 });
 
-// clusterAddresses.set("mainnet-beta", {
-//   programAddress: new web3.PublicKey(""),
-//   treasuryAddress: new web3.PublicKey(""),
-// });
+clusterAddresses.set("mainnet-beta", {
+  programAddress: new web3.PublicKey("BHJ4tRcogS88tUhYotPfYWDjR4q7MGdizdiguY3N54rb"),
+  treasuryAddress: new web3.PublicKey("5MNBoBJDHHG4pB6qtWgYPzGEncoYTLAaANovvoaxu28p"),
+});
 
 export const defaultCluster: web3.Cluster = "devnet";

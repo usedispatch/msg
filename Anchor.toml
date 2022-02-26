@@ -4,6 +4,9 @@ messaging = "BHJ4tRcogS88tUhYotPfYWDjR4q7MGdizdiguY3N54rb"
 [programs.devnet]
 messaging = "BHJ4tRcogS88tUhYotPfYWDjR4q7MGdizdiguY3N54rb"
 
+[programs.mainnet]
+messaging = "BHJ4tRcogS88tUhYotPfYWDjR4q7MGdizdiguY3N54rb"
+
 [registry]
 url = "https://anchor.projectserum.com"
 
