@@ -163,10 +163,11 @@ export class Mailbox {
 
   async getMessageAddress(index: number, receiverAddress?: web3.PublicKey) {
     const receiver = receiverAddress ?? this.mailboxOwner;
+    const mailboxAddress = await this.getMailboxAddress(receiver);
     const msgCountBuf = Buffer.allocUnsafe(4);
     msgCountBuf.writeInt32LE(index);
     const [messageAddress] = await web3.PublicKey.findProgramAddress(
-      [seeds.protocolSeed, seeds.messageSeed, receiver.toBuffer(), msgCountBuf],
+      [seeds.protocolSeed, seeds.messageSeed, mailboxAddress.toBuffer(), msgCountBuf],
       this.program.programId,
     );
 

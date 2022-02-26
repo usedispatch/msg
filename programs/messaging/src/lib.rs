@@ -2,6 +2,9 @@ use anchor_lang::prelude::*;
 use anchor_lang::solana_program::system_instruction;
 mod treasury;
 
+#[cfg(feature = "mainnet")]
+declare_id!("BHJ4tRcogS88tUhYotPfYWDjR4q7MGdizdiguY3N54rb");
+#[cfg(not(feature = "mainnet"))]
 declare_id!("BHJ4tRcogS88tUhYotPfYWDjR4q7MGdizdiguY3N54rb");
 
 #[constant]
@@ -42,7 +45,7 @@ pub mod messaging {
         Ok(())
     }
 
-    /// Close the next message account and send rent to the receiver. Note, only
+    /// Close the next message account and send rent to the original payer. Note, only
     /// the receiver can do this.
     pub fn close_message(ctx: Context<CloseMessage>) -> Result<()> {
         let mailbox = &mut ctx.accounts.mailbox;
@@ -75,7 +78,7 @@ pub struct SendMessage<'info> {
             + 32                            // sender pubkey
             + 32                            // payer pubkey
             + 4 + data.as_bytes().len(),    // payload string
-        seeds = [_PROTOCOL_SEED, _MESSAGE_SEED, receiver.key().as_ref(), &mailbox.message_count.to_le_bytes()],
+        seeds = [_PROTOCOL_SEED, _MESSAGE_SEED, mailbox.key().as_ref(), &mailbox.message_count.to_le_bytes()],
         bump,
     )]
     pub message: Account<'info, Message>,
@@ -104,7 +107,7 @@ pub struct CloseMessage<'info> {
 
     #[account(mut,
         close = rent_destination,
-        seeds = [_PROTOCOL_SEED, _MESSAGE_SEED, receiver.key().as_ref(), &mailbox.read_message_count.to_le_bytes()],
+        seeds = [_PROTOCOL_SEED, _MESSAGE_SEED, mailbox.key().as_ref(), &mailbox.read_message_count.to_le_bytes()],
         bump,
     )]
     pub message: Account<'info, Message>,
