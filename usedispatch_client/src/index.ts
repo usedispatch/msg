@@ -19,7 +19,6 @@ export interface WalletInterface {
   get publicKey(): web3.PublicKey;
 }
 
-// TODO: From the base solana wallet adapter. Should we depend on that instead?
 interface SendTransactionOptions extends web3.SendOptions {
   signers?: web3.Signer[];
 }
@@ -31,7 +30,7 @@ interface WalletAdapterInterface extends WalletInterface {
     ): Promise<web3.TransactionSignature>;
 }
 
-interface AnchorNodeWalletPitaInterface extends WalletInterface {
+interface AnchorNodeWalletInterface extends WalletInterface {
   payer: web3.Signer;
 }
 
@@ -55,6 +54,7 @@ export class Mailbox {
     if (!opts?.skipAnchorProvider) {
       anchor.setProvider(new anchor.Provider(conn, this.wallet, {}));
     }
+    // TODO: make constants more explicit, and even further in future, codegen them
     this.program = new Program<Messaging>(messagingProgramIdl as any, messagingProgramIdl.metadata.address);
   }
 
@@ -75,7 +75,7 @@ export class Mailbox {
       const wallet = this.wallet as WalletAdapterInterface;
       sig = await wallet.sendTransaction(tx, this.conn);
     } else if ("payer" in this.wallet) {
-      const wallet = this.wallet as AnchorNodeWalletPitaInterface;
+      const wallet = this.wallet as AnchorNodeWalletInterface;
       const signer = wallet.payer;
       sig = await this.conn.sendTransaction(tx, [signer]);
     } else {
@@ -241,9 +241,9 @@ export class KeyPairWallet {
   }
   
   async signAllTransactions(txs: web3.Transaction[]): Promise<web3.Transaction[]> {
-    return txs.map((t) => {
-      t.partialSign(this.payer);
-      return t;
+    return txs.map((tx) => {
+      tx.partialSign(this.payer);
+      return tx;
     });
   }
   
@@ -253,6 +253,10 @@ export class KeyPairWallet {
 }
 
 // Some constants
+// anchor doesn't provide constants in an easy typescript interface as of 0.22.
+// in particular, the rust macro that generates the constants block in the IDL
+// leaves some of the native rust formatting in the IDL. That's why we need to
+// do all this string search and replace.
 export const TREASURY = new web3.PublicKey(
   messagingProgramIdl.constants
     .find((c) => c.name === 'TREASURY_ADDRESS')!
