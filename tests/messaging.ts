@@ -35,7 +35,7 @@ describe('messaging', () => {
     const [message0] = await anchor.web3.PublicKey.findProgramAddress([
       Buffer.from("messaging"),
       Buffer.from("message"),
-      receiver.publicKey.toBuffer(),
+      mailbox.toBuffer(),
       msgCountBuf0,
     ], program.programId);
 
@@ -61,7 +61,7 @@ describe('messaging', () => {
     const [message1] = await anchor.web3.PublicKey.findProgramAddress([
       Buffer.from("messaging"),
       Buffer.from("message"),
-      receiver.publicKey.toBuffer(),
+      mailbox.toBuffer(),
       msgCountBuf1,
     ], program.programId);
 
@@ -247,7 +247,7 @@ describe('messaging', () => {
     const [message0] = await anchor.web3.PublicKey.findProgramAddress([
       Buffer.from("messaging"),
       Buffer.from("message"),
-      receiver.publicKey.toBuffer(),
+      mailbox.toBuffer(),
       msgCountBuf0,
     ], program.programId);
 
@@ -321,7 +321,7 @@ describe('messaging', () => {
     const [message0] = await anchor.web3.PublicKey.findProgramAddress([
       Buffer.from("messaging"),
       Buffer.from("message"),
-      receiver.publicKey.toBuffer(),
+      mailbox.toBuffer(),
       msgCountBuf0,
     ], program.programId);
 
