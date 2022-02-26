@@ -21,8 +21,8 @@ const payer = getPayer();
 const receiver = web3.Keypair.generate();
 const payerWallet = new KeyPairWallet(payer);
 const receiverWallet = new KeyPairWallet(receiver)
-const sendMailbox = new Mailbox(conn, payerWallet);
-const receiveMailbox = new Mailbox(conn, receiverWallet);
+const senderMailbox = new Mailbox(conn, payerWallet);
+const receiverMailbox = new Mailbox(conn, receiverWallet);
 
 console.log('receiver', receiver.publicKey.toBase58());
 console.log('payer', payer.publicKey.toBase58());
@@ -33,15 +33,15 @@ describe("Test for initial Mailbox setup.", () => {
             await conn.confirmTransaction(await conn.requestAirdrop(receiver.publicKey, 2 * web3.LAMPORTS_PER_SOL));
 
             console.log('Send message 1');
-            const txSig0 = await sendMailbox.send("text0", receiver.publicKey);
+            const txSig0 = await senderMailbox.send("text0", receiver.publicKey);
             await conn.confirmTransaction(txSig0, 'finalized');
 
             console.log('Send message 2');
-            const txSig1 = await sendMailbox.send("text1", receiver.publicKey);
+            const txSig1 = await senderMailbox.send("text1", receiver.publicKey);
             await conn.confirmTransaction(txSig1, 'finalized');
 
             console.log('Fetch messages from mailbox');
-            let messages = await receiveMailbox.fetch();
+            let messages = await receiverMailbox.fetch();
             expect(messages.length).toEqual(2);
 
             expect(messages[0].sender.equals(payer.publicKey))
@@ -51,20 +51,20 @@ describe("Test for initial Mailbox setup.", () => {
             expect(messages[1].data).toEqual("text1");
 
             console.log('Pop 1 message from mailbox');
-            const txSig2 = await receiveMailbox.pop();
+            const txSig2 = await receiverMailbox.pop();
             await conn.confirmTransaction(txSig2, 'finalized');
 
-            let _messages = await receiveMailbox.fetch();
+            let _messages = await receiverMailbox.fetch();
             expect(_messages.length).toEqual(1);
 
             expect(_messages[0].sender).toEqual(payer.publicKey);
             expect(_messages[0].data).toEqual("text1");
 
             console.log('Pop 1 message from mailbox');
-            const txSig3 = await receiveMailbox.pop();
+            const txSig3 = await receiverMailbox.pop();
             await conn.confirmTransaction(txSig3, 'finalized');
 
-            let __messages = await receiveMailbox.fetch();
+            let __messages = await receiverMailbox.fetch();
             expect(__messages.length).toEqual(0);
 
         });
