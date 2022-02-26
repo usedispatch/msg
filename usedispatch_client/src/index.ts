@@ -43,11 +43,11 @@ export type MailboxOpts = MailboxReceiver &
   };
 
 export interface WalletInterface {
-    signTransaction(tx: anchor.web3.Transaction): Promise<anchor.web3.Transaction>;
-  
-    signAllTransactions(txs: anchor.web3.Transaction[]): Promise<anchor.web3.Transaction[]>;
-  
-    get publicKey(): anchor.web3.PublicKey;
+  signTransaction(tx: anchor.web3.Transaction): Promise<anchor.web3.Transaction>;
+
+  signAllTransactions(txs: anchor.web3.Transaction[]): Promise<anchor.web3.Transaction[]>;
+
+  get publicKey(): anchor.web3.PublicKey;
 }
 
 export class Mailbox {
