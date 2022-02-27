@@ -199,32 +199,32 @@ describe('messaging', () => {
     await conn.confirmTransaction(await conn.requestAirdrop(payer.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
 
     // Mailbox usage
-    const sendMailbox = new Mailbox(conn, new anchor.Wallet(payer));
-    const receiveMailbox = new Mailbox(conn, new anchor.Wallet(receiver), {payer: payer.publicKey});
+    const senderMailbox = new Mailbox(conn, new anchor.Wallet(payer));
+    const receiverMailbox = new Mailbox(conn, new anchor.Wallet(receiver), {payer: payer.publicKey});
 
     // Send a message
-    const sendTx = await sendMailbox.makeSendTx("test1", receiver.publicKey);
+    const sendTx = await senderMailbox.makeSendTx("test1", receiver.publicKey);
 
     sendTx.feePayer = payer.publicKey;
     const sendSig = await conn.sendTransaction(sendTx, [payer]);
     await conn.confirmTransaction(sendSig, "recent");
 
     // Fetch messages
-    let messages = await receiveMailbox.fetch();
+    let messages = await receiverMailbox.fetch();
     assert.ok(messages.length === 1);
 
     assert.ok(messages[0].sender.equals(payer.publicKey))
     assert.ok(messages[0].data === "test1");
 
     // Free message account and send rent to receiver
-    const popTx = await receiveMailbox.makePopTx();
+    const popTx = await receiverMailbox.makePopTx();
 
     popTx.feePayer = payer.publicKey;
     const popSig = await conn.sendTransaction(popTx, [payer, receiver]);
     await conn.confirmTransaction(popSig, "recent");
 
     // Fetch messages
-    messages = await receiveMailbox.fetch();
+    messages = await receiverMailbox.fetch();
     assert.ok(messages.length === 0);
   });
 
