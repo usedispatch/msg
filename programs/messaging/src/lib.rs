@@ -9,15 +9,9 @@ declare_id!("BHJ4tRcogS88tUhYotPfYWDjR4q7MGdizdiguY3N54rb");
 
 #[constant]
 const MESSAGE_FEE_LAMPORTS: u64 = 50000;
-#[constant]
 const PROTOCOL_SEED: & str = "messaging";
-#[constant]
 const MAILBOX_SEED: & str = "mailbox";
-#[constant]
 const MESSAGE_SEED: & str = "message";
-const _PROTOCOL_SEED: &[u8] = PROTOCOL_SEED.as_bytes();
-const _MAILBOX_SEED: &[u8] = MAILBOX_SEED.as_bytes();
-const _MESSAGE_SEED: &[u8] = MESSAGE_SEED.as_bytes();
 
 #[program]
 pub mod messaging {
@@ -64,7 +58,7 @@ pub mod messaging {
 pub struct SendMessage<'info> {
     #[account(init_if_needed,
         payer = payer,
-        seeds = [_PROTOCOL_SEED, _MAILBOX_SEED, receiver.key().as_ref()],
+        seeds = [PROTOCOL_SEED.as_bytes(), MAILBOX_SEED.as_bytes(), receiver.key().as_ref()],
         bump,
     )]
     pub mailbox: Account<'info, Mailbox>,
@@ -78,7 +72,7 @@ pub struct SendMessage<'info> {
             + 32                            // sender pubkey
             + 32                            // payer pubkey
             + 4 + data.as_bytes().len(),    // payload string
-        seeds = [_PROTOCOL_SEED, _MESSAGE_SEED, mailbox.key().as_ref(), &mailbox.message_count.to_le_bytes()],
+        seeds = [PROTOCOL_SEED.as_bytes(), MESSAGE_SEED.as_bytes(), mailbox.key().as_ref(), &mailbox.message_count.to_le_bytes()],
         bump,
     )]
     pub message: Account<'info, Message>,
@@ -99,7 +93,7 @@ pub struct SendMessage<'info> {
 #[derive(Accounts)]
 pub struct CloseMessage<'info> {
     #[account(mut,
-        seeds = [_PROTOCOL_SEED, _MAILBOX_SEED, receiver.key().as_ref()],
+        seeds = [PROTOCOL_SEED.as_bytes(), MAILBOX_SEED.as_bytes(), receiver.key().as_ref()],
         bump,
     )]
     pub mailbox: Account<'info, Mailbox>,
@@ -107,7 +101,7 @@ pub struct CloseMessage<'info> {
 
     #[account(mut,
         close = rent_destination,
-        seeds = [_PROTOCOL_SEED, _MESSAGE_SEED, mailbox.key().as_ref(), &mailbox.read_message_count.to_le_bytes()],
+        seeds = [PROTOCOL_SEED.as_bytes(), MESSAGE_SEED.as_bytes(), mailbox.key().as_ref(), &mailbox.read_message_count.to_le_bytes()],
         bump,
     )]
     pub message: Account<'info, Message>,
