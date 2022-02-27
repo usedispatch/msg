@@ -50,7 +50,7 @@ describe('messaging', () => {
         systemProgram: anchor.web3.SystemProgram.programId,
       },
       signers: [
-        payer,
+        payer, sender,
       ],
     });
     await conn.confirmTransaction(tx0);
@@ -76,7 +76,7 @@ describe('messaging', () => {
         systemProgram: anchor.web3.SystemProgram.programId,
       },
       signers: [
-        payer,
+        payer, sender,
       ],
     });
     await conn.confirmTransaction(tx1);
