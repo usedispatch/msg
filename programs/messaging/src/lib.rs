@@ -79,8 +79,7 @@ pub struct SendMessage<'info> {
 
     #[account(mut)]
     pub payer: Signer<'info>,
-    /// CHECK: we do not access the data in the sender
-    pub sender: UncheckedAccount<'info>,
+    pub sender: Signer<'info>,
     /// CHECK: we do not access the data in the fee_receiver other than to transfer lamports to it
     #[account(mut,
         address = treasury::TREASURY_ADDRESS,
