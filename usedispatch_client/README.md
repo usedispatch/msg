@@ -1,7 +1,7 @@
 # usedispatch/client
 
 [Site](https://usedispatch.net) |
-[Docs](https://0xengage.github.io)
+[Docs](https://github.com/usedispatch/docs/blob/main/README.md)
 
 
 ## Installation
@@ -13,4 +13,4 @@ $ npm install @usedispatch/client
 
 # Quickstart
 
-See the latest documentation [here](https://0xengage.github.io/).
+See the latest documentation [here](https://github.com/usedispatch/docs/blob/main/README.md).
