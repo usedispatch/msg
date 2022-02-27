@@ -6,7 +6,7 @@
 
 1. `yarn` - Install JS packages
 1. `cargo build` - Install Rust deps
-1. `cargo install --git https://github.com/project-serum/anchor --tag v0.20.1 anchor-cli --locked` - Install [Anchor](https://project-serum.github.io/anchor/getting-started/installation.html#build-from-source-for-other-operating-systems)
+1. `cargo install --git https://github.com/project-serum/anchor --tag v0.22.0 anchor-cli --locked` - Install [Anchor](https://project-serum.github.io/anchor/getting-started/installation.html#build-from-source-for-other-operating-systems)
 1. `anchor test`
 1. `cd usedispatch_client/ && npm install`
 1. `npm run test`
@@ -21,18 +21,18 @@
 ### Usage
 
 ```ts
-// Initialize mailbox for `receiver` address
-const mailbox = new Mailbox(conn, { receiver, payer, });
+// Initialize mailbox for `wallet`
+const mailbox = new Mailbox(conn, wallet);
 
 // Send messages
-await mailbox.send("text0");
-await mailbox.send("text1");
+await mailbox.send("text0", receiver);
+await mailbox.send("text1", receiver);
 
 // Fetch messages
 const messages = await mailbox.fetch();
 
-// If `receiver` is a Keypair, can call pop to close
-// message accounts and retrieve rent (goes to receiver)
+// Call pop to close message accounts and return rent
+// (goes to original payer)
 await mailbox.pop();
 await mailbox.pop();
 ```
