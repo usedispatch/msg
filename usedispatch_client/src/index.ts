@@ -1,5 +1,5 @@
 import * as anchor from '@project-serum/anchor';
-import { Program } from '@project-serum/anchor';
+import { Program, web3 } from '@project-serum/anchor';
 import { Messaging } from '../../target/types/messaging';
 import messagingProgramIdl from '../../target/idl/messaging.json';
 
@@ -9,120 +9,102 @@ export type MailboxAccount = {
 };
 
 export type MessageAccount = {
-  sender: anchor.web3.PublicKey;
+  sender: web3.PublicKey;
   data: string;
 };
 
-export type MailboxReceiver =
-  | {
-      receiverAddress: anchor.web3.PublicKey;
-    }
-  | {
-      receiver: anchor.web3.Keypair;
-    };
-
-export type MailboxPayer =
-  | {
-      payerAddress: anchor.web3.PublicKey;
-    }
-  | {
-      payer: anchor.web3.Keypair;
-    };
-
-export type MailboxSender =
-  | {
-      senderAddress: anchor.web3.PublicKey;
-    }
-  | {};
-
-export type MailboxOpts = MailboxReceiver &
-  MailboxPayer &
-  MailboxSender & {
-    skipAnchorProvider?: boolean;
-    wallet?: WalletInterface;
-  };
-
 export interface WalletInterface {
-  signTransaction(tx: anchor.web3.Transaction): Promise<anchor.web3.Transaction>;
+  signTransaction(tx: web3.Transaction): Promise<web3.Transaction>;
+  signAllTransactions(txs: web3.Transaction[]): Promise<web3.Transaction[]>;
+  get publicKey(): web3.PublicKey;
+}
 
-  signAllTransactions(txs: anchor.web3.Transaction[]): Promise<anchor.web3.Transaction[]>;
+interface SendTransactionOptions extends web3.SendOptions {
+  signers?: web3.Signer[];
+}
 
-  get publicKey(): anchor.web3.PublicKey;
+interface WalletAdapterInterface extends WalletInterface {
+  sendTransaction(transaction: web3.Transaction
+    , connection: web3.Connection
+    , options?: SendTransactionOptions
+    ): Promise<web3.TransactionSignature>;
+}
+
+interface AnchorNodeWalletInterface extends WalletInterface {
+  payer: web3.Signer;
+}
+
+export type MailboxOpts = {
+  mailboxOwner?: web3.PublicKey;
+  payer?: web3.PublicKey;
+  skipAnchorProvider?: boolean;
 }
 
 export class Mailbox {
-  public receiverAddress: anchor.web3.PublicKey;
-  public receiverKeypair: anchor.web3.Keypair | undefined;
-
-  public payerAddress: anchor.web3.PublicKey;
-  public payerKeypair: anchor.web3.Keypair | undefined;
-
-  public senderAddress: anchor.web3.PublicKey;
+  public mailboxOwner: web3.PublicKey;
+  public payer?: web3.PublicKey;
 
   public program: Program<Messaging>;
 
-  constructor(public conn: anchor.web3.Connection, opts: MailboxOpts) {
-    if ('receiverAddress' in opts) {
-      this.receiverAddress = opts.receiverAddress;
-    } else {
-      this.receiverAddress = opts.receiver.publicKey;
-      this.receiverKeypair = opts.receiver;
-    }
-
-    if ('payerAddress' in opts) {
-      this.payerAddress = opts.payerAddress;
-    } else {
-      this.payerKeypair = opts.payer;
-      this.payerAddress = opts.payer.publicKey;
-    }
-
-    if ('senderAddress' in opts) {
-      this.senderAddress = opts.senderAddress;
-    } else {
-      this.senderAddress = this.payerAddress;
-    }
-
+  constructor(public conn: web3.Connection, public wallet: WalletInterface, opts?: MailboxOpts) {
+    this.mailboxOwner = opts?.mailboxOwner ?? wallet.publicKey;
+    this.payer = opts?.payer;
+  
     // Initialize anchor
-    if (!opts.skipAnchorProvider) {
-      let wallet = opts.wallet;
-      if (!wallet) {
-        wallet = new anchor.Wallet(this.payerKeypair ?? anchor.web3.Keypair.generate());
-      }
-      anchor.setProvider(new anchor.Provider(conn, wallet, {}));
+    if (!opts?.skipAnchorProvider) {
+      anchor.setProvider(new anchor.Provider(conn, this.wallet, {}));
     }
+    // TODO: make constants more explicit, and even further in future, codegen them
     this.program = new Program<Messaging>(messagingProgramIdl as any, messagingProgramIdl.metadata.address);
+  }
+
+  private validatePorcelainAllowed() {
+    if (!this.wallet.publicKey.equals(this.mailboxOwner)) {
+      throw new Error('`mailboxOwner` and `wallet.publicKey` must equal in order to use porcelain commands');
+    }
+    if (this.payer && !this.payer.equals(this.mailboxOwner)) {
+      throw new Error('`mailboxOwner` and `payer` must equal in order to use porcelain commands');
+    }
+  }
+
+  private async sendTransaction(tx: web3.Transaction) {
+    // TODO: implement to handle the different types of wallets
+    // if anchor
+    let sig: string;
+    if ("sendTransaction" in this.wallet) {
+      const wallet = this.wallet as WalletAdapterInterface;
+      sig = await wallet.sendTransaction(tx, this.conn);
+    } else if ("payer" in this.wallet) {
+      const wallet = this.wallet as AnchorNodeWalletInterface;
+      const signer = wallet.payer;
+      sig = await this.conn.sendTransaction(tx, [signer]);
+    } else {
+      throw new Error('`wallet` has neither `sendTransaction` nor `payer` so cannot send transaction');
+    }
+    await this.conn.confirmTransaction(sig, 'recent');
+    return sig;
+  }
+
+  private setPayer(tx: web3.Transaction): web3.Transaction {
+    if (this.payer) {
+      tx.feePayer = this.wallet.publicKey;
+    }
+    return tx;
   }
 
   /*
     Porcelain commands
   */
-  async send(data: string) {
-    if (!this.payerKeypair) {
-      throw new Error('`payer` must be a Keypair');
-    }
-
-    const tx = await this.makeSendTx(data);
-    tx.feePayer = this.payerAddress;
-
-    const sig = await this.conn.sendTransaction(tx, [this.payerKeypair]);
-    await this.conn.confirmTransaction(sig, 'recent');
-    return sig;
+  async send(data: string, receiverAddress: web3.PublicKey): Promise<string> {
+    this.validatePorcelainAllowed();
+    const tx = await this.makeSendTx(data, receiverAddress);
+    return this.sendTransaction(tx);
   }
 
-  async pop() {
-    if (!this.receiverKeypair) {
-      throw new Error('`receiver` must be a Keypair to `pop`, is `PublicKey`');
-    }
-    if (!this.payerKeypair) {
-      throw new Error('`payer` must be a Keypair');
-    }
-
+  async pop(): Promise<string> {
+    this.validatePorcelainAllowed();
     const tx = await this.makePopTx();
-    tx.feePayer = this.payerAddress;
-
-    const sig = await this.conn.sendTransaction(tx, [this.receiverKeypair, this.payerKeypair]);
-    await this.conn.confirmTransaction(sig, 'recent');
-    return sig;
+    return this.sendTransaction(tx);
   }
 
   async fetch(): Promise<MessageAccount[]> {
@@ -168,33 +150,33 @@ export class Mailbox {
   /*
     Transaction generation commands
   */
-  async makeSendTx(data: string): Promise<anchor.web3.Transaction> {
-    const mailboxAddress = await this.getMailboxAddress();
+  async makeSendTx(data: string, receiverAddress: web3.PublicKey): Promise<web3.Transaction> {
+    const toMailboxAddress = await this.getMailboxAddress(receiverAddress);
     let messageIndex = 0;
 
-    const mailbox = await this.fetchMailbox();
-    if (mailbox) {
-      messageIndex = mailbox.messageCount;
+    const toMailbox = await this.fetchMailbox(toMailboxAddress);
+    if (toMailbox) {
+      messageIndex = toMailbox.messageCount;
     }
 
-    const messageAddress = await this.getMessageAddress(messageIndex);
+    const messageAddress = await this.getMessageAddress(messageIndex, receiverAddress);
 
     const tx = this.program.transaction.sendMessage(data, {
       accounts: {
-        mailbox: mailboxAddress,
-        receiver: this.receiverAddress,
+        mailbox: toMailboxAddress,
+        receiver: receiverAddress,
         message: messageAddress,
-        payer: this.payerAddress,
-        sender: this.payerAddress,
+        payer: this.payer ?? this.mailboxOwner,
+        sender: this.mailboxOwner,
         feeReceiver: TREASURY,
-        systemProgram: anchor.web3.SystemProgram.programId,
+        systemProgram: web3.SystemProgram.programId,
       },
     });
 
-    return tx;
+    return this.setPayer(tx);
   }
 
-  async makePopTx(): Promise<anchor.web3.Transaction> {
+  async makePopTx(): Promise<web3.Transaction> {
     const mailboxAddress = await this.getMailboxAddress();
     const mailbox = await this.fetchMailbox();
     if (!mailbox) {
@@ -204,51 +186,78 @@ export class Mailbox {
     const messageAddress = await this.getMessageAddress(mailbox.readMessageCount);
     const messageAccount = await this.program.account.message.fetch(messageAddress);
 
-    const tx = await this.program.transaction.closeMessage({
+    const tx = this.program.transaction.closeMessage({
       accounts: {
         mailbox: mailboxAddress,
-        receiver: this.receiverAddress,
+        receiver: this.mailboxOwner,
         message: messageAddress,
         rentDestination: messageAccount.payer,
-        systemProgram: anchor.web3.SystemProgram.programId,
+        systemProgram: web3.SystemProgram.programId,
       },
     });
 
-    return tx;
+    return this.setPayer(tx);
   }
 
   /*
     Utility functions
   */
 
-  async getMailboxAddress() {
-    const [mailbox] = await anchor.web3.PublicKey.findProgramAddress(
-      [Buffer.from(PROTOCOL_SEED), Buffer.from(MAILBOX_SEED), this.receiverAddress.toBuffer()],
+  async getMailboxAddress(mailboxOwner?: web3.PublicKey) {
+    const ownerAddress = mailboxOwner ?? this.mailboxOwner;
+    const [mailboxAddress] = await web3.PublicKey.findProgramAddress(
+      [Buffer.from(PROTOCOL_SEED), Buffer.from(MAILBOX_SEED), ownerAddress.toBuffer()],
       this.program.programId,
     );
 
-    return mailbox;
+    return mailboxAddress;
   }
 
-  async getMessageAddress(index: number) {
+  async getMessageAddress(index: number, receiverAddress?: web3.PublicKey) {
+    const receiver = receiverAddress ?? this.mailboxOwner;
     const msgCountBuf = Buffer.allocUnsafe(4);
     msgCountBuf.writeInt32LE(index);
-    const [message] = await anchor.web3.PublicKey.findProgramAddress(
-      [Buffer.from(PROTOCOL_SEED), Buffer.from(MESSAGE_SEED), this.receiverAddress.toBuffer(), msgCountBuf],
+    const [messageAddress] = await web3.PublicKey.findProgramAddress(
+      [Buffer.from(PROTOCOL_SEED), Buffer.from(MESSAGE_SEED), receiver.toBuffer(), msgCountBuf],
       this.program.programId,
     );
 
-    return message;
+    return messageAddress;
   }
 
-  private async fetchMailbox() {
-    const mailboxAccount = await this.program.account.mailbox.fetchNullable(await this.getMailboxAddress());
+  private async fetchMailbox(mailboxAddress?: web3.PublicKey) {
+    const address = mailboxAddress ?? await this.getMailboxAddress();
+    const mailboxAccount = await this.program.account.mailbox.fetchNullable(address);
     return mailboxAccount;
   }
 }
 
+export class KeyPairWallet {
+  constructor(readonly payer: web3.Keypair) {}
+
+  async signTransaction(tx: web3.Transaction): Promise<web3.Transaction> {
+    tx.partialSign(this.payer);
+    return tx;
+  }
+  
+  async signAllTransactions(txs: web3.Transaction[]): Promise<web3.Transaction[]> {
+    return txs.map((tx) => {
+      tx.partialSign(this.payer);
+      return tx;
+    });
+  }
+  
+  get publicKey(): web3.PublicKey {
+    return this.payer.publicKey;
+  }
+}
+
 // Some constants
-export const TREASURY = new anchor.web3.PublicKey(
+// anchor doesn't provide constants in an easy typescript interface as of 0.22.
+// in particular, the rust macro that generates the constants block in the IDL
+// leaves some of the native rust formatting in the IDL. That's why we need to
+// do all this string search and replace.
+export const TREASURY = new web3.PublicKey(
   messagingProgramIdl.constants
     .find((c) => c.name === 'TREASURY_ADDRESS')!
     .value.replace('solana_program :: pubkey ! ("', '')

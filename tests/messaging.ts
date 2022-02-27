@@ -137,59 +137,57 @@ describe('messaging', () => {
 
   it('Client library porcelain commands test', async () => {
     // Set up accounts
-    const receiver = anchor.web3.Keypair.generate();
-    const sender = anchor.web3.Keypair.generate();
-    const senderAddress = sender.publicKey;
-    const payer = anchor.web3.Keypair.generate();
-    await conn.confirmTransaction(await conn.requestAirdrop(payer.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
+    const receiver = new anchor.Wallet(anchor.web3.Keypair.generate());
+    const sender = new anchor.Wallet(anchor.web3.Keypair.generate());
+    await conn.confirmTransaction(await conn.requestAirdrop(sender.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
+    await conn.confirmTransaction(await conn.requestAirdrop(receiver.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
 
     // Mailbox usage
-    const mailbox = new Mailbox(conn, {
-      receiver, payer, senderAddress,
-    });
+    const senderMailbox = new Mailbox(conn, sender);
+    const receiverMailbox = new Mailbox(conn, receiver);
 
-    assert.ok((await mailbox.fetch()).length === 0);
-    assert.ok(await mailbox.count() === 0);
+    assert.ok((await receiverMailbox.fetch()).length === 0);
+    assert.ok(await receiverMailbox.count() === 0);
 
-    const emptyCountEx = await mailbox.countEx();
+    const emptyCountEx = await receiverMailbox.countEx();
     assert.ok(emptyCountEx.messageCount === 0);
     assert.ok(emptyCountEx.readMessageCount === 0);
 
-    await mailbox.send("text0");
-    await mailbox.send("text1");
+    await senderMailbox.send("text0", receiver.publicKey);
+    await senderMailbox.send("text1", receiver.publicKey);
 
-    assert.ok(await mailbox.count() === 2);
+    assert.ok(await receiverMailbox.count() === 2);
 
-    const fullCountEx1 = await mailbox.countEx();
+    const fullCountEx1 = await receiverMailbox.countEx();
     assert.ok(fullCountEx1.messageCount === 2);
     assert.ok(fullCountEx1.readMessageCount === 0);
 
-    let messages = await mailbox.fetch();
+    let messages = await receiverMailbox.fetch();
     assert.ok(messages.length === 2);
 
-    assert.ok(messages[0].sender.equals(payer.publicKey))
+    assert.ok(messages[0].sender.equals(sender.publicKey))
     assert.ok(messages[0].data === "text0");
 
-    assert.ok(messages[1].sender.equals(payer.publicKey))
+    assert.ok(messages[1].sender.equals(sender.publicKey))
     assert.ok(messages[1].data === "text1");
 
-    await mailbox.pop();
-    assert.ok(await mailbox.count() === 1);
+    await receiverMailbox.pop();
+    assert.ok(await receiverMailbox.count() === 1);
 
-    messages = await mailbox.fetch();
+    messages = await receiverMailbox.fetch();
     assert.ok(messages.length === 1);
 
-    assert.ok(messages[0].sender.equals(payer.publicKey))
+    assert.ok(messages[0].sender.equals(sender.publicKey))
     assert.ok(messages[0].data === "text1");
 
-    await mailbox.pop();
-    assert.ok(await mailbox.count() === 0);
+    await receiverMailbox.pop();
+    assert.ok(await receiverMailbox.count() === 0);
 
-    const fullCountEx2 = await mailbox.countEx();
+    const fullCountEx2 = await receiverMailbox.countEx();
     assert.ok(fullCountEx2.messageCount === 2);
     assert.ok(fullCountEx2.readMessageCount === 2);
 
-    messages = await mailbox.fetch();
+    messages = await receiverMailbox.fetch();
     assert.ok(messages.length === 0);
   });
 
@@ -200,34 +198,32 @@ describe('messaging', () => {
     await conn.confirmTransaction(await conn.requestAirdrop(payer.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
 
     // Mailbox usage
-    const mailbox = new Mailbox(conn, {
-      receiverAddress: receiver.publicKey,
-      payerAddress: payer.publicKey,
-    });
+    const sendMailbox = new Mailbox(conn, new anchor.Wallet(payer));
+    const receiveMailbox = new Mailbox(conn, new anchor.Wallet(receiver), {payer: payer.publicKey});
 
     // Send a message
-    const sendTx = await mailbox.makeSendTx("test1");
+    const sendTx = await sendMailbox.makeSendTx("test1", receiver.publicKey);
 
     sendTx.feePayer = payer.publicKey;
     const sendSig = await conn.sendTransaction(sendTx, [payer]);
     await conn.confirmTransaction(sendSig, "recent");
 
     // Fetch messages
-    let messages = await mailbox.fetch();
+    let messages = await receiveMailbox.fetch();
     assert.ok(messages.length === 1);
 
     assert.ok(messages[0].sender.equals(payer.publicKey))
     assert.ok(messages[0].data === "test1");
 
     // Free message account and send rent to receiver
-    const popTx = await mailbox.makePopTx();
+    const popTx = await receiveMailbox.makePopTx();
 
     popTx.feePayer = payer.publicKey;
     const popSig = await conn.sendTransaction(popTx, [payer, receiver]);
     await conn.confirmTransaction(popSig, "recent");
 
     // Fetch messages
-    messages = await mailbox.fetch();
+    messages = await receiveMailbox.fetch();
     assert.ok(messages.length === 0);
   });
 
