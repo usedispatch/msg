@@ -7,7 +7,7 @@ export type DispatchAddresses = {
 }
 
 export const seeds = {
-  protocolSeed: Buffer.from("messaging"),
+  protocolSeed: Buffer.from("dispatch"),
   mailboxSeed: Buffer.from("mailbox"),
   messageSeed: Buffer.from("message"),
 };
