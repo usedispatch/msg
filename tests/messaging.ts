@@ -2,7 +2,7 @@ import * as anchor from '@project-serum/anchor';
 import { strict as assert } from 'assert';
 import { Program } from '@project-serum/anchor';
 import { Messaging } from '../target/types/messaging';
-import { Mailbox, clusterAddresses } from '../usedispatch_client/src';
+import { Mailbox, clusterAddresses, seeds } from '../usedispatch_client/src';
 
 describe('messaging', () => {
 
@@ -24,8 +24,8 @@ describe('messaging', () => {
 
     // send a couple of messages
     const [mailbox] = await anchor.web3.PublicKey.findProgramAddress([
-      Buffer.from("messaging"),
-      Buffer.from("mailbox"),
+      seeds.protocolSeed,
+      seeds.mailboxSeed,
       receiver.publicKey.toBuffer(),
     ], program.programId)
 
@@ -33,8 +33,8 @@ describe('messaging', () => {
     const msgCountBuf0 = Buffer.allocUnsafe(4);
     msgCountBuf0.writeInt32LE(0);
     const [message0] = await anchor.web3.PublicKey.findProgramAddress([
-      Buffer.from("messaging"),
-      Buffer.from("message"),
+      seeds.protocolSeed,
+      seeds.messageSeed,
       mailbox.toBuffer(),
       msgCountBuf0,
     ], program.programId);
@@ -59,8 +59,8 @@ describe('messaging', () => {
     const msgCountBuf1 = Buffer.allocUnsafe(4);
     msgCountBuf1.writeInt32LE(1);
     const [message1] = await anchor.web3.PublicKey.findProgramAddress([
-      Buffer.from("messaging"),
-      Buffer.from("message"),
+      seeds.protocolSeed,
+      seeds.messageSeed,
       mailbox.toBuffer(),
       msgCountBuf1,
     ], program.programId);
@@ -236,8 +236,8 @@ describe('messaging', () => {
 
     // Get mailbox address
     const [mailbox] = await anchor.web3.PublicKey.findProgramAddress([
-      Buffer.from("messaging"),
-      Buffer.from("mailbox"),
+      seeds.protocolSeed,
+      seeds.mailboxSeed,
       receiver.publicKey.toBuffer(),
     ], program.programId)
 
@@ -245,8 +245,8 @@ describe('messaging', () => {
     const msgCountBuf0 = Buffer.allocUnsafe(4);
     msgCountBuf0.writeInt32LE(0);
     const [message0] = await anchor.web3.PublicKey.findProgramAddress([
-      Buffer.from("messaging"),
-      Buffer.from("message"),
+      seeds.protocolSeed,
+      seeds.messageSeed,
       mailbox.toBuffer(),
       msgCountBuf0,
     ], program.programId);
@@ -310,8 +310,8 @@ describe('messaging', () => {
 
     // Get mailbox address
     const [mailbox] = await anchor.web3.PublicKey.findProgramAddress([
-      Buffer.from("messaging"),
-      Buffer.from("mailbox"),
+      seeds.protocolSeed,
+      seeds.mailboxSeed,
       receiver.publicKey.toBuffer(),
     ], program.programId)
 
@@ -319,8 +319,8 @@ describe('messaging', () => {
     const msgCountBuf0 = Buffer.allocUnsafe(4);
     msgCountBuf0.writeInt32LE(0);
     const [message0] = await anchor.web3.PublicKey.findProgramAddress([
-      Buffer.from("messaging"),
-      Buffer.from("message"),
+      seeds.protocolSeed,
+      seeds.messageSeed,
       mailbox.toBuffer(),
       msgCountBuf0,
     ], program.programId);

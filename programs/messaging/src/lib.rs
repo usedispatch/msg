@@ -9,7 +9,7 @@ declare_id!("BHJ4tRcogS88tUhYotPfYWDjR4q7MGdizdiguY3N54rb");
 
 #[constant]
 const MESSAGE_FEE_LAMPORTS: u64 = 50000;
-const PROTOCOL_SEED: & str = "messaging";
+const PROTOCOL_SEED: & str = "dispatch";
 const MAILBOX_SEED: & str = "mailbox";
 const MESSAGE_SEED: & str = "message";
 
