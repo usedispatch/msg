@@ -12,6 +12,7 @@
 
 * client: Use wallets instead of private keys. ([#24](https://github.com/usedispatch/msg/pull/24))
 * program: Calculate message PDA using mailbox instead of receiver. ([#25](https://github.com/usedispatch/msg/pull/25))
+* program: Enforce sender as signer (DIP 1) ([#26](https://github.com/usedispatch/msg/pull/26))
 
 ## [0.0] 2021-12-01
 
