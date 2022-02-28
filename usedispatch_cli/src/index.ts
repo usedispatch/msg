@@ -14,32 +14,27 @@ const getLocalConn = (cluster: web3.Cluster) => {
   return new web3.Connection(web3.clusterApiUrl(cluster));
 };
 
-const getLocalWallet = (): web3.Keypair => {
+const getLocalWallet = (): dispatch.KeyPairWallet => {
   const walletFile = process.env.WALLET_FILE || path.join(os.homedir(), '.config', 'solana', 'id.json');
   const secretKeyString = fs.readFileSync(walletFile, 'utf-8');
   const secretKey = Uint8Array.from(JSON.parse(secretKeyString));
-  const wallet = web3.Keypair.fromSecretKey(secretKey);
+  const keypair = web3.Keypair.fromSecretKey(secretKey);
+  const wallet = new dispatch.KeyPairWallet(keypair);
   return wallet;
 };
 
-const sendMessage = async (cluster: web3.Cluster, address: string, message: string) => {
+const sendMessage = async (cluster: web3.Cluster, receiver: string, message: string) => {
   const conn = getLocalConn(cluster);
   const wallet = getLocalWallet();
-  const mailbox = new dispatch.Mailbox(conn, {
-    receiverAddress: new web3.PublicKey(address),
-    payer: wallet,
-  });
-  const trans = await mailbox.send(message);
+  const mailbox = new dispatch.Mailbox(conn, wallet);
+  const trans = await mailbox.send(message, new web3.PublicKey(receiver));
   console.log(`success: ${trans}`);
 };
 
 const listMessages = async (cluster: web3.Cluster) => {
   const conn = getLocalConn(cluster);
   const wallet = getLocalWallet();
-  const mailbox = new dispatch.Mailbox(conn, {
-    receiver: wallet,
-    payerAddress: wallet.publicKey,
-  });
+  const mailbox = new dispatch.Mailbox(conn, wallet);
   const messages = await mailbox.fetch();
   console.log(`${messages.length} total message(s)`);
   messages.forEach((message) => {
@@ -50,10 +45,7 @@ const listMessages = async (cluster: web3.Cluster) => {
 const popMessage = async (cluster: web3.Cluster) => {
   const conn = getLocalConn(cluster);
   const wallet = getLocalWallet();
-  const mailbox = new dispatch.Mailbox(conn, {
-    receiver: wallet,
-    payer: wallet,
-  });
+  const mailbox = new dispatch.Mailbox(conn, wallet);
   const count = await mailbox.count();
   if (count === 0) {
     console.log('No messages remaining to pop');
@@ -69,7 +61,7 @@ export const processArgs = () => {
   yargs(hideBin(process.argv))
     .option('cluster', {
       choices: ['mainnet-beta', 'devnet', 'testnet'] as const,
-      default: 'devnet',
+      default: 'mainnet-beta',
     })
     .command(
       'send <address> <message>',
