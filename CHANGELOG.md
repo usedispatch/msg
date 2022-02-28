@@ -4,6 +4,12 @@
 
 ### Features
 
+* client: Tests for react usage ([#27](https://github.com/usedispatch/msg/pull/27))
+
+## [0.2.0] 2022-02-27
+
+### Features
+
 * program, client: Upgrade to anchor 0.22.0. ([#23](https://github.com/usedispatch/msg/pull/23))
 * program, client: Deployment to mainnet. ([#25](https://github.com/usedispatch/msg/pull/25))
 * program: Include seed hints to enable use of anchor method API ([#25](https://github.com/usedispatch/msg/pull/25))
