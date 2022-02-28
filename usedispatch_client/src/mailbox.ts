@@ -20,7 +20,7 @@ export type MailboxOpts = {
   payer?: web3.PublicKey;
   skipAnchorProvider?: boolean;
   cluster?: web3.Cluster;
-}
+};
 
 export class Mailbox {
   public mailboxOwner: web3.PublicKey;
@@ -32,7 +32,7 @@ export class Mailbox {
     this.mailboxOwner = opts?.mailboxOwner ?? wallet.publicKey;
     this.payer = opts?.payer;
     this.addresses = clusterAddresses.get(opts?.cluster ?? defaultCluster)!;
-  
+
     // Initialize anchor
     if (!opts?.skipAnchorProvider) {
       anchor.setProvider(new anchor.Provider(conn, this.wallet, {}));
@@ -175,7 +175,7 @@ export class Mailbox {
   }
 
   private async fetchMailbox(mailboxAddress?: web3.PublicKey) {
-    const address = mailboxAddress ?? await this.getMailboxAddress();
+    const address = mailboxAddress ?? (await this.getMailboxAddress());
     const mailboxAccount = await this.program.account.mailbox.fetchNullable(address);
     return mailboxAccount;
   }
@@ -191,10 +191,10 @@ export class Mailbox {
 
   private async sendTransaction(tx: web3.Transaction) {
     let sig: string;
-    if ("sendTransaction" in this.wallet) {
+    if ('sendTransaction' in this.wallet) {
       const wallet = this.wallet as WalletAdapterInterface;
       sig = await wallet.sendTransaction(tx, this.conn);
-    } else if ("payer" in this.wallet) {
+    } else if ('payer' in this.wallet) {
       const wallet = this.wallet as AnchorNodeWalletInterface;
       const signer = wallet.payer;
       sig = await this.conn.sendTransaction(tx, [signer]);
