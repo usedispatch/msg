@@ -11,10 +11,11 @@ export interface SendTransactionOptions extends web3.SendOptions {
 }
 
 export interface WalletAdapterInterface extends WalletInterface {
-  sendTransaction(transaction: web3.Transaction
-    , connection: web3.Connection
-    , options?: SendTransactionOptions
-    ): Promise<web3.TransactionSignature>;
+  sendTransaction(
+    transaction: web3.Transaction,
+    connection: web3.Connection,
+    options?: SendTransactionOptions,
+  ): Promise<web3.TransactionSignature>;
 }
 
 export interface AnchorNodeWalletInterface extends WalletInterface {
@@ -28,14 +29,14 @@ export class KeyPairWallet {
     tx.partialSign(this.payer);
     return tx;
   }
-  
+
   async signAllTransactions(txs: web3.Transaction[]): Promise<web3.Transaction[]> {
     return txs.map((tx) => {
       tx.partialSign(this.payer);
       return tx;
     });
   }
-  
+
   get publicKey(): web3.PublicKey {
     return this.payer.publicKey;
   }
