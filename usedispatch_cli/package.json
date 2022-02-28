@@ -13,9 +13,9 @@
     "local": "sudo npm i -g && dispatch-cli",
     "refresh": "rm -rf ./node_modules ./package-lock.json && npm install",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "run-list": "ts-node src/index.ts list",
-    "run-send": "ts-node src/index.ts send G2GGDc89qpuk21WgRUVPDY517uc6qR5yT4KX7AakyVR1 message1",
-    "run-pop": "ts-node src/index.ts pop",
+    "test-list": "ts-node src/index.ts --cluster devnet list",
+    "test-send": "ts-node src/index.ts --cluster devnet send G2GGDc89qpuk21WgRUVPDY517uc6qR5yT4KX7AakyVR1 message1",
+    "test-pop": "ts-node src/index.ts --cluster devnet pop",
     "format": "prettier --write \"src/*.ts\"",
     "lint": "tslint -p tsconfig.json",
     "prepare": "npm run build && echo 'Please run the tests manually before publish'",
@@ -42,6 +42,6 @@
   },
   "dependencies": {
     "yargs": "^17.3.1",
-    "@usedispatch/client": "^0.0.12"
+    "@usedispatch/client": "^0.2.0"
   }
 }
