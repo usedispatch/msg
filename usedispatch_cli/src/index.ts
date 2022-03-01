@@ -26,7 +26,7 @@ const getLocalWallet = (): dispatch.KeyPairWallet => {
 const sendMessage = async (cluster: web3.Cluster, receiver: string, message: string) => {
   const conn = getLocalConn(cluster);
   const wallet = getLocalWallet();
-  const mailbox = new dispatch.Mailbox(conn, wallet);
+  const mailbox = new dispatch.Mailbox(conn, wallet, {cluster});
   const trans = await mailbox.send(message, new web3.PublicKey(receiver));
   console.log(`success: ${trans}`);
 };
@@ -34,7 +34,7 @@ const sendMessage = async (cluster: web3.Cluster, receiver: string, message: str
 const listMessages = async (cluster: web3.Cluster) => {
   const conn = getLocalConn(cluster);
   const wallet = getLocalWallet();
-  const mailbox = new dispatch.Mailbox(conn, wallet);
+  const mailbox = new dispatch.Mailbox(conn, wallet, {cluster});
   const messages = await mailbox.fetch();
   console.log(`${messages.length} total message(s)`);
   messages.forEach((message) => {
@@ -45,7 +45,7 @@ const listMessages = async (cluster: web3.Cluster) => {
 const popMessage = async (cluster: web3.Cluster) => {
   const conn = getLocalConn(cluster);
   const wallet = getLocalWallet();
-  const mailbox = new dispatch.Mailbox(conn, wallet);
+  const mailbox = new dispatch.Mailbox(conn, wallet, {cluster});
   const count = await mailbox.count();
   if (count === 0) {
     console.log('No messages remaining to pop');
