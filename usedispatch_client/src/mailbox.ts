@@ -3,7 +3,12 @@ import * as anchor from '@project-serum/anchor';
 import { Messaging } from '../../target/types/messaging';
 import messagingProgramIdl from '../../target/idl/messaging.json';
 import { clusterAddresses, defaultCluster, seeds, DispatchAddresses } from './constants';
-import { WalletInterface, WalletAdapterInterface, AnchorNodeWalletInterface, AnchorExpectedWalletInterface } from './wallets';
+import {
+  WalletInterface,
+  WalletAdapterInterface,
+  AnchorNodeWalletInterface,
+  AnchorExpectedWalletInterface,
+} from './wallets';
 
 export type MailboxAccount = {
   messageCount: number;
@@ -30,7 +35,7 @@ export class Mailbox {
 
   constructor(public conn: web3.Connection, public wallet: WalletInterface, opts?: MailboxOpts) {
     if (!wallet.publicKey) {
-      throw new Error("Provided wallet must have a public key defined");
+      throw new Error('Provided wallet must have a public key defined');
     }
     this.mailboxOwner = opts?.mailboxOwner ?? wallet.publicKey!;
     this.payer = opts?.payer;
@@ -42,7 +47,7 @@ export class Mailbox {
         const anchorWallet = this.wallet as AnchorExpectedWalletInterface;
         anchor.setProvider(new anchor.Provider(conn, anchorWallet, {}));
       } else {
-        throw new Error("The provided wallet is unable to sign transactions");
+        throw new Error('The provided wallet is unable to sign transactions');
       }
     }
     this.program = new anchor.Program<Messaging>(messagingProgramIdl as any, this.addresses.programAddress);
