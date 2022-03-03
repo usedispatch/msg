@@ -1,9 +1,14 @@
 import * as web3 from '@solana/web3.js';
 
+interface SignerWalletProps {
+  signTransaction(transaction: web3.Transaction): Promise<web3.Transaction>;
+  signAllTransactions(transaction: web3.Transaction[]): Promise<web3.Transaction[]>;
+}
+
 export interface WalletInterface {
-  signTransaction(tx: web3.Transaction): Promise<web3.Transaction>;
-  signAllTransactions(txs: web3.Transaction[]): Promise<web3.Transaction[]>;
-  get publicKey(): web3.PublicKey;
+  signTransaction: SignerWalletProps["signTransaction"] | undefined;
+  signAllTransactions: SignerWalletProps["signAllTransactions"] | undefined;
+  get publicKey(): web3.PublicKey | null;
 }
 
 export interface SendTransactionOptions extends web3.SendOptions {
@@ -20,6 +25,12 @@ export interface WalletAdapterInterface extends WalletInterface {
 
 export interface AnchorNodeWalletInterface extends WalletInterface {
   payer: web3.Signer;
+}
+
+export interface AnchorExpectedWalletInterface {
+  signTransaction(tx: web3.Transaction): Promise<web3.Transaction>;
+  signAllTransactions(txs: web3.Transaction[]): Promise<web3.Transaction[]>;
+  get publicKey(): web3.PublicKey;
 }
 
 export class KeyPairWallet {
