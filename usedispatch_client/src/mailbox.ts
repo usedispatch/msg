@@ -2,7 +2,7 @@ import * as web3 from '@solana/web3.js';
 import * as anchor from '@project-serum/anchor';
 import { Messaging } from '../../target/types/messaging';
 import messagingProgramIdl from '../../target/idl/messaging.json';
-import { clusterAddresses, defaultCluster, seeds, DispatchAddresses } from './constants';
+import { clusterAddresses, defaultCluster, seeds, DispatchAddresses, eventName } from './constants';
 import {
   WalletInterface,
   WalletAdapterInterface,
@@ -158,6 +158,25 @@ export class Mailbox {
     });
 
     return this.setTransactionPayer(tx);
+  }
+
+  /*
+    Subscriptions
+  */
+
+  addMessageListener(callback: (message: MessageAccount) => void): number {
+    return this.program.addEventListener(eventName, (event: any, _slot: number) => {
+      if (event.receiverPubkey.equals(this.mailboxOwner)) {
+        callback({
+          sender: event.senderPubkey,
+          data: event.message,
+        });
+      }
+    });
+  }
+
+  removeMessageListener(subscriptionId: number) {
+    this.program.removeEventListener(subscriptionId);
   }
 
   /*
