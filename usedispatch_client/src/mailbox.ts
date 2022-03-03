@@ -3,7 +3,7 @@ import * as anchor from '@project-serum/anchor';
 import { Messaging } from '../../target/types/messaging';
 import messagingProgramIdl from '../../target/idl/messaging.json';
 import { clusterAddresses, defaultCluster, seeds, DispatchAddresses } from './constants';
-import { WalletInterface, WalletAdapterInterface, AnchorNodeWalletInterface } from './wallets';
+import { WalletInterface, WalletAdapterInterface, AnchorNodeWalletInterface, AnchorExpectedWalletInterface } from './wallets';
 
 export type MailboxAccount = {
   messageCount: number;
@@ -29,13 +29,21 @@ export class Mailbox {
   public program: anchor.Program<Messaging>;
 
   constructor(public conn: web3.Connection, public wallet: WalletInterface, opts?: MailboxOpts) {
-    this.mailboxOwner = opts?.mailboxOwner ?? wallet.publicKey;
+    if (!wallet.publicKey) {
+      throw new Error("Provided wallet must have a public key defined");
+    }
+    this.mailboxOwner = opts?.mailboxOwner ?? wallet.publicKey!;
     this.payer = opts?.payer;
     this.addresses = clusterAddresses.get(opts?.cluster ?? defaultCluster)!;
 
     // Initialize anchor
     if (!opts?.skipAnchorProvider) {
-      anchor.setProvider(new anchor.Provider(conn, this.wallet, {}));
+      if (this.wallet.signTransaction && this.wallet.signAllTransactions) {
+        const anchorWallet = this.wallet as AnchorExpectedWalletInterface;
+        anchor.setProvider(new anchor.Provider(conn, anchorWallet, {}));
+      } else {
+        throw new Error("The provided wallet is unable to sign transactions");
+      }
     }
     this.program = new anchor.Program<Messaging>(messagingProgramIdl as any, this.addresses.programAddress);
   }
@@ -181,7 +189,7 @@ export class Mailbox {
   }
 
   private validateWallet() {
-    if (!this.wallet.publicKey.equals(this.mailboxOwner)) {
+    if (!this.wallet.publicKey!.equals(this.mailboxOwner)) {
       throw new Error('`mailboxOwner` must equal `wallet.publicKey` to send transaction');
     }
     if (this.payer && !this.payer.equals(this.mailboxOwner)) {
@@ -207,7 +215,7 @@ export class Mailbox {
 
   private setTransactionPayer(tx: web3.Transaction): web3.Transaction {
     if (this.payer) {
-      tx.feePayer = this.wallet.publicKey;
+      tx.feePayer = this.wallet.publicKey!;
     }
     return tx;
   }
