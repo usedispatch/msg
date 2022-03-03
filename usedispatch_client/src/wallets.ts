@@ -6,8 +6,8 @@ interface SignerWalletProps {
 }
 
 export interface WalletInterface {
-  signTransaction: SignerWalletProps["signTransaction"] | undefined;
-  signAllTransactions: SignerWalletProps["signAllTransactions"] | undefined;
+  signTransaction: SignerWalletProps['signTransaction'] | undefined;
+  signAllTransactions: SignerWalletProps['signAllTransactions'] | undefined;
   get publicKey(): web3.PublicKey | null;
 }
 
