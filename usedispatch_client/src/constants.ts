@@ -12,6 +12,8 @@ export const seeds = {
   messageSeed: Buffer.from('message'),
 };
 
+export const eventName = 'DispatchMessage';
+
 export const clusterAddresses = new Map<web3.Cluster, DispatchAddresses>();
 
 clusterAddresses.set('devnet', {
