@@ -343,4 +343,28 @@ describe('messaging', () => {
 
     assert.ok(eventEmitted);
   });
+
+  it('Emits events from the client SDK', async () => {
+    const receiverWallet = new anchor.Wallet(anchor.web3.Keypair.generate());
+    const senderWallet = new anchor.Wallet(anchor.web3.Keypair.generate());
+    await conn.confirmTransaction(await conn.requestAirdrop(senderWallet.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
+
+    const senderMailbox = new Mailbox(conn, senderWallet);
+    const receiverMailbox = new Mailbox(conn, receiverWallet);
+
+    const payload = "Test Message";
+
+    let eventEmitted = false;
+    const subscriptionId = receiverMailbox.addMessageListener((message) => {
+      receiverMailbox.removeMessageListener(subscriptionId);
+      assert.ok(senderWallet.publicKey.equals(message.sender));
+      assert.ok(payload === message.data);
+      eventEmitted = true;
+    });
+
+    const tx = await senderMailbox.send(payload, receiverWallet.publicKey);
+    await conn.confirmTransaction(tx);
+
+    assert.ok(eventEmitted);
+  });
 });
