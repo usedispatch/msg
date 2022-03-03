@@ -164,6 +164,7 @@ export class Mailbox {
     Subscriptions
   */
 
+  // Reminder this is every single message on the protocol, which we filter here
   addMessageListener(callback: (message: MessageAccount) => void): number {
     return this.program.addEventListener(eventName, (event: any, _slot: number) => {
       if (event.receiverPubkey.equals(this.mailboxOwner)) {
