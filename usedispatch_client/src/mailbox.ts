@@ -18,6 +18,7 @@ export type MailboxAccount = {
 export type MessageAccount = {
   sender: web3.PublicKey;
   data: string;
+  messageId: number;
 };
 
 export type MailboxOpts = {
@@ -76,9 +77,15 @@ export class Mailbox {
 
     const messages: MessageAccount[] = [];
     for (let i = mailbox.readMessageCount; i < mailbox.messageCount; i++) {
-      const message = await this.getMessageAddress(i);
-      const messageAccount = await this.program.account.message.fetch(message);
-      messages.push(messageAccount as MessageAccount);
+      const messageAddress = await this.getMessageAddress(i);
+      const messageAccount = await this.program.account.message.fetch(messageAddress);
+      const messageReturn = {
+        sender: messageAccount.sender,
+        payer: messageAccount.payer,
+        data: messageAccount.data,
+        messageId: i,
+      };
+      messages.push(messageReturn as MessageAccount);
     }
 
     return messages;
@@ -171,6 +178,7 @@ export class Mailbox {
         callback({
           sender: event.senderPubkey,
           data: event.message,
+          messageId: event.messageIndex,
         });
       }
     });
