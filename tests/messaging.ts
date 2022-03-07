@@ -163,6 +163,10 @@ describe('messaging', () => {
     assert.ok(fullCountEx1.messageCount === 2);
     assert.ok(fullCountEx1.readMessageCount === 0);
 
+    let firstMessage = await receiverMailbox.getMessageById(1);
+    assert.ok(firstMessage.messageId === 1);
+    assert.ok(firstMessage.data === "text1");
+
     let messages = await receiverMailbox.fetch();
     assert.ok(messages.length === 2);
 
