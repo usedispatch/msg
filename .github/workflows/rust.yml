@@ -24,7 +24,7 @@ jobs:
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v2
       - name: install solana
-        run: sh -c "$(curl -sSfL https://release.solana.com/v1.8.0/install)"
+        run: sh -c "$(curl -sSfL https://release.solana.com/v1.9.9/install)"
 
       - name: add solana to path
         run: echo "$HOME/.local/share/solana/install/active_release/bin" >> $GITHUB_PATH
