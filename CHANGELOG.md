@@ -5,6 +5,8 @@
 ### Features
 
 * client: Tests for react usage ([#27](https://github.com/usedispatch/msg/pull/27))
+* client: Support wallet adapter interface in addition to anchor wallet ([#28](https://github.com/usedispatch/msg/pull/28))
+* program, client: Subscriptions for events and getMessageById ([#29](https://github.com/usedispatch/msg/pull/29))
 
 ## [0.2.0] 2022-02-27
 

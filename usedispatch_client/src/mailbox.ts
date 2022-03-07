@@ -74,21 +74,23 @@ export class Mailbox {
     if (!mailbox) {
       return [];
     }
-
-    const messages: MessageAccount[] = [];
-    for (let i = mailbox.readMessageCount; i < mailbox.messageCount; i++) {
-      const messageAddress = await this.getMessageAddress(i);
-      const messageAccount = await this.program.account.message.fetch(messageAddress);
-      const messageReturn = {
-        sender: messageAccount.sender,
-        payer: messageAccount.payer,
-        data: messageAccount.data,
-        messageId: i,
-      };
-      messages.push(messageReturn as MessageAccount);
+    const numMessages = mailbox.messageCount - mailbox.readMessageCount;
+    if (0 == numMessages) {
+      return [];
     }
+    const messageIds = Array(numMessages).fill(0).map((_element, index) => index + mailbox.readMessageCount);
+    return Promise.all(messageIds.map((id) => this.getMessageById(id)));
+  }
 
-    return messages;
+  async getMessageById(messageId: number): Promise<MessageAccount> {
+    const messageAddress = await this.getMessageAddress(messageId);
+    const messageAccount = await this.program.account.message.fetch(messageAddress);
+    return {
+      sender: messageAccount.sender,
+      payer: messageAccount.payer,
+      data: messageAccount.data,
+      messageId: messageId,
+    } as MessageAccount;
   }
 
   async count() {
