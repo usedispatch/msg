@@ -75,10 +75,12 @@ export class Mailbox {
       return [];
     }
     const numMessages = mailbox.messageCount - mailbox.readMessageCount;
-    if (0 == numMessages) {
+    if (0 === numMessages) {
       return [];
     }
-    const messageIds = Array(numMessages).fill(0).map((_element, index) => index + mailbox.readMessageCount);
+    const messageIds = Array(numMessages)
+      .fill(0)
+      .map((_element, index) => index + mailbox.readMessageCount);
     return Promise.all(messageIds.map((id) => this.getMessageById(id)));
   }
 
@@ -89,7 +91,7 @@ export class Mailbox {
       sender: messageAccount.sender,
       payer: messageAccount.payer,
       data: messageAccount.data,
-      messageId: messageId,
+      messageId,
     } as MessageAccount;
   }
 
