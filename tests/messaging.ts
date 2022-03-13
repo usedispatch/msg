@@ -371,4 +371,24 @@ describe('messaging', () => {
 
     assert.ok(eventEmitted);
   });
+
+  it('Client library obfuscation test', async () => {
+    // Set up accounts
+    const receiver = new anchor.Wallet(anchor.web3.Keypair.generate());
+    const sender = new anchor.Wallet(anchor.web3.Keypair.generate());
+    await conn.confirmTransaction(await conn.requestAirdrop(sender.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
+
+    const senderMailbox = new Mailbox(conn, sender, {sendObfuscated: true});
+    const testMessage = "text0";
+    await senderMailbox.send(testMessage, receiver.publicKey);
+
+    const receiverMailbox = new Mailbox(conn, receiver);
+
+    const messageAddress = await receiverMailbox.getMessageAddress(0);
+    const messageAccount = await receiverMailbox.program.account.message.fetch(messageAddress);
+    assert.ok(messageAccount.data !== testMessage);
+
+    const resultingMessage = await receiverMailbox.getMessageById(0);
+    assert.ok(resultingMessage.data === testMessage);
+  });
 });
