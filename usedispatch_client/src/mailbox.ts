@@ -1,5 +1,6 @@
 import * as web3 from '@solana/web3.js';
 import * as anchor from '@project-serum/anchor';
+import * as CryptoJS from 'crypto-js';
 import { Messaging } from '../../target/types/messaging';
 import messagingProgramIdl from '../../target/idl/messaging.json';
 import { clusterAddresses, defaultCluster, seeds, DispatchAddresses, eventName } from './constants';
@@ -26,6 +27,7 @@ export type MailboxOpts = {
   payer?: web3.PublicKey;
   skipAnchorProvider?: boolean;
   cluster?: web3.Cluster;
+  sendObfuscated?: boolean;
 };
 
 export class Mailbox {
@@ -33,6 +35,7 @@ export class Mailbox {
   public payer?: web3.PublicKey;
   public addresses: DispatchAddresses;
   public program: anchor.Program<Messaging>;
+  public obfuscate: boolean;
 
   constructor(public conn: web3.Connection, public wallet: WalletInterface, opts?: MailboxOpts) {
     if (!wallet.publicKey) {
@@ -41,6 +44,7 @@ export class Mailbox {
     this.mailboxOwner = opts?.mailboxOwner ?? wallet.publicKey!;
     this.payer = opts?.payer;
     this.addresses = clusterAddresses.get(opts?.cluster ?? defaultCluster)!;
+    this.obfuscate = opts?.sendObfuscated ?? false;
 
     // Initialize anchor
     if (!opts?.skipAnchorProvider) {
@@ -90,7 +94,7 @@ export class Mailbox {
     return {
       sender: messageAccount.sender,
       payer: messageAccount.payer,
-      data: messageAccount.data,
+      data: this.unObfuscateMessage(messageAccount.data),
       messageId,
     } as MessageAccount;
   }
@@ -133,7 +137,9 @@ export class Mailbox {
 
     const messageAddress = await this.getMessageAddress(messageIndex, receiverAddress);
 
-    const tx = this.program.transaction.sendMessage(data, {
+    const message = this.obfuscate ? this.obfuscateMessage(data, receiverAddress) : data;
+
+    const tx = this.program.transaction.sendMessage(message, {
       accounts: {
         mailbox: toMailboxAddress,
         receiver: receiverAddress,
@@ -181,7 +187,7 @@ export class Mailbox {
       if (event.receiverPubkey.equals(this.mailboxOwner)) {
         callback({
           sender: event.senderPubkey,
-          data: event.message,
+          data: this.unObfuscateMessage(event.message),
           messageId: event.messageIndex,
         });
       }
@@ -255,5 +261,27 @@ export class Mailbox {
       tx.feePayer = this.wallet.publicKey!;
     }
     return tx;
+  }
+
+  // Obfuscation
+  private __obfuscationPrefix = "__o__";
+
+  private getObfuscationKey(publicKey: web3.PublicKey) {
+    return `PK_${publicKey.toBase58()}`;
+  }
+
+  private obfuscateMessage(message: string, receiverAddress: web3.PublicKey) {
+    const key = this.getObfuscationKey(receiverAddress);
+    const obfuscated = CryptoJS.AES.encrypt(message, key).toString();
+    return `${this.__obfuscationPrefix}${obfuscated}`;
+  }
+
+  private unObfuscateMessage(message: string) {
+    if (message.startsWith(this.__obfuscationPrefix)) {
+      const innerMessage = message.substring(this.__obfuscationPrefix.length);
+      const key = this.getObfuscationKey(this.wallet.publicKey!);
+      return CryptoJS.AES.decrypt(innerMessage, key).toString(CryptoJS.enc.Utf8);
+    }
+    return message;
   }
 }
