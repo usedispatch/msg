@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.4.0] 2022-03-17
+
 ### Features
 
 * client: Obfuscation support ([#30](https://github.com/usedispatch/msg/pull/30))
