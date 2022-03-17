@@ -264,7 +264,7 @@ export class Mailbox {
   }
 
   // Obfuscation
-  private __obfuscationPrefix = "__o__";
+  private _obfuscationPrefix = '__o__';
 
   private getObfuscationKey(publicKey: web3.PublicKey) {
     return `PK_${publicKey.toBase58()}`;
@@ -273,12 +273,12 @@ export class Mailbox {
   private obfuscateMessage(message: string, receiverAddress: web3.PublicKey) {
     const key = this.getObfuscationKey(receiverAddress);
     const obfuscated = CryptoJS.AES.encrypt(message, key).toString();
-    return `${this.__obfuscationPrefix}${obfuscated}`;
+    return `${this._obfuscationPrefix}${obfuscated}`;
   }
 
   private unObfuscateMessage(message: string) {
-    if (message.startsWith(this.__obfuscationPrefix)) {
-      const innerMessage = message.substring(this.__obfuscationPrefix.length);
+    if (message.startsWith(this._obfuscationPrefix)) {
+      const innerMessage = message.substring(this._obfuscationPrefix.length);
       const key = this.getObfuscationKey(this.wallet.publicKey!);
       return CryptoJS.AES.decrypt(innerMessage, key).toString(CryptoJS.enc.Utf8);
     }
