@@ -39,11 +39,23 @@ pub mod messaging {
         Ok(())
     }
 
-    /// Close the next message account and send rent to the original payer. Note, only
-    /// the receiver can do this.
-    pub fn close_message(ctx: Context<CloseMessage>) -> Result<()> {
+    /// Delete an arbitrary message account and send rent to the original payer. Only the
+    /// sender, payer, or receiver is allowed to call this function. If the account being
+    /// deleted is the next message, increment the read message count pointer.
+    pub fn delete_message(ctx: Context<DeleteMessage>, message_index: u32) -> Result<()> {
         let mailbox = &mut ctx.accounts.mailbox;
-        mailbox.read_message_count = mailbox.read_message_count + 1;
+        if message_index == mailbox.read_message_count && mailbox.read_message_count < mailbox.message_count {
+            mailbox.read_message_count += 1;
+        }
+
+        Ok(())
+    }
+
+    /// Allow the receiver to update the count of read messages in case others have deleted
+    /// and a gap has formed.
+    pub fn update_read_messages(ctx: Context<UpdateReadMessages>, read_messages: u32) -> Result<()> {
+        let mailbox = &mut ctx.accounts.mailbox;
+        mailbox.read_message_count = read_messages;
 
         if mailbox.read_message_count > mailbox.message_count {
             return Err(Error::from(ProgramError::InvalidArgument).with_source(source!()));
@@ -90,17 +102,25 @@ pub struct SendMessage<'info> {
 }
 
 #[derive(Accounts)]
-pub struct CloseMessage<'info> {
+#[instruction(message_index: u32)]
+pub struct DeleteMessage<'info> {
     #[account(mut,
         seeds = [PROTOCOL_SEED.as_bytes(), MAILBOX_SEED.as_bytes(), receiver.key().as_ref()],
         bump,
     )]
     pub mailbox: Account<'info, Mailbox>,
-    pub receiver: Signer<'info>,
+    /// CHECK: we only include receiver for their public key and do not access the account
+    /// and verify it based on the PDA of the mailbox
+    pub receiver: UncheckedAccount<'info>,
+
+    #[account(mut,
+        constraint = (authorized_deleter.key() == receiver.key() || authorized_deleter.key() == message.sender || authorized_deleter.key() == message.payer)
+    )]
+    pub authorized_deleter: Signer<'info>,
 
     #[account(mut,
         close = rent_destination,
-        seeds = [PROTOCOL_SEED.as_bytes(), MESSAGE_SEED.as_bytes(), mailbox.key().as_ref(), &mailbox.read_message_count.to_le_bytes()],
+        seeds = [PROTOCOL_SEED.as_bytes(), MESSAGE_SEED.as_bytes(), mailbox.key().as_ref(), &message_index.to_le_bytes()],
         bump,
     )]
     pub message: Account<'info, Message>,
@@ -112,6 +132,16 @@ pub struct CloseMessage<'info> {
     pub rent_destination: UncheckedAccount<'info>,
 
     pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct UpdateReadMessages<'info> {
+    #[account(mut,
+        seeds = [PROTOCOL_SEED.as_bytes(), MAILBOX_SEED.as_bytes(), receiver.key().as_ref()],
+        bump,
+    )]
+    pub mailbox: Account<'info, Mailbox>,
+    pub receiver: Signer<'info>,
 }
 
 #[account]

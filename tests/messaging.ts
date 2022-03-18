@@ -98,11 +98,12 @@ describe('messaging', () => {
     // const endTreasuryBalance = await conn.getBalance(TREASURY);
     // assert.equal(endTreasuryBalance, treasuryBalance + 2 * MESSAGE_FEE_LAMPORTS);
 
-    // close messages
-    const tx2 = await program.rpc.closeMessage({
+    // delete messages
+    const tx2 = await program.rpc.deleteMessage(0, {
       accounts: {
         mailbox: mailbox,
         receiver: receiver.publicKey,
+        authorizedDeleter: receiver.publicKey,
         message: message0,
         rentDestination: payer.publicKey,
         systemProgram: anchor.web3.SystemProgram.programId,
@@ -113,10 +114,11 @@ describe('messaging', () => {
     });
     await conn.confirmTransaction(tx2);
 
-    const tx3 = await program.rpc.closeMessage({
+    const tx3 = await program.rpc.deleteMessage(1, {
       accounts: {
         mailbox: mailbox,
         receiver: receiver.publicKey,
+        authorizedDeleter: receiver.publicKey,
         message: message1,
         rentDestination: payer.publicKey,
         systemProgram: anchor.web3.SystemProgram.programId,
@@ -277,10 +279,11 @@ describe('messaging', () => {
     console.log = () => {};
     console.error = () => {};
     try {
-      const tx1 = await program.rpc.closeMessage({
+      const tx1 = await program.rpc.deleteMessage(0, {
         accounts: {
           mailbox: mailbox,
           receiver: receiver.publicKey,
+          authorizedDeleter: receiver.publicKey,
           message: message0,
           rentDestination: receiver.publicKey,  // Intentionally wrong
           systemProgram: anchor.web3.SystemProgram.programId,

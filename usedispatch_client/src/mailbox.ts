@@ -170,20 +170,20 @@ export class Mailbox {
     if (!mailbox) {
       throw new Error(`Mailbox ${mailboxAddress.toBase58()} not found`);
     }
+    return this.makeDeleteTx(this.mailboxOwner, mailbox.readMessageCount, this.mailboxOwner);
+  }
 
-    const messageAddress = await this.getMessageAddress(mailbox.readMessageCount);
+  /// Returns null if message account doesn't exist, the transaction otherwise
+  async makeDeleteTx(receiver: web3.PublicKey, messageId: number, authorizedDeleter: web3.PublicKey): Promise<web3.Transaction> {
+    const messageAddress = await this.getMessageAddress(messageId, receiver);
     const messageAccount = await this.program.account.message.fetch(messageAddress);
-
-    const tx = this.program.transaction.closeMessage({
-      accounts: {
-        mailbox: mailboxAddress,
-        receiver: this.mailboxOwner,
-        message: messageAddress,
+    const tx = await this.program.methods.deleteMessage(messageId)
+      .accounts({
+        receiver: receiver,
+        authorizedDeleter: authorizedDeleter,
         rentDestination: messageAccount.payer,
-        systemProgram: web3.SystemProgram.programId,
-      },
-    });
-
+      })
+      .transaction();
     return this.setTransactionPayer(tx);
   }
 
