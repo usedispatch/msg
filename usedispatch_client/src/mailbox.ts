@@ -85,12 +85,24 @@ export class Mailbox {
     const messageIds = Array(numMessages)
       .fill(0)
       .map((_element, index) => index + mailbox.readMessageCount);
-    return Promise.all(messageIds.map((id) => this.getMessageById(id)));
+    const addresses = await Promise.all(messageIds.map((id) => this.getMessageAddress(id)));
+    const messages = await this.program.account.message.fetchMultiple(addresses);
+    const normalize = (messageAccount: any | null, index: number) => {
+      if (messageAccount === null) {
+        return null;
+      }
+      return this.normalizeMessageAccount(messageAccount, index + mailbox.readMessageCount);
+    }
+    return messages.map(normalize).filter((ma): ma is MessageAccount => ma !== null);
   }
 
   async getMessageById(messageId: number): Promise<MessageAccount> {
     const messageAddress = await this.getMessageAddress(messageId);
     const messageAccount = await this.program.account.message.fetch(messageAddress);
+    return this.normalizeMessageAccount(messageAccount, messageId);
+  }
+
+  private normalizeMessageAccount(messageAccount: any, messageId: number): MessageAccount {
     return {
       sender: messageAccount.sender,
       payer: messageAccount.payer,
