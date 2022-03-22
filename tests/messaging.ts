@@ -1,3 +1,4 @@
+import * as splToken from '@solana/spl-token';
 import * as anchor from '@project-serum/anchor';
 import { strict as assert } from 'assert';
 import { Program } from '@project-serum/anchor';
@@ -375,7 +376,7 @@ describe('messaging', () => {
     assert.ok(eventEmitted);
   });
 
-  it('Client library obfuscation test', async () => {
+  it('Obfuscates in the client library', async () => {
     // Set up accounts
     const receiver = new anchor.Wallet(anchor.web3.Keypair.generate());
     const sender = new anchor.Wallet(anchor.web3.Keypair.generate());
@@ -393,5 +394,78 @@ describe('messaging', () => {
 
     const resultingMessage = await receiverMailbox.getMessageById(0);
     assert.ok(resultingMessage.data === testMessage);
+  });
+
+  it('Handles deletes', async () => {
+    // Set up accounts
+    const receiver = new anchor.Wallet(anchor.web3.Keypair.generate());
+    const sender = new anchor.Wallet(anchor.web3.Keypair.generate());
+    await conn.confirmTransaction(await conn.requestAirdrop(receiver.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
+    await conn.confirmTransaction(await conn.requestAirdrop(sender.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
+
+    const receiverMailbox = new Mailbox(conn, receiver);
+    const senderMailbox = new Mailbox(conn, sender);
+
+    const testMessages = ["text0", "text1", "text2", "text3", "text4", "text5"];
+    for (const testMessage of testMessages) {
+      await senderMailbox.send(testMessage, receiver.publicKey);
+    }
+
+    await conn.confirmTransaction(await receiverMailbox.delete(2));
+    await conn.confirmTransaction(await senderMailbox.delete(0, receiver.publicKey));
+    await conn.confirmTransaction(await receiverMailbox.delete(1));
+    await conn.confirmTransaction(await senderMailbox.delete(4, receiver.publicKey));
+
+    const messages = await receiverMailbox.fetch();
+    const messageTexts = messages.map((m) => m.data);
+    assert.deepEqual(messageTexts, ["text3", "text5"]);
+
+    const {messageCount, readMessageCount} = await receiverMailbox.countEx();
+    assert.equal(messageCount, 6);
+    assert.equal(readMessageCount, 2);
+
+    // TODO(mfasman): set the read messages and check them
+  });
+
+  it('Sends a message with incentive and accepts it', async () => {
+    const receiver = new anchor.Wallet(anchor.web3.Keypair.generate());
+    const sender = new anchor.Wallet(anchor.web3.Keypair.generate());
+    await conn.confirmTransaction(await conn.requestAirdrop(receiver.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
+    await conn.confirmTransaction(await conn.requestAirdrop(sender.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
+
+    const mint = await splToken.createMint(conn, sender.payer, sender.publicKey, null, 10);
+    const ata = await splToken.createAssociatedTokenAccount(conn, sender.payer, mint, sender.publicKey);
+    const tx1 = await splToken.mintTo(conn, sender.payer, mint, ata, sender.payer, 1_000_000_000);
+    await conn.confirmTransaction(tx1);
+
+    const receiverMailbox = new Mailbox(conn, receiver);
+    const senderMailbox = new Mailbox(conn, sender);
+
+    const incentiveAmount = 500_000;
+    const sendOpts = {incentive: {
+      mint,
+      amount: incentiveAmount,
+      payerAccount: ata,
+    }};
+    await senderMailbox.send("message with incentive", receiver.publicKey, sendOpts);
+
+    let eventEmitted = false;
+    const subscriptionId = program.addEventListener("IncentiveClaimed", (event: any, _slot: number) => {
+      program.removeEventListener(subscriptionId);
+      eventEmitted = true;
+      assert.ok(event.senderPubkey.equals(sender.publicKey));
+      assert.ok(event.receiverPubkey.equals(receiver.publicKey));
+      assert.ok(event.mint.equals(mint));
+      assert.equal(event.messageIndex, 0);
+      assert.equal(event.amount, incentiveAmount);
+    });
+
+    await conn.confirmTransaction(await receiverMailbox.claimIncentive(0));
+
+    assert.ok(eventEmitted);
+
+    const receiverAtaAddr = await splToken.getAssociatedTokenAddress(mint, receiver.publicKey);
+    const receiverAta = await splToken.getAccount(conn, receiverAtaAddr);
+    assert.equal(receiverAta.amount, BigInt(incentiveAmount));
   });
 });

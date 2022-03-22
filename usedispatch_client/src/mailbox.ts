@@ -1,3 +1,4 @@
+import * as splToken from '@solana/spl-token';
 import * as web3 from '@solana/web3.js';
 import * as anchor from '@project-serum/anchor';
 import * as CryptoJS from 'crypto-js';
@@ -28,6 +29,16 @@ export type MailboxOpts = {
   skipAnchorProvider?: boolean;
   cluster?: web3.Cluster;
   sendObfuscated?: boolean;
+};
+
+export type IncentiveArgs = {
+  mint: web3.PublicKey;
+  amount: number;
+  payerAccount: web3.PublicKey;
+};
+
+export type SendOpts = {
+  incentive?: IncentiveArgs;
 };
 
 export class Mailbox {
@@ -61,15 +72,27 @@ export class Mailbox {
   /*
     Porcelain commands
   */
-  async send(data: string, receiverAddress: web3.PublicKey): Promise<string> {
+  async send(data: string, receiverAddress: web3.PublicKey, opts?: SendOpts): Promise<string> {
     this.validateWallet();
-    const tx = await this.makeSendTx(data, receiverAddress);
+    const tx = await this.makeSendTx(data, receiverAddress, opts);
     return this.sendTransaction(tx);
   }
 
   async pop(): Promise<string> {
     this.validateWallet();
     const tx = await this.makePopTx();
+    return this.sendTransaction(tx);
+  }
+
+  async delete(messageId: number, receiver?: web3.PublicKey): Promise<string> {
+    this.validateWallet();
+    const tx = await this.makeDeleteTx(messageId, receiver);
+    return this.sendTransaction(tx);
+  }
+
+  async claimIncentive(messageId: number): Promise<string> {
+    this.validateWallet();
+    const tx = await this.makeClaimIncentiveTx(messageId);
     return this.sendTransaction(tx);
   }
 
@@ -89,7 +112,7 @@ export class Mailbox {
     const messages = await this.program.account.message.fetchMultiple(addresses);
     const normalize = (messageAccount: any | null, index: number) => {
       return this.normalizeMessageAccount(messageAccount, index + mailbox.readMessageCount);
-    }
+    };
     return messages.map(normalize).filter((m): m is MessageAccount => m !== null);
   }
 
@@ -97,16 +120,6 @@ export class Mailbox {
     const messageAddress = await this.getMessageAddress(messageId);
     const messageAccount = await this.program.account.message.fetch(messageAddress);
     return this.normalizeMessageAccount(messageAccount, messageId)!;
-  }
-
-  private normalizeMessageAccount(messageAccount: any, messageId: number): MessageAccount | null {
-    if (messageAccount === null) return null;
-    return {
-      sender: messageAccount.sender,
-      payer: messageAccount.payer,
-      data: this.unObfuscateMessage(messageAccount.data),
-      messageId,
-    } as MessageAccount;
   }
 
   async count() {
@@ -136,7 +149,7 @@ export class Mailbox {
   /*
     Transaction generation commands
   */
-  async makeSendTx(data: string, receiverAddress: web3.PublicKey): Promise<web3.Transaction> {
+  async makeSendTx(data: string, receiverAddress: web3.PublicKey, opts?: SendOpts): Promise<web3.Transaction> {
     const toMailboxAddress = await this.getMailboxAddress(receiverAddress);
     let messageIndex = 0;
 
@@ -149,17 +162,34 @@ export class Mailbox {
 
     const message = this.obfuscate ? this.obfuscateMessage(data, receiverAddress) : data;
 
-    const tx = this.program.transaction.sendMessage(message, {
-      accounts: {
-        mailbox: toMailboxAddress,
-        receiver: receiverAddress,
-        message: messageAddress,
-        payer: this.payer ?? this.mailboxOwner,
-        sender: this.mailboxOwner,
-        feeReceiver: this.addresses.treasuryAddress,
-        systemProgram: web3.SystemProgram.programId,
-      },
-    });
+    const accounts = {
+      mailbox: toMailboxAddress,
+      receiver: receiverAddress,
+      message: messageAddress,
+      payer: this.payer ?? this.mailboxOwner,
+      sender: this.mailboxOwner,
+      feeReceiver: this.addresses.treasuryAddress,
+      systemProgram: web3.SystemProgram.programId,
+    };
+
+    let tx: web3.Transaction;
+    if (opts?.incentive) {
+      const ata = await splToken.getAssociatedTokenAddress(opts.incentive.mint, messageAddress, true);
+      const incentiveAccounts = {
+        ...accounts,
+        incentiveMint: opts.incentive.mint,
+        payerTokenAccount: opts.incentive.payerAccount,
+        incentiveTokenAccount: ata,
+        tokenProgram: splToken.TOKEN_PROGRAM_ID,
+        associatedTokenProgram: splToken.ASSOCIATED_TOKEN_PROGRAM_ID,
+        rent: web3.SYSVAR_RENT_PUBKEY,
+      };
+      tx = this.program.transaction.sendMessageWithIncentive(message, new anchor.BN(opts.incentive.amount), {
+        accounts: incentiveAccounts,
+      });
+    } else {
+      tx = this.program.transaction.sendMessage(message, { accounts });
+    }
 
     return this.setTransactionPayer(tx);
   }
@@ -170,18 +200,40 @@ export class Mailbox {
     if (!mailbox) {
       throw new Error(`Mailbox ${mailboxAddress.toBase58()} not found`);
     }
-    return this.makeDeleteTx(this.mailboxOwner, mailbox.readMessageCount, this.mailboxOwner);
+    return this.makeDeleteTx(mailbox.readMessageCount, this.mailboxOwner);
   }
 
   /// Returns null if message account doesn't exist, the transaction otherwise
-  async makeDeleteTx(receiver: web3.PublicKey, messageId: number, authorizedDeleter: web3.PublicKey): Promise<web3.Transaction> {
-    const messageAddress = await this.getMessageAddress(messageId, receiver);
+  async makeDeleteTx(messageId: number, receiver?: web3.PublicKey): Promise<web3.Transaction> {
+    const messageAddress = await this.getMessageAddress(messageId, receiver ?? this.mailboxOwner);
     const messageAccount = await this.program.account.message.fetch(messageAddress);
-    const tx = await this.program.methods.deleteMessage(messageId)
+    const tx = await this.program.methods
+      .deleteMessage(messageId)
       .accounts({
-        receiver: receiver,
-        authorizedDeleter: authorizedDeleter,
+        receiver: receiver ?? this.mailboxOwner,
+        authorizedDeleter: this.mailboxOwner,
         rentDestination: messageAccount.payer,
+      })
+      .transaction();
+    return this.setTransactionPayer(tx);
+  }
+
+  /// Returns null if message account doesn't exist, the transaction otherwise
+  async makeClaimIncentiveTx(messageId: number, receiver?: web3.PublicKey): Promise<web3.Transaction> {
+    const receiverAddress = receiver ?? this.mailboxOwner;
+    const messageAddress = await this.getMessageAddress(messageId, receiverAddress);
+    const messageAccount = await this.program.account.message.fetch(messageAddress);
+    const mint = messageAccount.incentiveMint;
+    const ata = await splToken.getAssociatedTokenAddress(mint, messageAddress, true);
+    const receiverAta = await splToken.getAssociatedTokenAddress(mint, receiverAddress, true);
+    const tx = await this.program.methods
+      .claimIncentive(messageId)
+      .accounts({
+        receiver: receiverAddress,
+        rentDestination: messageAccount.payer,
+        incentiveMint: mint,
+        incentiveTokenAccount: ata,
+        receiverTokenAccount: receiverAta,
       })
       .transaction();
     return this.setTransactionPayer(tx);
@@ -293,5 +345,15 @@ export class Mailbox {
       return CryptoJS.AES.decrypt(innerMessage, key).toString(CryptoJS.enc.Utf8);
     }
     return message;
+  }
+
+  private normalizeMessageAccount(messageAccount: any, messageId: number): MessageAccount | null {
+    if (messageAccount === null) return null;
+    return {
+      sender: messageAccount.sender,
+      payer: messageAccount.payer,
+      data: this.unObfuscateMessage(messageAccount.data),
+      messageId,
+    } as MessageAccount;
   }
 }
