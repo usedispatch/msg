@@ -141,6 +141,7 @@ pub mod messaging {
 pub struct SendMessage<'info> {
     #[account(init_if_needed,
         payer = payer,
+        space = 8 + 4 + 4,
         seeds = [PROTOCOL_SEED.as_bytes(), MAILBOX_SEED.as_bytes(), receiver.key().as_ref()],
         bump,
     )]
@@ -152,6 +153,7 @@ pub struct SendMessage<'info> {
         payer = payer,
         space =
             8                               // account discriminator
+            + 1                             // version
             + 32                            // sender pubkey
             + 32                            // payer pubkey
             + 4 + data.as_bytes().len()     // payload string
@@ -178,6 +180,7 @@ pub struct SendMessage<'info> {
 pub struct SendMessageWithIncentive<'info> {
     #[account(init_if_needed,
         payer = payer,
+        space = 8 + 4 + 4,
         seeds = [PROTOCOL_SEED.as_bytes(), MAILBOX_SEED.as_bytes(), receiver.key().as_ref()],
         bump,
     )]
@@ -189,6 +192,7 @@ pub struct SendMessageWithIncentive<'info> {
         payer = payer,
         space =
             8                               // account discriminator
+            + 1                             // version
             + 32                            // sender pubkey
             + 32                            // payer pubkey
             + 4 + data.as_bytes().len()     // payload string
@@ -310,6 +314,7 @@ pub struct Mailbox {
 #[account]
 #[derive(Default)]
 pub struct Message {
+    pub version: u8,
     pub sender: Pubkey,
     pub payer: Pubkey,
     pub data: String,
