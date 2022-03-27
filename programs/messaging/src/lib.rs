@@ -314,7 +314,6 @@ pub struct Mailbox {
 #[account]
 #[derive(Default)]
 pub struct Message {
-    pub version: u8,
     pub sender: Pubkey,
     pub payer: Pubkey,
     pub data: String,
