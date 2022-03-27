@@ -6,7 +6,7 @@ mod treasury;
 #[cfg(feature = "mainnet")]
 declare_id!("BHJ4tRcogS88tUhYotPfYWDjR4q7MGdizdiguY3N54rb");
 #[cfg(not(feature = "mainnet"))]
-declare_id!("BHJ4tRcogS88tUhYotPfYWDjR4q7MGdizdiguY3N54rb");
+declare_id!("3XdwhGqqCpuqbwfiAB1GRVTwvPEXQW8Eio4smfdFduWB");
 
 #[constant]
 const MESSAGE_FEE_LAMPORTS: u64 = 50000;

@@ -17,7 +17,7 @@ export const eventName = 'DispatchMessage';
 export const clusterAddresses = new Map<web3.Cluster, DispatchAddresses>();
 
 clusterAddresses.set('devnet', {
-  programAddress: new web3.PublicKey('BHJ4tRcogS88tUhYotPfYWDjR4q7MGdizdiguY3N54rb'),
+  programAddress: new web3.PublicKey('3XdwhGqqCpuqbwfiAB1GRVTwvPEXQW8Eio4smfdFduWB'),
   treasuryAddress: new web3.PublicKey('G2GGDc89qpuk21WgRUVPDY517uc6qR5yT4KX7AakyVR1'),
 });
 
