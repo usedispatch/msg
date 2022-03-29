@@ -153,7 +153,6 @@ pub struct SendMessage<'info> {
         payer = payer,
         space =
             8                               // account discriminator
-            + 1                             // version
             + 32                            // sender pubkey
             + 32                            // payer pubkey
             + 4 + data.as_bytes().len()     // payload string
@@ -192,7 +191,6 @@ pub struct SendMessageWithIncentive<'info> {
         payer = payer,
         space =
             8                               // account discriminator
-            + 1                             // version
             + 32                            // sender pubkey
             + 32                            // payer pubkey
             + 4 + data.as_bytes().len()     // payload string

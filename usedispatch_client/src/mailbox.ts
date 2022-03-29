@@ -123,12 +123,7 @@ export class Mailbox {
   }
 
   async count() {
-    const mailbox = await this.fetchMailbox();
-    if (!mailbox) {
-      return 0;
-    }
-
-    return mailbox.messageCount - mailbox.readMessageCount;
+    return (await this.fetch()).length;
   }
 
   async countEx() {
