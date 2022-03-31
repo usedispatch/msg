@@ -226,7 +226,7 @@ export class Mailbox {
     const tx = await this.program.methods
       .claimIncentive(messageId)
       .accounts({
-        receiver: receiver,
+        receiver,
         rentDestination: messageAccount.payer,
         incentiveMint: mint,
         incentiveTokenAccount: ata,
