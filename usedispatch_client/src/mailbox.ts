@@ -78,15 +78,16 @@ export class Mailbox {
     return this.sendTransaction(tx);
   }
 
+  /// @deprecated use delete instead
   async pop(): Promise<string> {
     this.validateWallet();
     const tx = await this.makePopTx();
     return this.sendTransaction(tx);
   }
 
-  async delete(messageId: number, receiver?: web3.PublicKey): Promise<string> {
+  async delete(messageId: number, receiverAddress?: web3.PublicKey): Promise<string> {
     this.validateWallet();
-    const tx = await this.makeDeleteTx(messageId, receiver);
+    const tx = await this.makeDeleteTx(messageId, receiverAddress);
     return this.sendTransaction(tx);
   }
 
@@ -189,6 +190,7 @@ export class Mailbox {
     return this.setTransactionPayer(tx);
   }
 
+  /// @deprecated use makeDeleteTx instead
   async makePopTx(): Promise<web3.Transaction> {
     const mailboxAddress = await this.getMailboxAddress();
     const mailbox = await this.fetchMailbox();
@@ -199,13 +201,13 @@ export class Mailbox {
   }
 
   /// Returns null if message account doesn't exist, the transaction otherwise
-  async makeDeleteTx(messageId: number, receiver?: web3.PublicKey): Promise<web3.Transaction> {
-    const messageAddress = await this.getMessageAddress(messageId, receiver ?? this.mailboxOwner);
+  async makeDeleteTx(messageId: number, receiverAddress?: web3.PublicKey): Promise<web3.Transaction> {
+    const messageAddress = await this.getMessageAddress(messageId, receiverAddress ?? this.mailboxOwner);
     const messageAccount = await this.program.account.message.fetch(messageAddress);
     const tx = await this.program.methods
       .deleteMessage(messageId)
       .accounts({
-        receiver: receiver ?? this.mailboxOwner,
+        receiver: receiverAddress ?? this.mailboxOwner,
         authorizedDeleter: this.mailboxOwner,
         rentDestination: messageAccount.payer,
       })
@@ -214,17 +216,17 @@ export class Mailbox {
   }
 
   /// Returns null if message account doesn't exist, the transaction otherwise
-  async makeClaimIncentiveTx(messageId: number, receiver?: web3.PublicKey): Promise<web3.Transaction> {
-    const receiverAddress = receiver ?? this.mailboxOwner;
-    const messageAddress = await this.getMessageAddress(messageId, receiverAddress);
+  async makeClaimIncentiveTx(messageId: number, receiverAddress?: web3.PublicKey): Promise<web3.Transaction> {
+    const receiver = receiverAddress ?? this.mailboxOwner;
+    const messageAddress = await this.getMessageAddress(messageId, receiver);
     const messageAccount = await this.program.account.message.fetch(messageAddress);
     const mint = messageAccount.incentiveMint;
     const ata = await splToken.getAssociatedTokenAddress(mint, messageAddress, true);
-    const receiverAta = await splToken.getAssociatedTokenAddress(mint, receiverAddress, true);
+    const receiverAta = await splToken.getAssociatedTokenAddress(mint, receiver, true);
     const tx = await this.program.methods
       .claimIncentive(messageId)
       .accounts({
-        receiver: receiverAddress,
+        receiver: receiver,
         rentDestination: messageAccount.payer,
         incentiveMint: mint,
         incentiveTokenAccount: ata,
