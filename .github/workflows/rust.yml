@@ -37,7 +37,7 @@ jobs:
         run: solana config get
 
       - name: Install Anchor
-        run: npm install -g @project-serum/anchor-cli
+        run: npm install -g @project-serum/anchor-cli@0.22.1
       - name: Test cargo bpf
         run: cargo build-bpf
       - name: install yarn
