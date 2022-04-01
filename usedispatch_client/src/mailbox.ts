@@ -260,7 +260,7 @@ export class Mailbox {
 
   addSentMessageListener(callback: (message: SentMessageAccount) => void): number {
     return this.program.addEventListener(eventName, (event: any, _slot: number) => {
-      if (event.receiverPubkey.equals(this.mailboxOwner)) {
+      if (event.senderPubkey.equals(this.mailboxOwner)) {
         callback({
           receiver: event.receiverPubkey,
           messageId: event.messageIndex,
