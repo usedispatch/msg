@@ -23,6 +23,11 @@ export type MessageAccount = {
   messageId: number;
 };
 
+export type SentMessageAccount = {
+  receiver: web3.PublicKey;
+  messageId: number;
+};
+
 export type MailboxOpts = {
   mailboxOwner?: web3.PublicKey;
   payer?: web3.PublicKey;
@@ -247,6 +252,17 @@ export class Mailbox {
         callback({
           sender: event.senderPubkey,
           data: this.unObfuscateMessage(event.message),
+          messageId: event.messageIndex,
+        });
+      }
+    });
+  }
+
+  addSentMessageListener(callback: (message: SentMessageAccount) => void): number {
+    return this.program.addEventListener(eventName, (event: any, _slot: number) => {
+      if (event.senderPubkey.equals(this.mailboxOwner)) {
+        callback({
+          receiver: event.receiverPubkey,
           messageId: event.messageIndex,
         });
       }
