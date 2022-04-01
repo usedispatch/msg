@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Features
+
+* client: Sent message subsciptions ([#33](https://github.com/usedispatch/msg/pull/33))
+
 ## [0.5.0] 2022-03-31
 
 ### Features
