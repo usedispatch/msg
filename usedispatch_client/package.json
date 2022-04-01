@@ -1,6 +1,6 @@
 {
   "name": "@usedispatch/client",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Client for Dispatch Protocol",
   "main": "lib/usedispatch_client/src/index.js",
   "types": "lib/usedispatch_client/src/index.d.ts",
