@@ -23,11 +23,6 @@ export type MessageAccount = {
   messageId: number;
 };
 
-export type SentMessageAccount = {
-  receiver: web3.PublicKey;
-  messageId: number;
-};
-
 export type MailboxOpts = {
   mailboxOwner?: web3.PublicKey;
   payer?: web3.PublicKey;
@@ -100,6 +95,52 @@ export class Mailbox {
     this.validateWallet();
     const tx = await this.makeClaimIncentiveTx(messageId);
     return this.sendTransaction(tx);
+  }
+
+  async fetchSent(receiverAddress?: web3.PublicKey): Promise<MessageAccount[]> {
+
+    console.log('fetch sent messages to receiver: ', receiverAddress!.toBase58());
+
+    const toMailboxAddress = await this.getMailboxAddress(receiverAddress);
+    const mailbox = await this.fetchMailbox(toMailboxAddress);
+
+    console.log('fetched mailbox for receiver: ', mailbox);
+
+    if (!mailbox) {
+      return [];
+    }
+
+    const numMessages = mailbox.messageCount;
+    console.log('num messages in fetched receiver mailbox: ', numMessages);
+
+    if (0 === numMessages) {
+      return [];
+    }
+
+    const messageIds = Array(numMessages)
+      .fill(0)
+      .map((_element, index) => index + mailbox.readMessageCount);
+
+    console.log('>>> messageIds in receiver mailbox: ', messageIds);
+
+    const addresses = await Promise.all(messageIds.map((id) => this.getMessageAddress(id)));
+
+    console.log('>> addresses of receiver mailbox messages: ', addresses);
+
+    const messages = await this.program.account.message.fetchMultiple(addresses);
+
+    console.log('>> actual messages in mailbox: ', messages);
+
+    const normalize = (messageAccount: any | null, index: number) => {
+      return this.normalizeMessageAccount(messageAccount, index + mailbox.readMessageCount);
+    };
+
+
+    const m = messages.map(normalize).filter((m): m is MessageAccount => m !== null);
+
+    console.log('>> final normalized messages: ', m);
+
+    return m;
   }
 
   async fetch(): Promise<MessageAccount[]> {
@@ -258,17 +299,6 @@ export class Mailbox {
     });
   }
 
-  addSentMessageListener(callback: (message: SentMessageAccount) => void): number {
-    return this.program.addEventListener(eventName, (event: any, _slot: number) => {
-      if (event.senderPubkey.equals(this.mailboxOwner)) {
-        callback({
-          receiver: event.receiverPubkey,
-          messageId: event.messageIndex,
-        });
-      }
-    });
-  }
-
   removeMessageListener(subscriptionId: number) {
     this.program.removeEventListener(subscriptionId);
   }
@@ -362,6 +392,9 @@ export class Mailbox {
 
   private normalizeMessageAccount(messageAccount: any, messageId: number): MessageAccount | null {
     if (messageAccount === null) return null;
+    console.log('normalizeMessageAccount: message account', messageAccount);
+    console.log('normalizeMessageAccount: message ID', messageId);
+
     return {
       sender: messageAccount.sender,
       payer: messageAccount.payer,
