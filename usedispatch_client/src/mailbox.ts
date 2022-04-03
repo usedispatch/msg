@@ -122,6 +122,38 @@ export class Mailbox {
     return messages.map(normalize).filter((m): m is MessageAccount => m !== null);
   }
 
+   async fetchSent(receiverAddress?: web3.PublicKey): Promise<MessageAccount[]> {
+    console.log('fetch sent messages to receiver: ', receiverAddress!.toBase58());
+    const toMailboxAddress = await this.getMailboxAddress(receiverAddress);
+    const mailbox = await this.fetchMailbox(toMailboxAddress);
+    console.log('fetched mailbox for receiver: ', mailbox);
+    if (!mailbox) {
+      return [];
+    }
+    const numMessages = mailbox.messageCount;
+    console.log('num messages in fetched receiver mailbox: ', numMessages);
+    if (0 === numMessages) {
+      return [];
+    }
+    const messageIds = Array(numMessages)
+      .fill(0)
+      .map((_element, index) => index + mailbox.readMessageCount);
+    console.log('>>> messageIds in receiver mailbox: ', messageIds);
+    const addresses = await Promise.all(messageIds.map((id) => {
+      return this.getMessageAddress(id, receiverAddress);
+    }));
+    console.log('>> addresses of receiver mailbox messages: ', addresses);
+    const messages = await this.program.account.message.fetchMultiple(addresses);
+    console.log('>> actual messages in mailbox: ', messages);
+    const normalize = (messageAccount: any | null, index: number) => {
+      return this.normalizeMessageAccount(messageAccount, index + mailbox.readMessageCount);
+    };
+    const normalizedMessages = messages.map(normalize).filter((m): m is MessageAccount => m !== null);
+    console.log('>> final normalized messages: ', normalizedMessages);
+    return normalizedMessages;
+  }
+
+
   async getMessageById(messageId: number): Promise<MessageAccount> {
     const messageAddress = await this.getMessageAddress(messageId);
     const messageAccount = await this.program.account.message.fetch(messageAddress);
