@@ -122,7 +122,7 @@ export class Mailbox {
     return messages.map(normalize).filter((m): m is MessageAccount => m !== null);
   }
 
-  async fetchSent(receiverAddress?: web3.PublicKey): Promise<MessageAccount[]> {
+  async fetchSentMessagesToReceiver(receiverAddress: web3.PublicKey): Promise<MessageAccount[]> {
     const toMailboxAddress = await this.getMailboxAddress(receiverAddress);
     const mailbox = await this.fetchMailbox(toMailboxAddress);
     if (!mailbox) {
