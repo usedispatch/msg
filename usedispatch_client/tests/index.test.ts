@@ -40,14 +40,14 @@ describe("Test for initial Mailbox setup.", () => {
       const txSig1 = await senderMailbox.send("text1", receiver.publicKey);
       await conn.confirmTransaction(txSig1, 'finalized');
 
-      console.log('Fetch messages from mailbox');
+      console.log('Fetch messages from receivers mailbox');
       let messages = await receiverMailbox.fetch();
       expect(messages.length).toEqual(2);
 
       console.log('Fetch sent messages to receiver from senders mailbox');
       const sentMessages = await senderMailbox.fetchSent(receiver.publicKey);
       console.log('1. sentMessages: (should be 2)', sentMessages);
-      expect(sentMessages.length).toEqual(0);
+      expect(sentMessages.length).toEqual(2);
 
       expect(messages[0].sender.equals(payer.publicKey))
       expect(messages[0].data).toEqual("text0");
@@ -55,7 +55,7 @@ describe("Test for initial Mailbox setup.", () => {
       expect(messages[1].sender).toEqual(payer.publicKey);
       expect(messages[1].data).toEqual("text1");
 
-      console.log('Pop 1 message from mailbox');
+      console.log('Pop 1 message from receivers mailbox');
       const txSig2 = await receiverMailbox.pop();
       await conn.confirmTransaction(txSig2, 'finalized');
 
@@ -65,7 +65,7 @@ describe("Test for initial Mailbox setup.", () => {
       expect(_messages[0].sender).toEqual(payer.publicKey);
       expect(_messages[0].data).toEqual("text1");
 
-      console.log('Pop 1 message from mailbox');
+      console.log('Pop 1 message from receivers mailbox');
       const txSig3 = await receiverMailbox.pop();
       await conn.confirmTransaction(txSig3, 'finalized');
 
