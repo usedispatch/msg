@@ -3,8 +3,7 @@ import * as anchor from '@project-serum/anchor';
 import { strict as assert } from 'assert';
 import { Program } from '@project-serum/anchor';
 import { Messaging } from '../target/types/messaging';
-import { Mailbox, clusterAddresses, seeds } from '../usedispatch_client/src';
-import { EnhancedMessageData } from '../usedispatch_cli/node_modules/@usedispatch/client/src/json';
+import { EnhancedMessageData, Mailbox, clusterAddresses, seeds } from '../usedispatch_client/src';
 
 describe('messaging', () => {
 
