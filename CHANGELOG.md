@@ -4,7 +4,7 @@
 
 ### Features
 
-* client: Fetch messages sent to an address, and method to delete a given message
+* client: Fetch messages sent to an address, and method to delete a given message ([#36](https://github.com/usedispatch/pull/36))
 
 ## [0.5.1] 2022-03-31
 
