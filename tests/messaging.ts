@@ -4,6 +4,7 @@ import { strict as assert } from 'assert';
 import { Program } from '@project-serum/anchor';
 import { Messaging } from '../target/types/messaging';
 import { Mailbox, clusterAddresses, seeds } from '../usedispatch_client/src';
+import { EnhancedMessageData } from '../usedispatch_cli/node_modules/@usedispatch/client/src/json';
 
 describe('messaging', () => {
 
@@ -512,5 +513,24 @@ describe('messaging', () => {
     assert.equal(sentMessages2.length, messagesToSend.length - 1);
     const sentMessages2Text = sentMessages2.map((m) => m.data);
     assert.deepEqual(sentMessages2Text, ["msg0", "msg1", "msg3"]);
+  });
+
+  it('Sends an enhanced message and fetches it', async () => {
+    const receiver = new anchor.Wallet(anchor.web3.Keypair.generate());
+    const sender = new anchor.Wallet(anchor.web3.Keypair.generate());
+    await conn.confirmTransaction(await conn.requestAirdrop(sender.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
+
+    const senderMailbox = new Mailbox(conn, sender);
+
+    const testSubj = "test";
+    const testBody = "msg";
+    await senderMailbox.sendMessage(testSubj, testBody, receiver.publicKey);
+
+    const sentMessage = (await senderMailbox.fetchSentMessagesTo(receiver.publicKey))[0];
+    const innerData = EnhancedMessageData.parse(sentMessage.data);
+    assert.equal(innerData.subj, testSubj);
+    assert.equal(innerData.body, testBody);
+    assert.ok(+innerData.ts > 1649214872923);
+    assert.equal(innerData.meta, undefined);
   });
 });

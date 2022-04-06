@@ -11,6 +11,7 @@ import {
   AnchorNodeWalletInterface,
   AnchorExpectedWalletInterface,
 } from './wallets';
+import { EnhancedMessageData } from './json';
 
 export type MailboxAccount = {
   messageCount: number;
@@ -81,6 +82,14 @@ export class Mailbox {
   async send(data: string, receiverAddress: web3.PublicKey, opts?: SendOpts): Promise<string> {
     this.validateWallet();
     const tx = await this.makeSendTx(data, receiverAddress, opts);
+    return this.sendTransaction(tx);
+  }
+
+  async sendMessage(subj: string, body: string, receiverAddress: web3.PublicKey, opts?: SendOpts, meta?: object): Promise<string> {
+    this.validateWallet();
+    const ts = new Date().getTime();
+    const enhancedData = new EnhancedMessageData(subj, body, ts.toString(), meta);
+    const tx = await this.makeSendTx(enhancedData.toString(), receiverAddress, opts);
     return this.sendTransaction(tx);
   }
 
