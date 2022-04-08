@@ -45,10 +45,10 @@ describe("Test for initial Mailbox setup.", () => {
             expect(messages.length).toEqual(2);
 
             expect(messages[0].sender.equals(payer.publicKey))
-            expect(messages[0].data).toEqual("text0");
+            expect(messages[0].data.body).toEqual("text0");
 
             expect(messages[1].sender).toEqual(payer.publicKey);
-            expect(messages[1].data).toEqual("text1");
+            expect(messages[1].data.body).toEqual("text1");
 
             console.log('Pop 1 message from mailbox');
             const txSig2 = await receiverMailbox.pop();
@@ -58,7 +58,7 @@ describe("Test for initial Mailbox setup.", () => {
             expect(_messages.length).toEqual(1);
 
             expect(_messages[0].sender).toEqual(payer.publicKey);
-            expect(_messages[0].data).toEqual("text1");
+            expect(_messages[0].data.body).toEqual("text1");
 
             console.log('Pop 1 message from mailbox');
             const txSig3 = await receiverMailbox.pop();

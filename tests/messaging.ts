@@ -3,7 +3,7 @@ import * as anchor from '@project-serum/anchor';
 import { strict as assert } from 'assert';
 import { Program } from '@project-serum/anchor';
 import { Messaging } from '../target/types/messaging';
-import { EnhancedMessageData, Mailbox, clusterAddresses, seeds } from '../usedispatch_client/src';
+import { Mailbox, clusterAddresses, seeds } from '../usedispatch_client/src';
 
 describe('messaging', () => {
 
@@ -168,16 +168,16 @@ describe('messaging', () => {
 
     let firstMessage = await receiverMailbox.fetchMessageById(1);
     assert.ok(firstMessage.messageId === 1);
-    assert.ok(firstMessage.data === "text1");
+    assert.ok(firstMessage.data.body === "text1");
 
     let messages = await receiverMailbox.fetch();
     assert.ok(messages.length === 2);
 
     assert.ok(messages[0].sender.equals(sender.publicKey))
-    assert.ok(messages[0].data === "text0");
+    assert.ok(messages[0].data.body === "text0");
 
     assert.ok(messages[1].sender.equals(sender.publicKey))
-    assert.ok(messages[1].data === "text1");
+    assert.ok(messages[1].data.body === "text1");
 
     await receiverMailbox.pop();
     assert.ok(await receiverMailbox.count() === 1);
@@ -186,7 +186,7 @@ describe('messaging', () => {
     assert.ok(messages.length === 1);
 
     assert.ok(messages[0].sender.equals(sender.publicKey))
-    assert.ok(messages[0].data === "text1");
+    assert.ok(messages[0].data.body === "text1");
 
     await receiverMailbox.pop();
     assert.ok(await receiverMailbox.count() === 0);
@@ -221,7 +221,7 @@ describe('messaging', () => {
     assert.ok(messages.length === 1);
 
     assert.ok(messages[0].sender.equals(payer.publicKey))
-    assert.ok(messages[0].data === "test1");
+    assert.ok(messages[0].data.body === "test1");
 
     // Free message account and send rent to receiver
     const popTx = await receiverMailbox.makePopTx();
@@ -366,7 +366,7 @@ describe('messaging', () => {
     const subscriptionId = receiverMailbox.addMessageListener((message) => {
       receiverMailbox.removeMessageListener(subscriptionId);
       assert.ok(senderWallet.publicKey.equals(message.sender));
-      assert.ok(payload === message.data);
+      assert.ok(payload === message.data.body);
       eventEmitted = true;
     });
 
@@ -416,7 +416,7 @@ describe('messaging', () => {
     assert.ok(messageAccount.data !== testMessage);
 
     const resultingMessage = await receiverMailbox.fetchMessageById(0);
-    assert.ok(resultingMessage.data === testMessage);
+    assert.ok(resultingMessage.data.body === testMessage);
   });
 
   it('Handles deletes', async () => {
@@ -440,7 +440,7 @@ describe('messaging', () => {
     await conn.confirmTransaction(await senderMailbox.delete(4, receiver.publicKey));
 
     const messages = await receiverMailbox.fetch();
-    const messageTexts = messages.map((m) => m.data);
+    const messageTexts = messages.map((m) => m.data.body);
     assert.deepEqual(messageTexts, ["text3", "text5"]);
 
     const {messageCount, readMessageCount} = await receiverMailbox.countEx();
@@ -510,7 +510,7 @@ describe('messaging', () => {
     await conn.confirmTransaction(await senderMailbox.deleteMessage(sentMessages[2]));
     const sentMessages2 = await senderMailbox.fetchSentMessagesTo(receiver.publicKey);
     assert.equal(sentMessages2.length, messagesToSend.length - 1);
-    const sentMessages2Text = sentMessages2.map((m) => m.data);
+    const sentMessages2Text = sentMessages2.map((m) => m.data.body);
     assert.deepEqual(sentMessages2Text, ["msg0", "msg1", "msg3"]);
   });
 
@@ -526,7 +526,7 @@ describe('messaging', () => {
     await senderMailbox.sendMessage(testSubj, testBody, receiver.publicKey);
 
     const sentMessage = (await senderMailbox.fetchSentMessagesTo(receiver.publicKey))[0];
-    const innerData = EnhancedMessageData.parse(sentMessage.data);
+    const innerData = sentMessage.data;
     assert.equal(innerData.subj, testSubj);
     assert.equal(innerData.body, testBody);
     assert.ok(+innerData.ts > 1649214872923);

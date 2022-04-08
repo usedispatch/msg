@@ -11,17 +11,23 @@ import {
   AnchorNodeWalletInterface,
   AnchorExpectedWalletInterface,
 } from './wallets';
-import { EnhancedMessageData } from './json';
 
 export type MailboxAccount = {
   messageCount: number;
   readMessageCount: number;
 };
 
+export type MessageData = {
+  subj?: string;
+  body: string;
+  ts?: string;
+  meta?: object;
+};
+
 export type MessageAccount = {
   sender: web3.PublicKey;
   receiver: web3.PublicKey;
-  data: string;
+  data: MessageData;
   messageId: number;
 };
 
@@ -87,9 +93,9 @@ export class Mailbox {
 
   async sendMessage(subj: string, body: string, receiverAddress: web3.PublicKey, opts?: SendOpts, meta?: object): Promise<string> {
     this.validateWallet();
-    const ts = new Date().getTime();
-    const enhancedData = new EnhancedMessageData(subj, body, ts.toString(), meta);
-    const tx = await this.makeSendTx(enhancedData.toString(), receiverAddress, opts);
+    const ts = new Date().getTime().toString();
+    const enhancedMessage = { subj, body, ts, meta };
+    const tx = await this.makeSendTx(JSON.stringify(enhancedMessage), receiverAddress, opts);
     return this.sendTransaction(tx);
   }
 
@@ -276,7 +282,7 @@ export class Mailbox {
         callback({
           sender: event.senderPubkey,
           receiver: event.receiverPubkey,
-          data: this.unObfuscateMessage(event.message),
+          data: this.unpackMessageData(event.message),
           messageId: event.messageIndex,
         });
       }
@@ -385,13 +391,21 @@ export class Mailbox {
     return message;
   }
 
+  private unpackMessageData(message: string): MessageData {
+    const data = this.unObfuscateMessage(message);
+    if (data.startsWith("{")) {
+      return JSON.parse(data) as MessageData;
+    }
+    return { body: data };
+  }
+
   private normalizeMessageAccount(messageAccount: any, messageId: number): MessageAccount | null {
     if (messageAccount === null) return null;
     return {
       sender: messageAccount.sender,
       receiver: this.mailboxOwner,
       payer: messageAccount.payer,
-      data: this.unObfuscateMessage(messageAccount.data),
+      data: this.unpackMessageData(messageAccount.data),
       messageId,
     } as MessageAccount;
   }
