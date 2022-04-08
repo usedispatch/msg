@@ -368,9 +368,17 @@ export class Mailbox {
   }
 
   private unObfuscateMessage(message: string) {
-    if (message.startsWith(this._obfuscationPrefix) && this.mailboxOwner.equals(this.wallet.publicKey!)) {
+    // Bugfix: obfuscate-fix
+    // Check if this message starts with a prefix but don't care about who the owner is
+    // The right obfuscation key is that of the MailBoxOwner not the current wallet
+    // in the two cases a mailbox is initialized,
+    // When a mailbox is initialized by a user to get their sent messages
+    // When a mailbox is initialized by a user to get their received messages
+
+    if (message.startsWith(this._obfuscationPrefix)) {
       const innerMessage = message.substring(this._obfuscationPrefix.length);
-      const key = this.getObfuscationKey(this.wallet.publicKey!);
+      const obfuscationKey = new web3.PublicKey(this.mailboxOwner);
+      const key = this.getObfuscationKey(obfuscationKey);
       return CryptoJS.AES.decrypt(innerMessage, key).toString(CryptoJS.enc.Utf8);
     }
     return message;
