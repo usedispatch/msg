@@ -523,13 +523,15 @@ describe('messaging', () => {
 
     const testSubj = "test";
     const testBody = "msg";
-    await senderMailbox.sendMessage(testSubj, testBody, receiver.publicKey);
+    const testMeta = {demo: "hi"};
+    const testNow = new Date().getTime();
+    await senderMailbox.sendMessage(testSubj, testBody, receiver.publicKey, {}, testMeta);
 
     const sentMessage = (await senderMailbox.fetchSentMessagesTo(receiver.publicKey))[0];
     const innerData = sentMessage.data;
     assert.equal(innerData.subj, testSubj);
     assert.equal(innerData.body, testBody);
-    assert.ok(+innerData.ts > 1649214872923);
-    assert.equal(innerData.meta, undefined);
+    assert.ok(+innerData.ts > testNow && +innerData.ts < testNow + 10 * 1000);
+    assert.deepEqual(innerData.meta, testMeta);
   });
 });
