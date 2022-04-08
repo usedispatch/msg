@@ -19,6 +19,7 @@ export type MailboxAccount = {
 
 export type MessageAccount = {
   sender: web3.PublicKey;
+  receiver: web3.PublicKey;
   data: string;
   messageId: number;
 };
@@ -96,6 +97,12 @@ export class Mailbox {
     return this.sendTransaction(tx);
   }
 
+  async deleteMessage(message: MessageAccount): Promise<string> {
+    this.validateWallet();
+    const tx = await this.makeDeleteTx(message.messageId, message.receiver);
+    return this.sendTransaction(tx);
+  }
+
   async claimIncentive(messageId: number): Promise<string> {
     this.validateWallet();
     const tx = await this.makeClaimIncentiveTx(messageId);
@@ -122,10 +129,18 @@ export class Mailbox {
     return messages.map(normalize).filter((m): m is MessageAccount => m !== null);
   }
 
-  async getMessageById(messageId: number): Promise<MessageAccount> {
+  async fetchMessageById(messageId: number): Promise<MessageAccount> {
     const messageAddress = await this.getMessageAddress(messageId);
     const messageAccount = await this.program.account.message.fetch(messageAddress);
     return this.normalizeMessageAccount(messageAccount, messageId)!;
+  }
+
+  async fetchSentMessagesTo(receiverAddress: web3.PublicKey): Promise<MessageAccount[]> {
+    const receiverMailbox = new Mailbox(this.conn, this.wallet, {mailboxOwner: receiverAddress});
+    const sentToReceiver = (await receiverMailbox.fetch()).filter((m) => {
+      return m.sender.equals(this.mailboxOwner);
+    });
+    return sentToReceiver;
   }
 
   async count() {
@@ -251,6 +266,7 @@ export class Mailbox {
       if (event.receiverPubkey.equals(this.mailboxOwner)) {
         callback({
           sender: event.senderPubkey,
+          receiver: event.receiverPubkey,
           data: this.unObfuscateMessage(event.message),
           messageId: event.messageIndex,
         });
@@ -352,7 +368,7 @@ export class Mailbox {
   }
 
   private unObfuscateMessage(message: string) {
-    if (message.startsWith(this._obfuscationPrefix)) {
+    if (message.startsWith(this._obfuscationPrefix) && this.mailboxOwner.equals(this.wallet.publicKey!)) {
       const innerMessage = message.substring(this._obfuscationPrefix.length);
       const key = this.getObfuscationKey(this.wallet.publicKey!);
       return CryptoJS.AES.decrypt(innerMessage, key).toString(CryptoJS.enc.Utf8);
@@ -364,6 +380,7 @@ export class Mailbox {
     if (messageAccount === null) return null;
     return {
       sender: messageAccount.sender,
+      receiver: this.mailboxOwner,
       payer: messageAccount.payer,
       data: this.unObfuscateMessage(messageAccount.data),
       messageId,

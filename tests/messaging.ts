@@ -166,7 +166,7 @@ describe('messaging', () => {
     assert.ok(fullCountEx1.messageCount === 2);
     assert.ok(fullCountEx1.readMessageCount === 0);
 
-    let firstMessage = await receiverMailbox.getMessageById(1);
+    let firstMessage = await receiverMailbox.fetchMessageById(1);
     assert.ok(firstMessage.messageId === 1);
     assert.ok(firstMessage.data === "text1");
 
@@ -415,7 +415,7 @@ describe('messaging', () => {
     const messageAccount = await receiverMailbox.program.account.message.fetch(messageAddress);
     assert.ok(messageAccount.data !== testMessage);
 
-    const resultingMessage = await receiverMailbox.getMessageById(0);
+    const resultingMessage = await receiverMailbox.fetchMessageById(0);
     assert.ok(resultingMessage.data === testMessage);
   });
 
@@ -490,5 +490,27 @@ describe('messaging', () => {
     const receiverAtaAddr = await splToken.getAssociatedTokenAddress(mint, receiver.publicKey);
     const receiverAta = await splToken.getAccount(conn, receiverAtaAddr);
     assert.equal(receiverAta.amount, BigInt(incentiveAmount));
+  });
+
+  it('Sends messages and reads them and deletes them', async () => {
+    const receiver = new anchor.Wallet(anchor.web3.Keypair.generate());
+    const sender = new anchor.Wallet(anchor.web3.Keypair.generate());
+    await conn.confirmTransaction(await conn.requestAirdrop(sender.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
+
+    const senderMailbox = new Mailbox(conn, sender);
+
+    const messagesToSend = ["msg0", "msg1", "msg2", "msg3"];
+    for (const msg of messagesToSend) {
+      await senderMailbox.send(msg, receiver.publicKey);
+    }
+
+    const sentMessages = await senderMailbox.fetchSentMessagesTo(receiver.publicKey);
+    assert.equal(sentMessages.length, messagesToSend.length);
+
+    await conn.confirmTransaction(await senderMailbox.deleteMessage(sentMessages[2]));
+    const sentMessages2 = await senderMailbox.fetchSentMessagesTo(receiver.publicKey);
+    assert.equal(sentMessages2.length, messagesToSend.length - 1);
+    const sentMessages2Text = sentMessages2.map((m) => m.data);
+    assert.deepEqual(sentMessages2Text, ["msg0", "msg1", "msg3"]);
   });
 });
