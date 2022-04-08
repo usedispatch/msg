@@ -377,7 +377,7 @@ export class Mailbox {
 
     if (message.startsWith(this._obfuscationPrefix)) {
       const innerMessage = message.substring(this._obfuscationPrefix.length);
-      const obfuscationKey = new web3.PublicKey(this.mailboxOwner);
+      const obfuscationKey = this.mailboxOwner;
       const key = this.getObfuscationKey(obfuscationKey);
       return CryptoJS.AES.decrypt(innerMessage, key).toString(CryptoJS.enc.Utf8);
     }
