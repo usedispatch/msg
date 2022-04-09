@@ -52,7 +52,8 @@ describe("Test for initial Mailbox setup.", () => {
       console.log('Fetch messages from Receivers mailbox as sender');
       let messages = await OTReceiverMailboxAsSender.fetch();
       console.log(messages);
-      expect(messages.length).toEqual(2);
+      expect(messages.length).toEqual(1);
+      expect(messages[0].data).toEqual("obftext0"); 
 
 
     });
