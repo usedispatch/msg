@@ -20,6 +20,7 @@ export type MailboxAccount = {
 export type MessageData = {
   subj?: string;
   body: string;
+  /// ts is in seconds
   ts?: string;
   meta?: object;
 };
@@ -93,7 +94,7 @@ export class Mailbox {
 
   async sendMessage(subj: string, body: string, receiverAddress: web3.PublicKey, opts?: SendOpts, meta?: object): Promise<string> {
     this.validateWallet();
-    const ts = new Date().getTime().toString();
+    const ts = (new Date().getTime() / 1000.).toString();
     const enhancedMessage = { subj, body, ts, meta };
     const tx = await this.makeSendTx(JSON.stringify(enhancedMessage), receiverAddress, opts);
     return this.sendTransaction(tx);
