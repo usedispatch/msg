@@ -3,7 +3,8 @@ import * as anchor from '@project-serum/anchor';
 import { strict as assert } from 'assert';
 import { Program } from '@project-serum/anchor';
 import { Messaging } from '../target/types/messaging';
-import { Mailbox, clusterAddresses, seeds } from '../usedispatch_client/src';
+
+import { Mailbox, clusterAddresses, seeds, lookupDotSol } from '../usedispatch_client/src';
 
 describe('messaging', () => {
 
@@ -513,4 +514,11 @@ describe('messaging', () => {
     const sentMessages2Text = sentMessages2.map((m) => m.data);
     assert.deepEqual(sentMessages2Text, ["msg0", "msg1", "msg3"]);
   });
+
+  it("Tests bonfida naming", async () => {
+    const connMainnet = new anchor.web3.Connection(anchor.web3.clusterApiUrl('mainnet-beta'));
+    let a = await lookupDotSol(connMainnet, "viksit");
+    console.log(a.ownerPubKey.toBase58());
+  });
+
 });
