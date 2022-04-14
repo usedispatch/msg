@@ -4,7 +4,6 @@ import * as path from 'path';
 import * as web3 from '@solana/web3.js';
 import * as bs58 from 'bs58';
 import { Mailbox, KeyPairWallet } from "../src/";
-import testFunction  from "../src/naming";
 
 const getPayer = () : web3.Keypair => {
   if (process.env.WALLET_SECRET_KEY) {
@@ -42,11 +41,6 @@ console.log('payer', payer.publicKey.toBase58());
 
 describe("Test for initial Mailbox setup.", () => {
   describe("mailboxTest", () => {
-
-    test("naming-test", async() => {
-      testFunction();
-    });
-
     test("Obfuscated mailbox send and receive", async () => {
       await conn.confirmTransaction(await conn.requestAirdrop(OTReceiver.publicKey, 2 * web3.LAMPORTS_PER_SOL));
       await conn.confirmTransaction(await conn.requestAirdrop(OTSender.publicKey, 2 * web3.LAMPORTS_PER_SOL));
