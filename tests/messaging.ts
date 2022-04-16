@@ -524,14 +524,33 @@ describe('messaging', () => {
     const testSubj = "test";
     const testBody = "msg";
     const testMeta = {demo: "hi"};
-    const testNow = new Date().getTime() / 1000;
+    const testNow = new Date().getTime();
     await senderMailbox.sendMessage(testSubj, testBody, receiver.publicKey, {}, testMeta);
 
     const sentMessage = (await senderMailbox.fetchSentMessagesTo(receiver.publicKey))[0];
     const innerData = sentMessage.data;
     assert.equal(innerData.subj, testSubj);
     assert.equal(innerData.body, testBody);
-    assert.ok(+innerData.ts > testNow && +innerData.ts < testNow + 10);
+    assert.ok(innerData.ts.getTime() >= testNow && innerData.ts.getTime() < testNow + 10);
     assert.deepEqual(innerData.meta, testMeta);
+  });
+
+  it('Sends a solanart-style message and fetches it', async () => {
+    const receiver = new anchor.Wallet(anchor.web3.Keypair.generate());
+    const sender = new anchor.Wallet(anchor.web3.Keypair.generate());
+    await conn.confirmTransaction(await conn.requestAirdrop(sender.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
+
+    const senderMailbox = new Mailbox(conn, sender);
+
+    const message = `{"message":{"event":"directMessage","subject":"dm","message":"Hello there","timestamp":"1646419739"},"id":0,"senderName":"${
+      senderMailbox.mailboxOwner.toBase58()
+    }","ns":"solanart"}`;
+    await senderMailbox.send(message, receiver.publicKey);
+
+    const sentMessage = (await senderMailbox.fetchSentMessagesTo(receiver.publicKey))[0];
+    const innerData = sentMessage.data;
+    assert.equal(innerData.subj, "dm");
+    assert.equal(innerData.body, "Hello there");
+    assert.equal(innerData.ts.getTime(), 1646419739000);
   });
 });

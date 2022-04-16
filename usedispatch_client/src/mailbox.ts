@@ -11,17 +11,26 @@ import {
   AnchorNodeWalletInterface,
   AnchorExpectedWalletInterface,
 } from './wallets';
+import { convertSolanartToDispatchMessage } from './solanart';
 
 export type MailboxAccount = {
   messageCount: number;
   readMessageCount: number;
 };
 
+export type ParsedMessageData = {
+  subj?: string;
+  body?: string;
+  /// ts is in seconds
+  ts?: number;
+  meta?: object;
+  ns?: string;
+};
+
 export type MessageData = {
   subj?: string;
   body: string;
-  /// ts is in seconds
-  ts?: string;
+  ts?: Date;
   meta?: object;
 };
 
@@ -94,7 +103,7 @@ export class Mailbox {
 
   async sendMessage(subj: string, body: string, receiverAddress: web3.PublicKey, opts?: SendOpts, meta?: object): Promise<string> {
     this.validateWallet();
-    const ts = (new Date().getTime() / 1000.).toString();
+    const ts = new Date().getTime() / 1000;
     const enhancedMessage = { subj, body, ts, meta };
     const tx = await this.makeSendTx(JSON.stringify(enhancedMessage), receiverAddress, opts);
     return this.sendTransaction(tx);
@@ -394,8 +403,21 @@ export class Mailbox {
 
   private unpackMessageData(message: string): MessageData {
     const data = this.unObfuscateMessage(message);
-    if (data.startsWith("{")) {
-      return JSON.parse(data) as MessageData;
+    try {
+      if (data.startsWith("{")) {
+        const parsedData = JSON.parse(data) as ParsedMessageData;
+        if (parsedData.ns === "solanart") {
+          return convertSolanartToDispatchMessage(parsedData);
+        }
+        return {
+          subj: parsedData.subj,
+          body: parsedData.body ?? "",
+          ts: parsedData.ts ? new Date(1000 * +parsedData.ts) : undefined,
+          meta: parsedData.meta,
+        };
+      }
+    } catch (e) {
+      // do nothing and just return the default
     }
     return { body: data };
   }
