@@ -553,4 +553,43 @@ describe('messaging', () => {
     assert.equal(innerData.body, "Hello there");
     assert.equal(innerData.ts.getTime(), 1646419739000);
   });
+
+  it('Sends a message with sol incentive and accepts it', async () => {
+    const receiver = new anchor.Wallet(anchor.web3.Keypair.generate());
+    const sender = new anchor.Wallet(anchor.web3.Keypair.generate());
+    await conn.confirmTransaction(await conn.requestAirdrop(receiver.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
+    await conn.confirmTransaction(await conn.requestAirdrop(sender.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
+
+    const receiverMailbox = new Mailbox(conn, receiver);
+    const senderMailbox = new Mailbox(conn, sender);
+
+    const mint = splToken.NATIVE_MINT;
+    const ata = await splToken.getAssociatedTokenAddress(mint, sender.publicKey);
+
+    const incentiveAmount = 500_000;
+    const sendOpts = {incentive: {
+      mint,
+      amount: incentiveAmount,
+      payerAccount: ata,
+    }};
+
+    const sendTx = new anchor.web3.Transaction();
+    if (!await conn.getAccountInfo(ata)) {
+      sendTx.add(splToken.createAssociatedTokenAccountInstruction(sender.publicKey, ata, sender.publicKey, mint));
+    }
+    sendTx.add(anchor.web3.SystemProgram.transfer({fromPubkey: sender.publicKey, toPubkey: ata, lamports: incentiveAmount}));
+    sendTx.add(splToken.createSyncNativeInstruction(ata));
+    sendTx.add(await senderMailbox.makeSendTx("message with incentive", receiver.publicKey, sendOpts));
+
+    const tx1 = await conn.sendTransaction(sendTx, [sender.payer]);
+    await conn.confirmTransaction(tx1);
+
+    const tokenAccount = await splToken.getAccount(conn, ata);
+    assert.equal(tokenAccount.amount, BigInt(0));
+
+    await conn.confirmTransaction(await receiverMailbox.claimIncentive(0));
+    const receiverAtaAddr = await splToken.getAssociatedTokenAddress(mint, receiver.publicKey);
+    const receiverAta = await splToken.getAccount(conn, receiverAtaAddr);
+    assert.equal(receiverAta.amount, BigInt(incentiveAmount));
+  });
 });
