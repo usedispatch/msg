@@ -41,6 +41,13 @@ export type MessageAccount = {
   messageId: number;
 };
 
+export type DeprecatedMessageAccount = {
+  sender: web3.PublicKey;
+  receiver: web3.PublicKey;
+  data: string;
+  messageId: number;
+};
+
 export type SentMessageAccount = {
   receiver: web3.PublicKey;
   messageId: number;
@@ -134,7 +141,7 @@ export class Mailbox {
     return this.sendTransaction(tx);
   }
 
-  async fetch(): Promise<MessageAccount[]> {
+  async fetchMessages(): Promise<MessageAccount[]> {
     const mailbox = await this.fetchMailbox();
     if (!mailbox) {
       return [];
@@ -162,14 +169,14 @@ export class Mailbox {
 
   async fetchSentMessagesTo(receiverAddress: web3.PublicKey): Promise<MessageAccount[]> {
     const receiverMailbox = new Mailbox(this.conn, this.wallet, {mailboxOwner: receiverAddress});
-    const sentToReceiver = (await receiverMailbox.fetch()).filter((m) => {
+    const sentToReceiver = (await receiverMailbox.fetchMessages()).filter((m) => {
       return m.sender.equals(this.mailboxOwner);
     });
     return sentToReceiver;
   }
 
   async count() {
-    return (await this.fetch()).length;
+    return (await this.fetchMessages()).length;
   }
 
   async countEx() {

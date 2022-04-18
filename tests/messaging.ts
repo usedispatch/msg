@@ -150,7 +150,7 @@ describe('messaging', () => {
     const senderMailbox = new Mailbox(conn, sender);
     const receiverMailbox = new Mailbox(conn, receiver);
 
-    assert.ok((await receiverMailbox.fetch()).length === 0);
+    assert.ok((await receiverMailbox.fetchMessages()).length === 0);
     assert.ok(await receiverMailbox.count() === 0);
 
     const emptyCountEx = await receiverMailbox.countEx();
@@ -170,7 +170,7 @@ describe('messaging', () => {
     assert.ok(firstMessage.messageId === 1);
     assert.ok(firstMessage.data.body === "text1");
 
-    let messages = await receiverMailbox.fetch();
+    let messages = await receiverMailbox.fetchMessages();
     assert.ok(messages.length === 2);
 
     assert.ok(messages[0].sender.equals(sender.publicKey))
@@ -182,7 +182,7 @@ describe('messaging', () => {
     await receiverMailbox.pop();
     assert.ok(await receiverMailbox.count() === 1);
 
-    messages = await receiverMailbox.fetch();
+    messages = await receiverMailbox.fetchMessages();
     assert.ok(messages.length === 1);
 
     assert.ok(messages[0].sender.equals(sender.publicKey))
@@ -195,7 +195,7 @@ describe('messaging', () => {
     assert.ok(fullCountEx2.messageCount === 2);
     assert.ok(fullCountEx2.readMessageCount === 2);
 
-    messages = await receiverMailbox.fetch();
+    messages = await receiverMailbox.fetchMessages();
     assert.ok(messages.length === 0);
   });
 
@@ -217,7 +217,7 @@ describe('messaging', () => {
     await conn.confirmTransaction(sendSig, "recent");
 
     // Fetch messages
-    let messages = await receiverMailbox.fetch();
+    let messages = await receiverMailbox.fetchMessages();
     assert.ok(messages.length === 1);
 
     assert.ok(messages[0].sender.equals(payer.publicKey))
@@ -231,7 +231,7 @@ describe('messaging', () => {
     await conn.confirmTransaction(popSig, "recent");
 
     // Fetch messages
-    messages = await receiverMailbox.fetch();
+    messages = await receiverMailbox.fetchMessages();
     assert.ok(messages.length === 0);
   });
 
@@ -439,7 +439,7 @@ describe('messaging', () => {
     await conn.confirmTransaction(await receiverMailbox.delete(1));
     await conn.confirmTransaction(await senderMailbox.delete(4, receiver.publicKey));
 
-    const messages = await receiverMailbox.fetch();
+    const messages = await receiverMailbox.fetchMessages();
     const messageTexts = messages.map((m) => m.data.body);
     assert.deepEqual(messageTexts, ["text3", "text5"]);
 
