@@ -292,7 +292,7 @@ export class Mailbox {
         callback({
           sender: event.senderPubkey,
           receiver: event.receiverPubkey,
-          data: this.unpackMessageData(event.message),
+          data: this.unpackMessageData(event.message, event.senderPubkey, event.receiverPubkey),
           messageId: event.messageIndex,
         });
       }
@@ -410,8 +410,8 @@ export class Mailbox {
     return message;
   }
 
-  private unpackMessageData(message: string): MessageData {
-    const data = this.unObfuscateMessage(message);
+  private unpackMessageData(message: string, sender: web3.PublicKey, receiver: web3.PublicKey): MessageData {
+    const data = this.unObfuscateMessage(message, sender, receiver);
     try {
       if (data.startsWith("{")) {
         const parsedData = JSON.parse(data) as ParsedMessageData;
@@ -437,7 +437,7 @@ export class Mailbox {
       sender: messageAccount.sender,
       receiver: this.mailboxOwner,
       payer: messageAccount.payer,
-      data: this.unpackMessageData(messageAccount.data),
+      data: this.unpackMessageData(messageAccount.data, messageAccount.sender, this.mailboxOwner),
       messageId,
     } as MessageAccount;
   }
