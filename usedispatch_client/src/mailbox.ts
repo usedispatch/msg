@@ -11,16 +11,33 @@ import {
   AnchorNodeWalletInterface,
   AnchorExpectedWalletInterface,
 } from './wallets';
+import { convertSolanartToDispatchMessage } from './solanart';
 
 export type MailboxAccount = {
   messageCount: number;
   readMessageCount: number;
 };
 
+export type ParsedMessageData = {
+  subj?: string;
+  body?: string;
+  /// ts is in seconds
+  ts?: number;
+  meta?: object;
+  ns?: string;
+};
+
+export type MessageData = {
+  subj?: string;
+  body: string;
+  ts?: Date;
+  meta?: object;
+};
+
 export type MessageAccount = {
   sender: web3.PublicKey;
   receiver: web3.PublicKey;
-  data: string;
+  data: MessageData;
   messageId: number;
 };
 
@@ -81,6 +98,14 @@ export class Mailbox {
   async send(data: string, receiverAddress: web3.PublicKey, opts?: SendOpts): Promise<string> {
     this.validateWallet();
     const tx = await this.makeSendTx(data, receiverAddress, opts);
+    return this.sendTransaction(tx);
+  }
+
+  async sendMessage(subj: string, body: string, receiverAddress: web3.PublicKey, opts?: SendOpts, meta?: object): Promise<string> {
+    this.validateWallet();
+    const ts = new Date().getTime() / 1000;
+    const enhancedMessage = { subj, body, ts, meta };
+    const tx = await this.makeSendTx(JSON.stringify(enhancedMessage), receiverAddress, opts);
     return this.sendTransaction(tx);
   }
 
@@ -267,7 +292,7 @@ export class Mailbox {
         callback({
           sender: event.senderPubkey,
           receiver: event.receiverPubkey,
-          data: this.unObfuscateMessage(event.message, event.senderPubkey, event.receiverPubkey),
+          data: this.unpackMessageData(event.message, event.senderPubkey, event.receiverPubkey),
           messageId: event.messageIndex,
         });
       }
@@ -385,13 +410,34 @@ export class Mailbox {
     return message;
   }
 
+  private unpackMessageData(message: string, sender: web3.PublicKey, receiver: web3.PublicKey): MessageData {
+    const data = this.unObfuscateMessage(message, sender, receiver);
+    try {
+      if (data.startsWith("{")) {
+        const parsedData = JSON.parse(data) as ParsedMessageData;
+        if (parsedData.ns === "solanart") {
+          return convertSolanartToDispatchMessage(parsedData);
+        }
+        return {
+          subj: parsedData.subj,
+          body: parsedData.body ?? "",
+          ts: parsedData.ts ? new Date(1000 * +parsedData.ts) : undefined,
+          meta: parsedData.meta,
+        };
+      }
+    } catch (e) {
+      // do nothing and just return the default
+    }
+    return { body: data };
+  }
+
   private normalizeMessageAccount(messageAccount: any, messageId: number): MessageAccount | null {
     if (messageAccount === null) return null;
     return {
       sender: messageAccount.sender,
       receiver: this.mailboxOwner,
       payer: messageAccount.payer,
-      data: this.unObfuscateMessage(messageAccount.data, messageAccount.sender, this.mailboxOwner),
+      data: this.unpackMessageData(messageAccount.data, messageAccount.sender, this.mailboxOwner),
       messageId,
     } as MessageAccount;
   }
