@@ -4,8 +4,14 @@
 
 ### Features
 
-* client: Fetch messages sent to an address, and method to delete a given message ([#36](https://github.com/usedispatch/pull/36))
 * client: New JSON-based rich message format with extensibility ([#37](https://github.com/usedispatch/pull/37))
+
+## [0.6.0] 2022-04-08
+
+### Features
+
+* client: Fetch messages sent to an address, and method to delete a given message ([#36](https://github.com/usedispatch/pull/36))
+* client: Fix obfuscation bug when reading sent messages ([#38](https://github.com/usedispatch/msg/pull/38))
 
 ## [0.5.1] 2022-03-31
 
