@@ -41,6 +41,7 @@ export type MessageAccount = {
   messageId: number;
 };
 
+/// @deprecated Use MessageAccount instead
 export type DeprecatedMessageAccount = {
   sender: web3.PublicKey;
   receiver: web3.PublicKey;
@@ -139,6 +140,27 @@ export class Mailbox {
     this.validateWallet();
     const tx = await this.makeClaimIncentiveTx(messageId);
     return this.sendTransaction(tx);
+  }
+
+  /// @deprecated Upgrade to fetchMessages
+  async fetch(): Promise<DeprecatedMessageAccount[]> {
+    const mailbox = await this.fetchMailbox();
+    if (!mailbox) {
+      return [];
+    }
+    const numMessages = mailbox.messageCount - mailbox.readMessageCount;
+    if (0 === numMessages) {
+      return [];
+    }
+    const messageIds = Array(numMessages)
+      .fill(0)
+      .map((_element, index) => index + mailbox.readMessageCount);
+    const addresses = await Promise.all(messageIds.map((id) => this.getMessageAddress(id)));
+    const messages = await this.program.account.message.fetchMultiple(addresses);
+    const normalize = (messageAccount: any | null, index: number) => {
+      return this.normalizeMessageAccountDeprecated(messageAccount, index + mailbox.readMessageCount);
+    };
+    return messages.map(normalize).filter((m): m is DeprecatedMessageAccount => m !== null);
   }
 
   async fetchMessages(): Promise<MessageAccount[]> {
@@ -436,6 +458,18 @@ export class Mailbox {
       // do nothing and just return the default
     }
     return { body: data };
+  }
+
+  /// @deprecated Upgrade to fetchMessages / normalizeMessageAccount
+  private normalizeMessageAccountDeprecated(messageAccount: any, messageId: number): DeprecatedMessageAccount | null {
+    if (messageAccount === null) return null;
+    return {
+      sender: messageAccount.sender,
+      receiver: this.mailboxOwner,
+      payer: messageAccount.payer,
+      data: this.unObfuscateMessage(messageAccount.data, messageAccount.sender, this.mailboxOwner),
+      messageId,
+    } as DeprecatedMessageAccount;
   }
 
   private normalizeMessageAccount(messageAccount: any, messageId: number): MessageAccount | null {
