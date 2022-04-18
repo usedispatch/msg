@@ -5,6 +5,7 @@
 ### Features
 
 * client: New JSON-based rich message format with extensibility ([#37](https://github.com/usedispatch/pull/37))
+* program: Do no delete message when claiming incentive ([#40](https://github.com/usedispatch/pull/40))
 
 ## [0.6.0] 2022-04-08
 
