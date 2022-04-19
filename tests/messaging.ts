@@ -592,4 +592,19 @@ describe('messaging', () => {
     const receiverAta = await splToken.getAccount(conn, receiverAtaAddr);
     assert.equal(receiverAta.amount, BigInt(incentiveAmount));
   });
+
+  it('Sends a deprecated message and fetches it', async () => {
+    const receiver = new anchor.Wallet(anchor.web3.Keypair.generate());
+    const sender = new anchor.Wallet(anchor.web3.Keypair.generate());
+    await conn.confirmTransaction(await conn.requestAirdrop(sender.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
+
+    const senderMailbox = new Mailbox(conn, sender);
+    const receiverMailbox = new Mailbox(conn, receiver);
+
+    const message = "test";
+    await senderMailbox.send(message, receiver.publicKey);
+
+    const sentMessage = (await receiverMailbox.fetch())[0];
+    assert.equal(sentMessage.data, message);
+  });
 });
