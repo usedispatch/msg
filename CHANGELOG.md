@@ -5,6 +5,7 @@
 ### Features
 
 * client: New JSON-based rich message format with extensibility ([#37](https://github.com/usedispatch/pull/37))
+* client: Keep fetch around for deprecated uses ([#41](https://github.com/usedispatch/msg/pull/41))
 
 ## [0.6.0] 2022-04-08
 
