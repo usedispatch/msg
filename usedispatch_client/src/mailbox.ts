@@ -41,6 +41,14 @@ export type MessageAccount = {
   messageId: number;
 };
 
+/// @deprecated Use MessageAccount instead
+export type DeprecatedMessageAccount = {
+  sender: web3.PublicKey;
+  receiver: web3.PublicKey;
+  data: string;
+  messageId: number;
+};
+
 export type SentMessageAccount = {
   receiver: web3.PublicKey;
   messageId: number;
@@ -134,7 +142,28 @@ export class Mailbox {
     return this.sendTransaction(tx);
   }
 
-  async fetch(): Promise<MessageAccount[]> {
+  /** @deprecated Upgrade to fetchMessages */
+  async fetch(): Promise<DeprecatedMessageAccount[]> {
+    const mailbox = await this.fetchMailbox();
+    if (!mailbox) {
+      return [];
+    }
+    const numMessages = mailbox.messageCount - mailbox.readMessageCount;
+    if (0 === numMessages) {
+      return [];
+    }
+    const messageIds = Array(numMessages)
+      .fill(0)
+      .map((_element, index) => index + mailbox.readMessageCount);
+    const addresses = await Promise.all(messageIds.map((id) => this.getMessageAddress(id)));
+    const messages = await this.program.account.message.fetchMultiple(addresses);
+    const normalize = (messageAccount: any | null, index: number) => {
+      return this.normalizeMessageAccountDeprecated(messageAccount, index + mailbox.readMessageCount);
+    };
+    return messages.map(normalize).filter((m): m is DeprecatedMessageAccount => m !== null);
+  }
+
+  async fetchMessages(): Promise<MessageAccount[]> {
     const mailbox = await this.fetchMailbox();
     if (!mailbox) {
       return [];
@@ -162,14 +191,14 @@ export class Mailbox {
 
   async fetchSentMessagesTo(receiverAddress: web3.PublicKey): Promise<MessageAccount[]> {
     const receiverMailbox = new Mailbox(this.conn, this.wallet, {mailboxOwner: receiverAddress});
-    const sentToReceiver = (await receiverMailbox.fetch()).filter((m) => {
+    const sentToReceiver = (await receiverMailbox.fetchMessages()).filter((m) => {
       return m.sender.equals(this.mailboxOwner);
     });
     return sentToReceiver;
   }
 
   async count() {
-    return (await this.fetch()).length;
+    return (await this.fetchMessages()).length;
   }
 
   async countEx() {
@@ -235,7 +264,7 @@ export class Mailbox {
     return this.setTransactionPayer(tx);
   }
 
-  /// @deprecated use makeDeleteTx instead
+  /** @deprecated use makeDeleteTx instead */
   async makePopTx(): Promise<web3.Transaction> {
     const mailboxAddress = await this.getMailboxAddress();
     const mailbox = await this.fetchMailbox();
@@ -429,6 +458,18 @@ export class Mailbox {
       // do nothing and just return the default
     }
     return { body: data };
+  }
+
+  /** @deprecated Upgrade to fetchMessages / normalizeMessageAccount */
+  private normalizeMessageAccountDeprecated(messageAccount: any, messageId: number): DeprecatedMessageAccount | null {
+    if (messageAccount === null) return null;
+    return {
+      sender: messageAccount.sender,
+      receiver: this.mailboxOwner,
+      payer: messageAccount.payer,
+      data: this.unObfuscateMessage(messageAccount.data, messageAccount.sender, this.mailboxOwner),
+      messageId,
+    } as DeprecatedMessageAccount;
   }
 
   private normalizeMessageAccount(messageAccount: any, messageId: number): MessageAccount | null {
