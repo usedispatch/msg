@@ -142,7 +142,7 @@ export class Mailbox {
     return this.sendTransaction(tx);
   }
 
-  /// @deprecated Upgrade to fetchMessages
+  /** @deprecated Upgrade to fetchMessages */
   async fetch(): Promise<DeprecatedMessageAccount[]> {
     const mailbox = await this.fetchMailbox();
     if (!mailbox) {
@@ -264,7 +264,7 @@ export class Mailbox {
     return this.setTransactionPayer(tx);
   }
 
-  /// @deprecated use makeDeleteTx instead
+  /** @deprecated use makeDeleteTx instead */
   async makePopTx(): Promise<web3.Transaction> {
     const mailboxAddress = await this.getMailboxAddress();
     const mailbox = await this.fetchMailbox();
@@ -460,7 +460,7 @@ export class Mailbox {
     return { body: data };
   }
 
-  /// @deprecated Upgrade to fetchMessages / normalizeMessageAccount
+  /** @deprecated Upgrade to fetchMessages / normalizeMessageAccount */
   private normalizeMessageAccountDeprecated(messageAccount: any, messageId: number): DeprecatedMessageAccount | null {
     if (messageAccount === null) return null;
     return {
