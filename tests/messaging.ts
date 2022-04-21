@@ -169,6 +169,7 @@ describe('messaging', () => {
     let firstMessage = await receiverMailbox.fetchMessageById(1);
     assert.ok(firstMessage.messageId === 1);
     assert.ok(firstMessage.data.body === "text1");
+    assert.ok(firstMessage.incentiveMint === undefined);
 
     let messages = await receiverMailbox.fetchMessages();
     assert.ok(messages.length === 2);
@@ -471,6 +472,9 @@ describe('messaging', () => {
       payerAccount: ata,
     }};
     await senderMailbox.send("message with incentive", receiver.publicKey, sendOpts);
+    const messageAccount = await receiverMailbox.fetchMessageById(0);
+    assert.ok(messageAccount.incentiveMint.equals(mint));
+    assert.equal((await receiverMailbox.fetchIncentiveTokenAccount(messageAccount)).amount, BigInt(incentiveAmount));
 
     let eventEmitted = false;
     const subscriptionId = program.addEventListener("IncentiveClaimed", (event: any, _slot: number) => {
