@@ -39,9 +39,10 @@ export type MessageAccount = {
   receiver: web3.PublicKey;
   data: MessageData;
   messageId: number;
+  incentiveMint?: web3.PublicKey;
 };
 
-/// @deprecated Use MessageAccount instead
+/** @deprecated Use MessageAccount instead */
 export type DeprecatedMessageAccount = {
   sender: web3.PublicKey;
   receiver: web3.PublicKey;
@@ -117,7 +118,7 @@ export class Mailbox {
     return this.sendTransaction(tx);
   }
 
-  /// @deprecated use delete instead
+  /** @deprecated use delete instead  */
   async pop(): Promise<string> {
     this.validateWallet();
     const tx = await this.makePopTx();
@@ -195,6 +196,14 @@ export class Mailbox {
       return m.sender.equals(this.mailboxOwner);
     });
     return sentToReceiver;
+  }
+
+  async fetchIncentiveTokenAccount(messageAccount: MessageAccount) {
+    if (!messageAccount.incentiveMint) throw new Error('messageAccount does not have incentive attached');
+    const messageAddress = await this.getMessageAddress(messageAccount.messageId, messageAccount.receiver);
+    const ata = await splToken.getAssociatedTokenAddress(messageAccount.incentiveMint, messageAddress, true);
+    const splAccount = await splToken.getAccount(this.conn, ata);
+    return splAccount;
   }
 
   async count() {
@@ -480,6 +489,9 @@ export class Mailbox {
       payer: messageAccount.payer,
       data: this.unpackMessageData(messageAccount.data, messageAccount.sender, this.mailboxOwner),
       messageId,
+      incentiveMint: web3.PublicKey.default.equals(messageAccount.incentiveMint)
+        ? undefined
+        : messageAccount.incentiveMint,
     } as MessageAccount;
   }
 }
