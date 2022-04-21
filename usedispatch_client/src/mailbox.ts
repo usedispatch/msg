@@ -93,7 +93,7 @@ export class Mailbox {
     if (!opts?.skipAnchorProvider) {
       if (this.wallet.signTransaction && this.wallet.signAllTransactions) {
         const anchorWallet = this.wallet as AnchorExpectedWalletInterface;
-        anchor.setProvider(new anchor.Provider(conn, anchorWallet, {}));
+        anchor.setProvider(new anchor.AnchorProvider(conn, anchorWallet, {}));
       } else {
         throw new Error('The provided wallet is unable to sign transactions');
       }
