@@ -8,7 +8,7 @@ import { Mailbox, clusterAddresses, seeds } from '../usedispatch_client/src';
 describe('messaging', () => {
 
   // Configure the client to use the local cluster.
-  anchor.setProvider(anchor.Provider.env());
+  anchor.setProvider(anchor.AnchorProvider.env());
 
   const program = anchor.workspace.Messaging as Program<Messaging>;
   const conn = anchor.getProvider().connection;
@@ -294,7 +294,7 @@ describe('messaging', () => {
         ],
       });
     } catch (e) {
-      assert.ok(String(e).startsWith("An address constraint was violated"));
+      assert.ok(String(e).startsWith("AnchorError caused by account: rent_destination. Error Code: ConstraintAddress."));
     }
     console.log = oldConsoleLog;
     console.error = oldConsoleError;
