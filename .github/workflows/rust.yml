@@ -2,9 +2,9 @@ name: Test full codebase (Solana Program and Typescript library)
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
 
 env:
   CARGO_TERM_COLOR: always
