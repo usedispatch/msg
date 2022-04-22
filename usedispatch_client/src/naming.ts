@@ -42,8 +42,6 @@ export const lookupDotSol = async (
     domainKey
   );
 
-  console.log('name account:', solDomainName);
-
   let res: DotSolLookup = {ownerPubKey: undefined};
 
   if (nftOwner !== undefined) {
