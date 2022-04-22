@@ -124,6 +124,8 @@ pub mod messaging {
         }, signer_seeds);
         token::close_account(close_ctx)?;
 
+        ctx.accounts.message.incentive_mint = Pubkey::default();
+
         emit!(IncentiveClaimed {
             sender_pubkey: ctx.accounts.message.sender,
             receiver_pubkey: ctx.accounts.receiver.key(),
@@ -277,7 +279,6 @@ pub struct ClaimIncentive<'info> {
     pub receiver: Signer<'info>,
 
     #[account(mut,
-        close = rent_destination,
         seeds = [PROTOCOL_SEED.as_bytes(), MESSAGE_SEED.as_bytes(), mailbox.key().as_ref(), &message_index.to_le_bytes()],
         bump,
     )]
