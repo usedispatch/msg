@@ -2,9 +2,9 @@ name: Test full codebase (Solana Program and Typescript library)
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
 
 env:
   CARGO_TERM_COLOR: always
@@ -37,7 +37,7 @@ jobs:
         run: solana config get
 
       - name: Install Anchor
-        run: npm install -g @project-serum/anchor-cli@0.22.1
+        run: npm install -g @project-serum/anchor-cli@0.24.2
       - name: Test cargo bpf
         run: cargo build-bpf
       - name: install yarn
