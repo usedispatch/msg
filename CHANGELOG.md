@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.7.0] 2022-04-22
+
 ### Features
 
 * client: New JSON-based rich message format with extensibility ([#37](https://github.com/usedispatch/pull/37))
