@@ -111,7 +111,13 @@ export class Mailbox {
     return this.sendTransaction(tx);
   }
 
-  async sendMessage(subj: string, body: string, receiverAddress: web3.PublicKey, opts?: SendOpts, meta?: object): Promise<string> {
+  async sendMessage(
+    subj: string,
+    body: string,
+    receiverAddress: web3.PublicKey,
+    opts?: SendOpts,
+    meta?: object,
+  ): Promise<string> {
     this.validateWallet();
     const tx = await this.makeSendTx(this.getMessageString(subj, body, meta), receiverAddress, opts);
     return this.sendTransaction(tx);
@@ -139,7 +145,7 @@ export class Mailbox {
 
   async claimIncentive(message: MessageAccount): Promise<string> {
     this.validateWallet();
-    if (!message.receiver.equals(this.mailboxOwner)) throw new Error("Receiver does not match mailboxOwner");
+    if (!message.receiver.equals(this.mailboxOwner)) throw new Error('Receiver does not match mailboxOwner');
     const tx = await this.makeClaimIncentiveTx(message.messageId);
     return this.sendTransaction(tx);
   }
@@ -192,7 +198,7 @@ export class Mailbox {
   }
 
   async fetchSentMessagesTo(receiverAddress: web3.PublicKey): Promise<MessageAccount[]> {
-    const receiverMailbox = new Mailbox(this.conn, this.wallet, {mailboxOwner: receiverAddress});
+    const receiverMailbox = new Mailbox(this.conn, this.wallet, { mailboxOwner: receiverAddress });
     const sentToReceiver = (await receiverMailbox.fetchMessages()).filter((m) => {
       return m.sender.equals(this.mailboxOwner);
     });
@@ -439,14 +445,17 @@ export class Mailbox {
 
   private unObfuscateMessage(message: string, sender: web3.PublicKey, receiver: web3.PublicKey) {
     // Bugfix: obfuscate-fix
-    // Check if this message starts with a prefix and that the current wallet was a party to 
+    // Check if this message starts with a prefix and that the current wallet was a party to
     // the message.
     // The right obfuscation key is that of the MailBoxOwner not the current wallet
     // in the two cases a mailbox is initialized,
     // When a mailbox is initialized by a user to get their sent messages
     // When a mailbox is initialized by a user to get their received messages
 
-    if (message.startsWith(this._obfuscationPrefix) && (this.wallet.publicKey?.equals(sender) || this.wallet.publicKey?.equals(receiver))) {
+    if (
+      message.startsWith(this._obfuscationPrefix) &&
+      (this.wallet.publicKey?.equals(sender) || this.wallet.publicKey?.equals(receiver))
+    ) {
       const innerMessage = message.substring(this._obfuscationPrefix.length);
       const obfuscationKey = this.mailboxOwner;
       const key = this.getObfuscationKey(obfuscationKey);
@@ -458,14 +467,14 @@ export class Mailbox {
   private unpackMessageData(message: string, sender: web3.PublicKey, receiver: web3.PublicKey): MessageData {
     const data = this.unObfuscateMessage(message, sender, receiver);
     try {
-      if (data.startsWith("{")) {
+      if (data.startsWith('{')) {
         const parsedData = JSON.parse(data) as ParsedMessageData;
-        if (parsedData.ns === "solanart") {
+        if (parsedData.ns === 'solanart') {
           return convertSolanartToDispatchMessage(parsedData);
         }
         return {
           subj: parsedData.subj,
-          body: parsedData.body ?? "",
+          body: parsedData.body ?? '',
           ts: parsedData.ts ? new Date(1000 * +parsedData.ts) : undefined,
           meta: parsedData.meta,
         };
