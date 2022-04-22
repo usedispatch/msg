@@ -494,6 +494,9 @@ describe('messaging', () => {
     const receiverAtaAddr = await splToken.getAssociatedTokenAddress(mint, receiver.publicKey);
     const receiverAta = await splToken.getAccount(conn, receiverAtaAddr);
     assert.equal(receiverAta.amount, BigInt(incentiveAmount));
+
+    const messageAccountAfter = await receiverMailbox.fetchMessageById(0);
+    assert.equal(messageAccountAfter.incentiveMint, undefined);
   });
 
   it('Sends messages and reads them and deletes them', async () => {
