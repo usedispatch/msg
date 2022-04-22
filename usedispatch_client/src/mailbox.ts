@@ -39,9 +39,10 @@ export type MessageAccount = {
   receiver: web3.PublicKey;
   data: MessageData;
   messageId: number;
+  incentiveMint?: web3.PublicKey;
 };
 
-/// @deprecated Use MessageAccount instead
+/** @deprecated Use MessageAccount instead */
 export type DeprecatedMessageAccount = {
   sender: web3.PublicKey;
   receiver: web3.PublicKey;
@@ -92,7 +93,7 @@ export class Mailbox {
     if (!opts?.skipAnchorProvider) {
       if (this.wallet.signTransaction && this.wallet.signAllTransactions) {
         const anchorWallet = this.wallet as AnchorExpectedWalletInterface;
-        anchor.setProvider(new anchor.Provider(conn, anchorWallet, {}));
+        anchor.setProvider(new anchor.AnchorProvider(conn, anchorWallet, {}));
       } else {
         throw new Error('The provided wallet is unable to sign transactions');
       }
@@ -103,27 +104,33 @@ export class Mailbox {
   /*
     Porcelain commands
   */
+  /** @deprecated use sendMessage instead  */
   async send(data: string, receiverAddress: web3.PublicKey, opts?: SendOpts): Promise<string> {
     this.validateWallet();
     const tx = await this.makeSendTx(data, receiverAddress, opts);
     return this.sendTransaction(tx);
   }
 
-  async sendMessage(subj: string, body: string, receiverAddress: web3.PublicKey, opts?: SendOpts, meta?: object): Promise<string> {
+  async sendMessage(
+    subj: string,
+    body: string,
+    receiverAddress: web3.PublicKey,
+    opts?: SendOpts,
+    meta?: object,
+  ): Promise<string> {
     this.validateWallet();
-    const ts = new Date().getTime() / 1000;
-    const enhancedMessage = { subj, body, ts, meta };
-    const tx = await this.makeSendTx(JSON.stringify(enhancedMessage), receiverAddress, opts);
+    const tx = await this.makeSendTx(this.getMessageString(subj, body, meta), receiverAddress, opts);
     return this.sendTransaction(tx);
   }
 
-  /// @deprecated use delete instead
+  /** @deprecated use delete instead  */
   async pop(): Promise<string> {
     this.validateWallet();
     const tx = await this.makePopTx();
     return this.sendTransaction(tx);
   }
 
+  /** @deprecated use delete instead  */
   async delete(messageId: number, receiverAddress?: web3.PublicKey): Promise<string> {
     this.validateWallet();
     const tx = await this.makeDeleteTx(messageId, receiverAddress);
@@ -136,9 +143,10 @@ export class Mailbox {
     return this.sendTransaction(tx);
   }
 
-  async claimIncentive(messageId: number): Promise<string> {
+  async claimIncentive(message: MessageAccount): Promise<string> {
     this.validateWallet();
-    const tx = await this.makeClaimIncentiveTx(messageId);
+    if (!message.receiver.equals(this.mailboxOwner)) throw new Error('Receiver does not match mailboxOwner');
+    const tx = await this.makeClaimIncentiveTx(message.messageId);
     return this.sendTransaction(tx);
   }
 
@@ -190,11 +198,19 @@ export class Mailbox {
   }
 
   async fetchSentMessagesTo(receiverAddress: web3.PublicKey): Promise<MessageAccount[]> {
-    const receiverMailbox = new Mailbox(this.conn, this.wallet, {mailboxOwner: receiverAddress});
+    const receiverMailbox = new Mailbox(this.conn, this.wallet, { mailboxOwner: receiverAddress });
     const sentToReceiver = (await receiverMailbox.fetchMessages()).filter((m) => {
       return m.sender.equals(this.mailboxOwner);
     });
     return sentToReceiver;
+  }
+
+  async fetchIncentiveTokenAccount(messageAccount: MessageAccount) {
+    if (!messageAccount.incentiveMint) throw new Error('messageAccount does not have incentive attached');
+    const messageAddress = await this.getMessageAddress(messageAccount.messageId, messageAccount.receiver);
+    const ata = await splToken.getAssociatedTokenAddress(messageAccount.incentiveMint, messageAddress, true);
+    const splAccount = await splToken.getAccount(this.conn, ata);
+    return splAccount;
   }
 
   async count() {
@@ -408,6 +424,12 @@ export class Mailbox {
     return tx;
   }
 
+  getMessageString(subj: string, body: string, meta?: object): string {
+    const ts = new Date().getTime() / 1000;
+    const enhancedMessage = { subj, body, ts, meta };
+    return JSON.stringify(enhancedMessage);
+  }
+
   // Obfuscation
   private _obfuscationPrefix = '__o__';
 
@@ -423,14 +445,17 @@ export class Mailbox {
 
   private unObfuscateMessage(message: string, sender: web3.PublicKey, receiver: web3.PublicKey) {
     // Bugfix: obfuscate-fix
-    // Check if this message starts with a prefix and that the current wallet was a party to 
+    // Check if this message starts with a prefix and that the current wallet was a party to
     // the message.
     // The right obfuscation key is that of the MailBoxOwner not the current wallet
     // in the two cases a mailbox is initialized,
     // When a mailbox is initialized by a user to get their sent messages
     // When a mailbox is initialized by a user to get their received messages
 
-    if (message.startsWith(this._obfuscationPrefix) && (this.wallet.publicKey?.equals(sender) || this.wallet.publicKey?.equals(receiver))) {
+    if (
+      message.startsWith(this._obfuscationPrefix) &&
+      (this.wallet.publicKey?.equals(sender) || this.wallet.publicKey?.equals(receiver))
+    ) {
       const innerMessage = message.substring(this._obfuscationPrefix.length);
       const obfuscationKey = this.mailboxOwner;
       const key = this.getObfuscationKey(obfuscationKey);
@@ -442,14 +467,14 @@ export class Mailbox {
   private unpackMessageData(message: string, sender: web3.PublicKey, receiver: web3.PublicKey): MessageData {
     const data = this.unObfuscateMessage(message, sender, receiver);
     try {
-      if (data.startsWith("{")) {
+      if (data.startsWith('{')) {
         const parsedData = JSON.parse(data) as ParsedMessageData;
-        if (parsedData.ns === "solanart") {
+        if (parsedData.ns === 'solanart') {
           return convertSolanartToDispatchMessage(parsedData);
         }
         return {
           subj: parsedData.subj,
-          body: parsedData.body ?? "",
+          body: parsedData.body ?? '',
           ts: parsedData.ts ? new Date(1000 * +parsedData.ts) : undefined,
           meta: parsedData.meta,
         };
@@ -480,6 +505,9 @@ export class Mailbox {
       payer: messageAccount.payer,
       data: this.unpackMessageData(messageAccount.data, messageAccount.sender, this.mailboxOwner),
       messageId,
+      incentiveMint: web3.PublicKey.default.equals(messageAccount.incentiveMint)
+        ? undefined
+        : messageAccount.incentiveMint,
     } as MessageAccount;
   }
 }

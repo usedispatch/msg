@@ -9,7 +9,7 @@ import { Mailbox, clusterAddresses, seeds, lookupDotSol } from '../usedispatch_c
 describe('messaging', () => {
 
   // Configure the client to use the local cluster.
-  anchor.setProvider(anchor.Provider.env());
+  anchor.setProvider(anchor.AnchorProvider.env());
 
   const program = anchor.workspace.Messaging as Program<Messaging>;
   const conn = anchor.getProvider().connection;
@@ -170,6 +170,7 @@ describe('messaging', () => {
     let firstMessage = await receiverMailbox.fetchMessageById(1);
     assert.ok(firstMessage.messageId === 1);
     assert.ok(firstMessage.data.body === "text1");
+    assert.ok(firstMessage.incentiveMint === undefined);
 
     let messages = await receiverMailbox.fetchMessages();
     assert.ok(messages.length === 2);
@@ -295,7 +296,7 @@ describe('messaging', () => {
         ],
       });
     } catch (e) {
-      assert.ok(String(e).startsWith("An address constraint was violated"));
+      assert.ok(String(e).startsWith("AnchorError caused by account: rent_destination. Error Code: ConstraintAddress."));
     }
     console.log = oldConsoleLog;
     console.error = oldConsoleError;
@@ -472,6 +473,9 @@ describe('messaging', () => {
       payerAccount: ata,
     }};
     await senderMailbox.send("message with incentive", receiver.publicKey, sendOpts);
+    const messageAccount = await receiverMailbox.fetchMessageById(0);
+    assert.ok(messageAccount.incentiveMint.equals(mint));
+    assert.equal((await receiverMailbox.fetchIncentiveTokenAccount(messageAccount)).amount, BigInt(incentiveAmount));
 
     let eventEmitted = false;
     const subscriptionId = program.addEventListener("IncentiveClaimed", (event: any, _slot: number) => {
@@ -484,13 +488,16 @@ describe('messaging', () => {
       assert.equal(event.amount, incentiveAmount);
     });
 
-    await conn.confirmTransaction(await receiverMailbox.claimIncentive(0));
+    await conn.confirmTransaction(await receiverMailbox.claimIncentive(messageAccount));
 
     assert.ok(eventEmitted);
 
     const receiverAtaAddr = await splToken.getAssociatedTokenAddress(mint, receiver.publicKey);
     const receiverAta = await splToken.getAccount(conn, receiverAtaAddr);
     assert.equal(receiverAta.amount, BigInt(incentiveAmount));
+
+    const messageAccountAfter = await receiverMailbox.fetchMessageById(0);
+    assert.equal(messageAccountAfter.incentiveMint, undefined);
   });
 
   it('Sends messages and reads them and deletes them', async () => {
@@ -594,7 +601,7 @@ describe('messaging', () => {
     const tokenAccount = await splToken.getAccount(conn, ata);
     assert.equal(tokenAccount.amount, BigInt(0));
 
-    await conn.confirmTransaction(await receiverMailbox.claimIncentive(0));
+    await conn.confirmTransaction(await receiverMailbox.claimIncentive(await receiverMailbox.fetchMessageById(0)));
     const receiverAtaAddr = await splToken.getAssociatedTokenAddress(mint, receiver.publicKey);
     const receiverAta = await splToken.getAccount(conn, receiverAtaAddr);
     assert.equal(receiverAta.amount, BigInt(incentiveAmount));
