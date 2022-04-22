@@ -525,7 +525,7 @@ describe('messaging', () => {
   it("Tests bonfida naming", async () => {
     const connMainnet = new anchor.web3.Connection(anchor.web3.clusterApiUrl('mainnet-beta'));
     let a = await lookupDotSol(connMainnet, "viksit");
-    console.log(a.ownerPubKey.toBase58());
+    assert.equal(a.ownerPubKey.toBase58(), "EuoVktg82q5oxEA6LvLXF4Xi9rKT1ZrjYqwcd9JA7X1B");
   });
 
   it('Sends an enhanced message and fetches it', async () => {
