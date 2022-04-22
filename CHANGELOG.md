@@ -6,6 +6,9 @@
 
 * client: New JSON-based rich message format with extensibility ([#37](https://github.com/usedispatch/pull/37))
 * client: Keep fetch around for deprecated uses ([#41](https://github.com/usedispatch/msg/pull/41))
+* client: Properties for incentive mint and method to get incentive amount ([#42](https://github.com/usedispatch/msg/pull/42))
+* client, program: Upgrade anchor to 0.24.2 ([#43](https://github.com/usedispatch/msg/pull/43))
+* program: Do not delete message when claiming incentive ([#40](https://github.com/usedispatch/pull/40))
 
 ## [0.6.0] 2022-04-08
 
