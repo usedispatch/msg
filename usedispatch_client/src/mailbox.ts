@@ -104,6 +104,7 @@ export class Mailbox {
   /*
     Porcelain commands
   */
+  /** @deprecated use sendMessage instead  */
   async send(data: string, receiverAddress: web3.PublicKey, opts?: SendOpts): Promise<string> {
     this.validateWallet();
     const tx = await this.makeSendTx(data, receiverAddress, opts);
@@ -112,9 +113,7 @@ export class Mailbox {
 
   async sendMessage(subj: string, body: string, receiverAddress: web3.PublicKey, opts?: SendOpts, meta?: object): Promise<string> {
     this.validateWallet();
-    const ts = new Date().getTime() / 1000;
-    const enhancedMessage = { subj, body, ts, meta };
-    const tx = await this.makeSendTx(JSON.stringify(enhancedMessage), receiverAddress, opts);
+    const tx = await this.makeSendTx(this.getMessageString(subj, body, meta), receiverAddress, opts);
     return this.sendTransaction(tx);
   }
 
@@ -125,6 +124,7 @@ export class Mailbox {
     return this.sendTransaction(tx);
   }
 
+  /** @deprecated use delete instead  */
   async delete(messageId: number, receiverAddress?: web3.PublicKey): Promise<string> {
     this.validateWallet();
     const tx = await this.makeDeleteTx(messageId, receiverAddress);
@@ -137,9 +137,10 @@ export class Mailbox {
     return this.sendTransaction(tx);
   }
 
-  async claimIncentive(messageId: number): Promise<string> {
+  async claimIncentive(message: MessageAccount): Promise<string> {
     this.validateWallet();
-    const tx = await this.makeClaimIncentiveTx(messageId);
+    if (!message.receiver.equals(this.mailboxOwner)) throw new Error("Receiver does not match mailboxOwner");
+    const tx = await this.makeClaimIncentiveTx(message.messageId);
     return this.sendTransaction(tx);
   }
 
@@ -415,6 +416,12 @@ export class Mailbox {
       tx.feePayer = this.wallet.publicKey!;
     }
     return tx;
+  }
+
+  getMessageString(subj: string, body: string, meta?: object): string {
+    const ts = new Date().getTime() / 1000;
+    const enhancedMessage = { subj, body, ts, meta };
+    return JSON.stringify(enhancedMessage);
   }
 
   // Obfuscation
