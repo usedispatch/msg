@@ -487,7 +487,7 @@ describe('messaging', () => {
       assert.equal(event.amount, incentiveAmount);
     });
 
-    await conn.confirmTransaction(await receiverMailbox.claimIncentive(0));
+    await conn.confirmTransaction(await receiverMailbox.claimIncentive(messageAccount));
 
     assert.ok(eventEmitted);
 
@@ -594,7 +594,7 @@ describe('messaging', () => {
     const tokenAccount = await splToken.getAccount(conn, ata);
     assert.equal(tokenAccount.amount, BigInt(0));
 
-    await conn.confirmTransaction(await receiverMailbox.claimIncentive(0));
+    await conn.confirmTransaction(await receiverMailbox.claimIncentive(await receiverMailbox.fetchMessageById(0)));
     const receiverAtaAddr = await splToken.getAssociatedTokenAddress(mint, receiver.publicKey);
     const receiverAta = await splToken.getAccount(conn, receiverAtaAddr);
     assert.equal(receiverAta.amount, BigInt(incentiveAmount));
