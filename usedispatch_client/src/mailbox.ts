@@ -2,16 +2,10 @@ import * as splToken from '@solana/spl-token';
 import * as web3 from '@solana/web3.js';
 import * as anchor from '@project-serum/anchor';
 import * as CryptoJS from 'crypto-js';
-import { Messaging } from '../../target/types/messaging';
-import messagingProgramIdl from '../../target/idl/messaging.json';
-import { clusterAddresses, defaultCluster, seeds, DispatchAddresses, eventName } from './constants';
-import {
-  WalletInterface,
-  WalletAdapterInterface,
-  AnchorNodeWalletInterface,
-  AnchorExpectedWalletInterface,
-} from './wallets';
+import { seeds, eventName } from './constants';
+import { WalletInterface } from './wallets';
 import { convertSolanartToDispatchMessage } from './solanart';
+import { DispatchConnection, DispatchConnectionOpts } from './connection';
 
 export type MailboxAccount = {
   messageCount: number;
@@ -55,11 +49,9 @@ export type SentMessageAccount = {
   messageId: number;
 };
 
-export type MailboxOpts = {
+export type MailboxOpts = DispatchConnectionOpts & {
   mailboxOwner?: web3.PublicKey;
   payer?: web3.PublicKey;
-  skipAnchorProvider?: boolean;
-  cluster?: web3.Cluster;
   sendObfuscated?: boolean;
 };
 
@@ -73,32 +65,16 @@ export type SendOpts = {
   incentive?: IncentiveArgs;
 };
 
-export class Mailbox {
+export class Mailbox extends DispatchConnection {
   public mailboxOwner: web3.PublicKey;
   public payer?: web3.PublicKey;
-  public addresses: DispatchAddresses;
-  public program: anchor.Program<Messaging>;
   public obfuscate: boolean;
 
   constructor(public conn: web3.Connection, public wallet: WalletInterface, opts?: MailboxOpts) {
-    if (!wallet.publicKey) {
-      throw new Error('Provided wallet must have a public key defined');
-    }
+    super(conn, wallet, { skipAnchorProvider: opts?.skipAnchorProvider, cluster: opts?.cluster });
     this.mailboxOwner = opts?.mailboxOwner ?? wallet.publicKey!;
     this.payer = opts?.payer;
-    this.addresses = clusterAddresses.get(opts?.cluster ?? defaultCluster)!;
     this.obfuscate = opts?.sendObfuscated ?? false;
-
-    // Initialize anchor
-    if (!opts?.skipAnchorProvider) {
-      if (this.wallet.signTransaction && this.wallet.signAllTransactions) {
-        const anchorWallet = this.wallet as AnchorExpectedWalletInterface;
-        anchor.setProvider(new anchor.AnchorProvider(conn, anchorWallet, {}));
-      } else {
-        throw new Error('The provided wallet is unable to sign transactions');
-      }
-    }
-    this.program = new anchor.Program<Messaging>(messagingProgramIdl as any, this.addresses.programAddress);
   }
 
   /*
@@ -399,22 +375,6 @@ export class Mailbox {
     if (this.payer && !this.payer.equals(this.mailboxOwner)) {
       throw new Error('`mailboxOwner` must equal `payer` to send transaction');
     }
-  }
-
-  private async sendTransaction(tx: web3.Transaction) {
-    let sig: string;
-    if ('sendTransaction' in this.wallet) {
-      const wallet = this.wallet as WalletAdapterInterface;
-      sig = await wallet.sendTransaction(tx, this.conn);
-    } else if ('payer' in this.wallet) {
-      const wallet = this.wallet as AnchorNodeWalletInterface;
-      const signer = wallet.payer;
-      sig = await this.conn.sendTransaction(tx, [signer]);
-    } else {
-      throw new Error('`wallet` has neither `sendTransaction` nor `payer` so cannot send transaction');
-    }
-    await this.conn.confirmTransaction(sig, 'recent');
-    return sig;
   }
 
   private setTransactionPayer(tx: web3.Transaction): web3.Transaction {
