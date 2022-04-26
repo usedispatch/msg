@@ -17,13 +17,14 @@ export type PostData = {
 type ChainPost = {
   poster: web3.PublicKey;
   data: PostData;
-  maxChildPost?: number; // Search up to this index
+  maxReply?: number; // Search up to this index
 };
 
 export type Post = {
+  parent: Post | Postbox;
+  address: web3.PublicKey;
   poster: web3.PublicKey;
   data: PostData;
-  address: web3.PublicKey;
   _maxReplyId: number;
 };
 
