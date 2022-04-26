@@ -34,7 +34,7 @@ export class Post {
 
 export class Postbox extends DispatchConnection {
   constructor(public conn: web3.Connection, public wallet: WalletInterface, opts?: PostboxOpts) {
-    super(conn, wallet, { skipAnchorProvider: opts?.skipAnchorProvider, cluster: opts?.cluster });
+    super(conn, wallet, opts);
   }
 
   // Basic functions

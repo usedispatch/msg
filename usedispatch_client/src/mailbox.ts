@@ -71,7 +71,7 @@ export class Mailbox extends DispatchConnection {
   public obfuscate: boolean;
 
   constructor(public conn: web3.Connection, public wallet: WalletInterface, opts?: MailboxOpts) {
-    super(conn, wallet, { skipAnchorProvider: opts?.skipAnchorProvider, cluster: opts?.cluster });
+    super(conn, wallet, opts);
     this.mailboxOwner = opts?.mailboxOwner ?? wallet.publicKey!;
     this.payer = opts?.payer;
     this.obfuscate = opts?.sendObfuscated ?? false;
