@@ -6,6 +6,8 @@ import { DispatchConnection, DispatchConnectionOpts } from './connection';
 
 export type PostboxOpts = DispatchConnectionOpts;
 
+export type PostboxSubject = web3.PublicKey;
+
 export type PostData = {
   ts: number;
   subj?: string;
@@ -16,24 +18,24 @@ type ChainPost = {
   poster: web3.PublicKey;
   data: PostData;
   maxChildPost?: number; // Search up to this index
-}
+};
 
-export class Post {
-  constructor(
-    public postbox: Postbox,
-    public poster: web3.PublicKey,
-    public data: PostData,
-    private maxChildPost: number,
-    ) {}
-
-  // TODO(mfasman): implement
-  async getReplies(): Promise<Post[]> {
-    return [];
-  }
-}
+export type Post = {
+  poster: web3.PublicKey;
+  data: PostData;
+  address: web3.PublicKey;
+  _maxReplyId: number;
+};
 
 export class Postbox extends DispatchConnection {
-  constructor(public conn: web3.Connection, public wallet: WalletInterface, opts?: PostboxOpts) {
+  private _address: web3.PublicKey | undefined;
+
+  constructor(
+    public conn: web3.Connection,
+    public wallet: WalletInterface,
+    public subject: PostboxSubject,
+    opts?: PostboxOpts,
+    ) {
     super(conn, wallet, opts);
   }
 
@@ -46,6 +48,16 @@ export class Postbox extends DispatchConnection {
 
   async fetchPosts() {}
 
+  async fetchReplies() {}
+
   // Admin functions
   async addModerator() {}
+
+  // Utility functions
+  get address(): web3.PublicKey {
+    if (!this._address) {
+      // TODO(mfasman): implement
+    }
+    return this._address!;
+  }
 }
