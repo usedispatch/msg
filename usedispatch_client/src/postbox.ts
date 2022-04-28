@@ -1,6 +1,6 @@
+import * as splToken from '@solana/spl-token';
 import * as web3 from '@solana/web3.js';
-import * as anchor from '@project-serum/anchor';
-import { seeds, eventName } from './constants';
+import { seeds } from './constants';
 import { WalletInterface } from './wallets';
 import { DispatchConnection, DispatchConnectionOpts } from './connection';
 import { gzip, ungzip } from 'node-gzip';
@@ -42,9 +42,11 @@ export type Post = {
 
 type ChainPost = {
   poster: web3.PublicKey;
-  data: PostData;
+  data: Buffer;
   maxChildId?: number; // Search up to this index
 };
+
+type NullableChainPost = null | ChainPost;
 
 type ChainPostboxInfo = {
   maxChildId: number;
@@ -85,27 +87,68 @@ export class Postbox extends DispatchConnection {
     return this.sendTransaction(ix);
   }
 
-  async replyToPost(post: Post, input: InputPostData): Promise<web3.TransactionSignature> {}
+  async replyToPost(post: Post, input: InputPostData): Promise<web3.TransactionSignature> {
+    const data = await this.postDataToBuffer(input);
+    const ix = await this.program.methods
+      .createReply(data)
+      .accounts({
+        replyToPost: post.address,
+      })
+      .transaction();
+    return this.sendTransaction(ix);
+  }
+
+  async innerFetchPosts(parent: PostNode, maxChildId: number): Promise<Post[]> {
+    if (maxChildId === 0) return [];
+    const addresses = await this.getAddresses(parent, maxChildId);
+    const chainPosts = await this.program.account.post.fetchMultiple(addresses) as NullableChainPost[];
+    const convertedPosts = await Promise.all(chainPosts.map((rp, i) => {
+      return this.convertChainPost(rp, addresses[i], parent);
+    }));
+    return convertedPosts.filter((p): p is Post => p !== null);
+  }
 
   async fetchPosts(): Promise<Post[]> {
     const info = await this.getChainPostboxInfo();
-    const addresses = this.getAddresses(this, info.maxChildId);
-    const rawPosts = await this.program.account.post.fetchMultiple(addresses) as ChainPost[];
-    //TODO(mfasman): make this next line combine address, etc.
-    return rawPosts.map(this.convertChainPost).filter((p): p is Post => p !== null);
+    return this.innerFetchPosts(this, info.maxChildId);
   }
 
-  async fetchReplies(post: Post): Promise<Post[]> {}
+  async fetchReplies(post: Post): Promise<Post[]> {
+    return this.innerFetchPosts(post, post._maxReplyId);
+  }
 
   // Admin functions
-  async addModerator(): Promise<web3.TransactionSignature> {}
+  async addModerator(newModerator: web3.PublicKey): Promise<web3.TransactionSignature> {
+    const info = await this.getChainPostboxInfo();
+    const moderatorMint = info.moderatorMint;
+    const ata = await splToken.getAssociatedTokenAddress(moderatorMint, newModerator);
+    const ataAccountInfo = await this.conn.getAccountInfo(ata);
+    const tx = new web3.Transaction();
+
+    if (ataAccountInfo) {
+      const tokenAccount = await splToken.getAccount(this.conn, ata);
+      if (tokenAccount.amount > 0) {
+        throw new Error(`${newModerator.toBase58()} is already a moderator.`);
+      }
+    } else {
+      tx.add(splToken.createAssociatedTokenAccountInstruction(
+        this.wallet.publicKey!, ata, newModerator, moderatorMint
+      ));
+    }
+    tx.add(splToken.createMintToInstruction(moderatorMint, ata, this.wallet.publicKey!, 1));
+    return this.sendTransaction(tx);
+  }
 
   // Chain functions
   get address(): web3.PublicKey {
     if (!this._address) {
-      // TODO(mfasman): implement
+      const [postAddress] = await web3.PublicKey.findProgramAddress(
+        [seeds.protocolSeed, seeds.postboxSeed, this.subject.toBuffer()],
+        this.program.programId,
+      );
+      this._address = postAddress;
     }
-    return this._address!;
+    return this._address;
   }
 
   async getPostAddress(parent: PostNode, postId: number): Promise<web3.PublicKey> {
@@ -122,10 +165,10 @@ export class Postbox extends DispatchConnection {
     if (0 === maxPostId) {
       return [];
     }
-    const messageIds = Array(maxPostId)
+    const postIds = Array(maxPostId)
       .fill(0)
       .map((_element, index) => index);
-    const addresses = await Promise.all(messageIds.map((id) => this.getPostAddress(parent, id)));
+    const addresses = await Promise.all(postIds.map((id) => this.getPostAddress(parent, id)));
     return addresses;
   }
 
@@ -133,15 +176,24 @@ export class Postbox extends DispatchConnection {
     return this.program.account.postbox.fetch(this.address);
   }
 
-  convertChainPost(chainPost: ChainPost): Post {}
+  async convertChainPost(chainPost: NullableChainPost, address: web3.PublicKey, parent: PostNode): Promise<Post | null> {
+    if (!chainPost) return null;
+    const data = await this.bufferToPostData(chainPost.data);
+    return {
+      parent,
+      address,
+      poster: chainPost.poster,
+      data,
+      _maxReplyId: chainPost.maxChildId ?? 0,
+    };
+  }
 
   // Utility functions
   async postDataToBuffer(input: InputPostData): Promise<Buffer> {
     const postData = input as ChainPostdata;
     postData.ts = new Date().getTime() / 1000;
     const dataString = JSON.stringify(postData);
-    const data = await gzip(dataString);
-    return data;
+    return gzip(dataString);
   }
 
   async bufferToPostData(input: Buffer): Promise<PostData> {
