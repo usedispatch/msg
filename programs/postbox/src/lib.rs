@@ -6,9 +6,11 @@ declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 const PROTOCOL_SEED: & str = "dispatch";
 const POSTBOX_SEED: & str = "postbox";
 const POST_SEED: & str = "post";
+const MODERATOR_SEED: & str = "moderator";
 
 const POSTBOX_INIT_SETTINGS: usize = 3;
-const POSTBOX_GROW_CHILDREN_BY: u32 = 5;
+#[constant]
+const POSTBOX_GROW_CHILDREN_BY: u32 = 1;
 const POSTBOX_MAX_GROW_CHILDREN_BY: u32 = 50;
 
 // initialize postbox
@@ -29,18 +31,25 @@ pub mod postbox {
         Ok(())
     }
 
-    pub fn create_post(ctx: Context<CreatePost>, data: String, _post_id: u32) -> Result<()> {
+    pub fn create_post(ctx: Context<CreatePost>, data: Vec<u8>, post_id: u32) -> Result<()> {
         let postbox_account = &mut ctx.accounts.postbox;
-        if _post_id > postbox_account.max_child_id + POSTBOX_MAX_GROW_CHILDREN_BY {
+        if post_id > postbox_account.max_child_id + POSTBOX_MAX_GROW_CHILDREN_BY {
             return Err(Error::from(ProgramError::InvalidArgument).with_source(source!()));
         }
-        if _post_id > postbox_account.max_child_id {
-            postbox_account.max_child_id = _post_id.max(postbox_account.max_child_id + POSTBOX_GROW_CHILDREN_BY);
+        if post_id > postbox_account.max_child_id {
+            postbox_account.max_child_id = post_id.max(postbox_account.max_child_id + POSTBOX_GROW_CHILDREN_BY);
         }
 
         let post_account = &mut ctx.accounts.post;
         post_account.poster = ctx.accounts.poster.key();
         post_account.data = data;
+
+        emit!(PostEvent {
+            poster_pubkey: ctx.accounts.poster.key(),
+            postbox_pubkey: ctx.accounts.postbox.key(),
+            post_id: post_id,
+            data: post_account.data.clone(),
+        });
 
         Ok(())
     }
@@ -68,22 +77,28 @@ pub struct Initialize<'info> {
     pub postbox: Box<Account<'info, Postbox>>,
     #[account(init,
         payer = owner,
-        space = token::Mint::LEN,
-        seeds = [],
+        seeds = [postbox.key().as_ref(), MODERATOR_SEED.as_bytes()],
         bump,
+        mint::decimals = 0,
+        mint::authority = postbox,
     )]
     pub moderator_mint: Box<Account<'info, token::Mint>>,
+    // For a user's message board, the owner has to sign and will become the authority
+    // For a single NFT, TODO(viksit): fill in
+    // For a collection, TODO(viksit): fill in
     #[account(mut)]
     pub owner: Signer<'info>,
     pub system_program: Program<'info, System>,
+    pub token_program: Program<'info, token::Token>,
+    pub rent: Sysvar<'info, Rent>,
 }
 
 #[derive(Accounts)]
-#[instruction(data: String, post_id: u32)]
+#[instruction(data: Vec<u8>, post_id: u32)]
 pub struct CreatePost<'info> {
     #[account(init,
         payer = poster,
-        space = 8 + 32 + data.as_bytes().len(),
+        space = 8 + 32 + data.len(),
         seeds = [PROTOCOL_SEED.as_bytes(), POST_SEED.as_bytes(), postbox.key().as_ref(), &post_id.to_le_bytes()],
         bump,
     )]
@@ -159,13 +174,13 @@ pub struct Postbox {
 #[derive(Default)]
 pub struct Post {
     poster: Pubkey,
-    data: String,
+    data: Vec<u8>,
 }
 
 #[event]
-pub struct PostboxMessage {
+pub struct PostEvent {
     pub poster_pubkey: Pubkey,
     pub postbox_pubkey: Pubkey,
-    pub message_id: u32,
-    pub message: String,
+    pub post_id: u32,
+    pub data: Vec<u8>,
 }

@@ -2,6 +2,8 @@ import * as web3 from '@solana/web3.js';
 import * as anchor from '@project-serum/anchor';
 import { Messaging } from '../../target/types/messaging';
 import messagingProgramIdl from '../../target/idl/messaging.json';
+import { Postbox } from '../../target/types/postbox';
+import postboxProgramIdl from '../../target/idl/postbox.json';
 import { clusterAddresses, defaultCluster, DispatchAddresses } from './constants';
 import {
   WalletInterface,
@@ -17,7 +19,8 @@ export type DispatchConnectionOpts = {
 
 export class DispatchConnection {
   public addresses: DispatchAddresses;
-  public program: anchor.Program<Messaging>;
+  public messagingProgram: anchor.Program<Messaging>;
+  public postboxProgram: anchor.Program<Postbox>;
 
   constructor(public conn: web3.Connection, public wallet: WalletInterface, opts?: DispatchConnectionOpts) {
     if (!wallet.publicKey) {
@@ -34,7 +37,8 @@ export class DispatchConnection {
         throw new Error('The provided wallet is unable to sign transactions');
       }
     }
-    this.program = new anchor.Program<Messaging>(messagingProgramIdl as any, this.addresses.programAddress);
+    this.messagingProgram = new anchor.Program<Messaging>(messagingProgramIdl as any, this.addresses.programAddress);
+    this.postboxProgram = new anchor.Program<Postbox>(postboxProgramIdl as any, this.addresses.postboxAddress);
   }
 
   protected async sendTransaction(tx: web3.Transaction) {

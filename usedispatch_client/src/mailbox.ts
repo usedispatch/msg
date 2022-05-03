@@ -140,7 +140,7 @@ export class Mailbox extends DispatchConnection {
       .fill(0)
       .map((_element, index) => index + mailbox.readMessageCount);
     const addresses = await Promise.all(messageIds.map((id) => this.getMessageAddress(id)));
-    const messages = await this.program.account.message.fetchMultiple(addresses);
+    const messages = await this.messagingProgram.account.message.fetchMultiple(addresses);
     const normalize = (messageAccount: any | null, index: number) => {
       return this.normalizeMessageAccountDeprecated(messageAccount, index + mailbox.readMessageCount);
     };
@@ -160,7 +160,7 @@ export class Mailbox extends DispatchConnection {
       .fill(0)
       .map((_element, index) => index + mailbox.readMessageCount);
     const addresses = await Promise.all(messageIds.map((id) => this.getMessageAddress(id)));
-    const messages = await this.program.account.message.fetchMultiple(addresses);
+    const messages = await this.messagingProgram.account.message.fetchMultiple(addresses);
     const normalize = (messageAccount: any | null, index: number) => {
       return this.normalizeMessageAccount(messageAccount, index + mailbox.readMessageCount);
     };
@@ -169,7 +169,7 @@ export class Mailbox extends DispatchConnection {
 
   async fetchMessageById(messageId: number): Promise<MessageAccount> {
     const messageAddress = await this.getMessageAddress(messageId);
-    const messageAccount = await this.program.account.message.fetch(messageAddress);
+    const messageAccount = await this.messagingProgram.account.message.fetch(messageAddress);
     return this.normalizeMessageAccount(messageAccount, messageId)!;
   }
 
@@ -246,11 +246,11 @@ export class Mailbox extends DispatchConnection {
         associatedTokenProgram: splToken.ASSOCIATED_TOKEN_PROGRAM_ID,
         rent: web3.SYSVAR_RENT_PUBKEY,
       };
-      tx = this.program.transaction.sendMessageWithIncentive(message, new anchor.BN(opts.incentive.amount), {
+      tx = this.messagingProgram.transaction.sendMessageWithIncentive(message, new anchor.BN(opts.incentive.amount), {
         accounts: incentiveAccounts,
       });
     } else {
-      tx = this.program.transaction.sendMessage(message, { accounts });
+      tx = this.messagingProgram.transaction.sendMessage(message, { accounts });
     }
 
     return this.setTransactionPayer(tx);
@@ -269,8 +269,8 @@ export class Mailbox extends DispatchConnection {
   /// Returns null if message account doesn't exist, the transaction otherwise
   async makeDeleteTx(messageId: number, receiverAddress?: web3.PublicKey): Promise<web3.Transaction> {
     const messageAddress = await this.getMessageAddress(messageId, receiverAddress ?? this.mailboxOwner);
-    const messageAccount = await this.program.account.message.fetch(messageAddress);
-    const tx = await this.program.methods
+    const messageAccount = await this.messagingProgram.account.message.fetch(messageAddress);
+    const tx = await this.messagingProgram.methods
       .deleteMessage(messageId)
       .accounts({
         receiver: receiverAddress ?? this.mailboxOwner,
@@ -285,11 +285,11 @@ export class Mailbox extends DispatchConnection {
   async makeClaimIncentiveTx(messageId: number, receiverAddress?: web3.PublicKey): Promise<web3.Transaction> {
     const receiver = receiverAddress ?? this.mailboxOwner;
     const messageAddress = await this.getMessageAddress(messageId, receiver);
-    const messageAccount = await this.program.account.message.fetch(messageAddress);
+    const messageAccount = await this.messagingProgram.account.message.fetch(messageAddress);
     const mint = messageAccount.incentiveMint;
     const ata = await splToken.getAssociatedTokenAddress(mint, messageAddress, true);
     const receiverAta = await splToken.getAssociatedTokenAddress(mint, receiver, true);
-    const tx = await this.program.methods
+    const tx = await this.messagingProgram.methods
       .claimIncentive(messageId)
       .accounts({
         receiver,
@@ -308,7 +308,7 @@ export class Mailbox extends DispatchConnection {
 
   // Reminder this is every single message on the protocol, which we filter here
   addMessageListener(callback: (message: MessageAccount) => void): number {
-    return this.program.addEventListener(eventName, (event: any, _slot: number) => {
+    return this.messagingProgram.addEventListener(eventName, (event: any, _slot: number) => {
       if (event.receiverPubkey.equals(this.mailboxOwner)) {
         callback({
           sender: event.senderPubkey,
@@ -321,7 +321,7 @@ export class Mailbox extends DispatchConnection {
   }
 
   addSentMessageListener(callback: (message: SentMessageAccount) => void): number {
-    return this.program.addEventListener(eventName, (event: any, _slot: number) => {
+    return this.messagingProgram.addEventListener(eventName, (event: any, _slot: number) => {
       if (event.senderPubkey.equals(this.mailboxOwner)) {
         callback({
           receiver: event.receiverPubkey,
@@ -332,7 +332,7 @@ export class Mailbox extends DispatchConnection {
   }
 
   removeMessageListener(subscriptionId: number) {
-    this.program.removeEventListener(subscriptionId);
+    this.messagingProgram.removeEventListener(subscriptionId);
   }
 
   /*
@@ -343,7 +343,7 @@ export class Mailbox extends DispatchConnection {
     const ownerAddress = mailboxOwner ?? this.mailboxOwner;
     const [mailboxAddress] = await web3.PublicKey.findProgramAddress(
       [seeds.protocolSeed, seeds.mailboxSeed, ownerAddress.toBuffer()],
-      this.program.programId,
+      this.messagingProgram.programId,
     );
 
     return mailboxAddress;
@@ -356,7 +356,7 @@ export class Mailbox extends DispatchConnection {
     msgCountBuf.writeInt32LE(index);
     const [messageAddress] = await web3.PublicKey.findProgramAddress(
       [seeds.protocolSeed, seeds.messageSeed, mailboxAddress.toBuffer(), msgCountBuf],
-      this.program.programId,
+      this.messagingProgram.programId,
     );
 
     return messageAddress;
@@ -364,7 +364,7 @@ export class Mailbox extends DispatchConnection {
 
   private async fetchMailbox(mailboxAddress?: web3.PublicKey) {
     const address = mailboxAddress ?? (await this.getMailboxAddress());
-    const mailboxAccount = await this.program.account.mailbox.fetchNullable(address);
+    const mailboxAccount = await this.messagingProgram.account.mailbox.fetchNullable(address);
     return mailboxAccount;
   }
 
