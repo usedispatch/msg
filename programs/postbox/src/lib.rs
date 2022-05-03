@@ -77,7 +77,7 @@ pub struct Initialize<'info> {
     pub postbox: Box<Account<'info, Postbox>>,
     #[account(init,
         payer = owner,
-        seeds = [postbox.key().as_ref(), MODERATOR_SEED.as_bytes()],
+        seeds = [PROTOCOL_SEED.as_bytes(), MODERATOR_SEED.as_bytes(), owner.key().as_ref()],
         bump,
         mint::decimals = 0,
         mint::authority = postbox,

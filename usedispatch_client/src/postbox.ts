@@ -71,7 +71,9 @@ export class Postbox extends DispatchConnection {
   async initialize(): Promise<web3.TransactionSignature> {
     const ix = await this.postboxProgram.methods
       .initialize()
-      .accounts({})
+      .accounts({
+        owner: this.wallet.publicKey!,
+      })
       .transaction();
     return this.sendTransaction(ix);
   }
@@ -84,7 +86,10 @@ export class Postbox extends DispatchConnection {
     const data = await this.postDataToBuffer(input);
     const ix = await this.postboxProgram.methods
       .createPost(data, maxId + 1)
-      .accounts({})
+      .accounts({
+        postbox: await this.getAddress(),
+        poster: this.wallet.publicKey!,
+      })
       .transaction();
     return this.sendTransaction(ix);
   }
