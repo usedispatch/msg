@@ -83,9 +83,11 @@ export class Postbox extends DispatchConnection {
     // TODO(mfasman): make this be a better allocation algorithm
     const growBy = 1; // TODO(mfasman): pull from the IDL
     const maxId = (await this.getChainPostboxInfo()).maxChildId;
+    const addresses = await this.getAddresses(maxId, Math.max(0, maxId - growBy));
+    const infos = await this.conn.getMultipleAccountsInfo(addresses);
     const data = await this.postDataToBuffer(input);
     const ix = await this.postboxProgram.methods
-      .createPost(data, maxId + 1)
+      .createPost(data, maxId)
       .accounts({
         postbox: await this.getAddress(),
         poster: this.wallet.publicKey!,
@@ -190,11 +192,11 @@ export class Postbox extends DispatchConnection {
     return postAddress;
   }
 
-  async getAddresses(maxPostId: number): Promise<web3.PublicKey[]> {
-    if (0 === maxPostId) {
+  async getAddresses(maxPostId: number, startPostId?: number): Promise<web3.PublicKey[]> {
+    if ((startPostId ?? 0) > maxPostId) {
       return [];
     }
-    const postIds = Array(maxPostId)
+    const postIds = Array(1 + maxPostId - (startPostId ?? 0))
       .fill(0)
       .map((_element, index) => index);
     const addresses = await Promise.all(postIds.map((id) => this.getPostAddress(id)));

@@ -11,7 +11,6 @@ const MODERATOR_SEED: & str = "moderator";
 const POSTBOX_INIT_SETTINGS: usize = 3;
 #[constant]
 const POSTBOX_GROW_CHILDREN_BY: u32 = 1;
-const POSTBOX_MAX_GROW_CHILDREN_BY: u32 = 50;
 
 // initialize postbox
 // create post
@@ -33,11 +32,11 @@ pub mod postbox {
 
     pub fn create_post(ctx: Context<CreatePost>, data: Vec<u8>, post_id: u32) -> Result<()> {
         let postbox_account = &mut ctx.accounts.postbox;
-        if post_id > postbox_account.max_child_id + POSTBOX_MAX_GROW_CHILDREN_BY {
+        if post_id > postbox_account.max_child_id {
             return Err(Error::from(ProgramError::InvalidArgument).with_source(source!()));
         }
-        if post_id > postbox_account.max_child_id {
-            postbox_account.max_child_id = post_id.max(postbox_account.max_child_id + POSTBOX_GROW_CHILDREN_BY);
+        if post_id == postbox_account.max_child_id {
+            postbox_account.max_child_id = postbox_account.max_child_id + POSTBOX_GROW_CHILDREN_BY;
         }
 
         let post_account = &mut ctx.accounts.post;
@@ -98,7 +97,7 @@ pub struct Initialize<'info> {
 pub struct CreatePost<'info> {
     #[account(init,
         payer = poster,
-        space = 8 + 32 + data.len(),
+        space = 8 + 32 + 4 + data.len(),
         seeds = [PROTOCOL_SEED.as_bytes(), POST_SEED.as_bytes(), postbox.key().as_ref(), &post_id.to_le_bytes()],
         bump,
     )]
