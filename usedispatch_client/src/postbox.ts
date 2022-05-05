@@ -22,12 +22,14 @@ export type InputPostData = {
 
 export type PostData = InputPostData & {
   ts: Date;
+  replyTo?: web3.PublicKey;
 };
 
 type ChainPostdata = {
   subj?: string;
   body?: string;
   ts?: EpochSeconds;
+  replyTo?: string;
 };
 
 export type PostNode = Post | Postbox;
@@ -37,13 +39,15 @@ export type Post = {
   address: web3.PublicKey;
   poster: web3.PublicKey;
   data: PostData;
-  _maxReplyId: number;
+  up_votes: number;
+  down_votes: number;
 };
 
 type ChainPost = {
   poster: web3.PublicKey;
   data: Buffer;
-  maxChildId?: number; // Search up to this index
+  up_votes: number;
+  down_votes: number;
 };
 
 type NullableChainPost = null | ChainPost;
@@ -116,16 +120,11 @@ export class Postbox extends DispatchConnection {
     return this.sendTransaction(ix);
   }
 
-  // async replyToPost(post: Post, input: InputPostData): Promise<web3.TransactionSignature> {
-  //   const data = await this.postDataToBuffer(input);
-  //   const ix = await this.postboxProgram.methods
-  //     .createReply(data)
-  //     .accounts({
-  //       replyToPost: post.address,
-  //     })
-  //     .transaction();
-  //   return this.sendTransaction(ix);
-  // }
+  async replyToPost(post: Post, input: InputPostData): Promise<web3.TransactionSignature> {
+    const postData = input as PostData;
+    postData.replyTo = post.address;
+    return this.createPost(postData);
+  }
 
   async innerFetchPosts(parent: PostNode, maxChildId: number): Promise<Post[]> {
     if (maxChildId === 0) return [];
@@ -137,13 +136,17 @@ export class Postbox extends DispatchConnection {
     return convertedPosts.filter((p): p is Post => p !== null);
   }
 
-  async fetchPosts(): Promise<Post[]> {
+  async fetchAllPosts(): Promise<Post[]> {
     const info = await this.getChainPostboxInfo();
     return this.innerFetchPosts(this, info.maxChildId);
   }
 
+  async fetchPosts(): Promise<Post[]> {
+    return (await this.fetchAllPosts()).filter((p) => !p.data.replyTo);
+  }
+
   async fetchReplies(post: Post): Promise<Post[]> {
-    return this.innerFetchPosts(post, post._maxReplyId);
+    return (await this.fetchAllPosts()).filter((p) => p.data.replyTo && p.data.replyTo.equals(post.address));
   }
 
   // Admin functions
@@ -215,13 +218,13 @@ export class Postbox extends DispatchConnection {
       address,
       poster: chainPost.poster,
       data,
-      _maxReplyId: chainPost.maxChildId ?? 0,
+      up_votes: chainPost.up_votes,
+      down_votes: chainPost.down_votes,
     };
   }
 
   // Utility functions
-  async postDataToBuffer(input: InputPostData): Promise<Buffer> {
-    const postData = input as ChainPostdata;
+  async postDataToBuffer(postData: ChainPostdata): Promise<Buffer> {
     postData.ts = new Date().getTime() / 1000;
     const dataString = JSON.stringify(postData);
     return gzip(dataString);
@@ -234,6 +237,7 @@ export class Postbox extends DispatchConnection {
       subj: postData.subj,
       body: postData.body ?? '',
       ts: new Date((postData.ts ?? 0) * 1000),
+      replyTo: postData.replyTo ? new web3.PublicKey(postData.replyTo) : undefined,
     };
   }
 }

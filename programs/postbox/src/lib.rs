@@ -17,6 +17,7 @@ const POSTBOX_GROW_CHILDREN_BY: u32 = 1;
 // delete by owner
 // delete by moderator
 // issue moderator token
+// vote
 
 #[program]
 pub mod postbox {
@@ -97,7 +98,7 @@ pub struct Initialize<'info> {
 pub struct CreatePost<'info> {
     #[account(init,
         payer = poster,
-        space = 8 + 32 + 4 + data.len(),
+        space = 8 + 32 + 4 + data.len() + 4 + 4 + (2 + 32) * POSTBOX_INIT_SETTINGS,
         seeds = [PROTOCOL_SEED.as_bytes(), POST_SEED.as_bytes(), postbox.key().as_ref(), &post_id.to_le_bytes()],
         bump,
     )]
@@ -174,6 +175,8 @@ pub struct Postbox {
 pub struct Post {
     poster: Pubkey,
     data: Vec<u8>,
+    up_votes: u16,
+    down_votes: u16,
 }
 
 #[event]
