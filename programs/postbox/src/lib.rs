@@ -69,7 +69,7 @@ pub mod postbox {
 pub struct Initialize<'info> {
     #[account(init,
         payer = owner,
-        space = 8 + 4 + 32 + (2 + 32) * POSTBOX_INIT_SETTINGS,  // TODO(mfasman): do we need any space for the vec itself?
+        space = 8 + 4 + 32 + 4 + (2 + 32) * POSTBOX_INIT_SETTINGS,
         seeds = [PROTOCOL_SEED.as_bytes(), POSTBOX_SEED.as_bytes(), owner.key().as_ref()],
         bump,
     )]
