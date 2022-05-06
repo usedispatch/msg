@@ -98,7 +98,7 @@ pub struct Initialize<'info> {
 pub struct CreatePost<'info> {
     #[account(init,
         payer = poster,
-        space = 8 + 32 + 4 + data.len() + 4 + 4 + (2 + 32) * POSTBOX_INIT_SETTINGS,
+        space = 8 + 32 + 4 + data.len() + 4 + 4,
         seeds = [PROTOCOL_SEED.as_bytes(), POST_SEED.as_bytes(), postbox.key().as_ref(), &post_id.to_le_bytes()],
         bump,
     )]
@@ -177,6 +177,7 @@ pub struct Post {
     data: Vec<u8>,
     up_votes: u16,
     down_votes: u16,
+    extra: Vec<u8>,
 }
 
 #[event]

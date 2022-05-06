@@ -3,7 +3,7 @@ import * as web3 from '@solana/web3.js';
 import { seeds } from './constants';
 import { WalletInterface } from './wallets';
 import { DispatchConnection, DispatchConnectionOpts } from './connection';
-import { gzip, ungzip } from 'node-gzip';
+import { compress, decompress } from './compress';
 
 
 // TODO(mfasman): Should we have PostNode be a base class and both Postbox
@@ -18,18 +18,20 @@ export type EpochSeconds = number;
 export type InputPostData = {
   subj?: string;
   body: string;
+  meta?: object;
+  replyTo?: web3.PublicKey;
 };
 
 export type PostData = InputPostData & {
   ts: Date;
-  replyTo?: web3.PublicKey;
 };
 
 type ChainPostdata = {
-  subj?: string;
-  body?: string;
-  ts?: EpochSeconds;
-  replyTo?: string;
+  s?: string;
+  b?: string;
+  m?: object;
+  r?: string;
+  t?: EpochSeconds;
 };
 
 export type PostNode = Post | Postbox;
@@ -224,20 +226,27 @@ export class Postbox extends DispatchConnection {
   }
 
   // Utility functions
-  async postDataToBuffer(postData: ChainPostdata): Promise<Buffer> {
-    postData.ts = new Date().getTime() / 1000;
-    const dataString = JSON.stringify(postData);
-    return gzip(dataString);
+  async postDataToBuffer(postData: InputPostData): Promise<Buffer> {
+    const pd: ChainPostdata = {
+      s: postData.subj,
+      b: postData.body,
+      m: postData.meta,
+      r: postData.replyTo?.toBase58(),
+      t: Math.floor(new Date().getTime() / 1000),
+    };
+    const dataString = JSON.stringify(pd);
+    return compress(dataString);
   }
 
   async bufferToPostData(input: Buffer): Promise<PostData> {
-    const dataString = (await ungzip(input)).toString();
+    const dataString = (await decompress(input)).toString();
     const postData = JSON.parse(dataString) as ChainPostdata;
     return {
-      subj: postData.subj,
-      body: postData.body ?? '',
-      ts: new Date((postData.ts ?? 0) * 1000),
-      replyTo: postData.replyTo ? new web3.PublicKey(postData.replyTo) : undefined,
+      subj: postData.s,
+      body: postData.b ?? '',
+      ts: new Date((postData.t?? 0) * 1000),
+      replyTo: postData.r ? new web3.PublicKey(postData.r) : undefined,
+      meta: postData.m,
     };
   }
 }
