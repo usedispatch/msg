@@ -11,7 +11,10 @@ import { compress, decompress } from './compress';
 
 export type PostboxOpts = DispatchConnectionOpts;
 
-export type PostboxSubject = web3.PublicKey;
+export type PostboxSubject = {
+  key: web3.PublicKey;
+  str?: string;
+};
 
 export type EpochSeconds = number;
 
@@ -74,11 +77,12 @@ export class Postbox extends DispatchConnection {
   }
 
   // Init functions
-  async initialize(): Promise<web3.TransactionSignature> {
+  async initialize(owners?: web3.PublicKey[]): Promise<web3.TransactionSignature> {
     const ix = await this.postboxProgram.methods
-      .initialize()
+      .initialize(this.subject.str ?? "", owners ?? [this.wallet.publicKey!])
       .accounts({
-        owner: this.wallet.publicKey!,
+        signer: this.wallet.publicKey!,
+        subjectAccount: this.subject.key,
       })
       .transaction();
     return this.sendTransaction(ix);
@@ -177,7 +181,7 @@ export class Postbox extends DispatchConnection {
   async getAddress(): Promise<web3.PublicKey> {
     if (!this._address) {
       const [postAddress] = await web3.PublicKey.findProgramAddress(
-        [seeds.protocolSeed, seeds.postboxSeed, this.subject.toBuffer()],
+        [seeds.protocolSeed, seeds.postboxSeed, this.subject.key.toBuffer(), Buffer.from(this.subject.str ?? "")],
         this.postboxProgram.programId,
       );
       this._address = postAddress;
@@ -187,11 +191,11 @@ export class Postbox extends DispatchConnection {
 
   // TODO(mfasman): make the parent a PostNode that is passed in
   async getPostAddress(postId: number): Promise<web3.PublicKey> {
-    const parentAddress = await this.getAddress();
+    const postboxAddress = await this.getAddress();
     const msgCountBuf = Buffer.allocUnsafe(4);
     msgCountBuf.writeInt32LE(postId);
     const [postAddress] = await web3.PublicKey.findProgramAddress(
-      [seeds.protocolSeed, seeds.postSeed, parentAddress.toBuffer(), msgCountBuf],
+      [seeds.protocolSeed, seeds.postSeed, postboxAddress.toBuffer(), msgCountBuf],
       this.postboxProgram.programId,
     );
     return postAddress;

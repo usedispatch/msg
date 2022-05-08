@@ -15,7 +15,7 @@ describe('postbox', () => {
     const owner = new anchor.Wallet(anchor.web3.Keypair.generate());
     await conn.confirmTransaction(await conn.requestAirdrop(owner.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
 
-    const postbox = new Postbox(conn, owner, owner.publicKey);
+    const postbox = new Postbox(conn, owner, {key: owner.publicKey});
     const tx0 = await postbox.initialize();
     await conn.confirmTransaction(tx0);
 
@@ -38,13 +38,33 @@ describe('postbox', () => {
     assert.equal(oldPost, null);
   });
 
+  it('Creates a third party postbox', async () => {
+    const subject = anchor.web3.Keypair.generate().publicKey;
+    const owner1 = new anchor.Wallet(anchor.web3.Keypair.generate());
+    const owner2 = new anchor.Wallet(anchor.web3.Keypair.generate());
+    await conn.confirmTransaction(await conn.requestAirdrop(owner1.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
+
+    const postbox = new Postbox(conn, owner1, {key: subject, str: "Public"});
+    const tx0 = await postbox.initialize([owner1.publicKey, owner2.publicKey]);
+    await conn.confirmTransaction(tx0);
+
+    // TODO: check that the owner account is set correctly
+
+    const testPost = {subj: "Test", body: "This is a test post"};
+    const tx1 = await postbox.createPost(testPost);
+    await conn.confirmTransaction(tx1);
+
+    const posts = await postbox.fetchPosts();
+    assert.equal(posts.length, 1);
+  });
+
   it('Replies to a post', async () => {
     const owner = new anchor.Wallet(anchor.web3.Keypair.generate());
     const replier = new anchor.Wallet(anchor.web3.Keypair.generate());
     await conn.confirmTransaction(await conn.requestAirdrop(owner.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
     await conn.confirmTransaction(await conn.requestAirdrop(replier.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
 
-    const postbox = new Postbox(conn, owner, owner.publicKey);
+    const postbox = new Postbox(conn, owner, {key: owner.publicKey});
     const tx0 = await postbox.initialize();
     await conn.confirmTransaction(tx0);
 

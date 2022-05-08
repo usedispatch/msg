@@ -7,27 +7,49 @@ const PROTOCOL_SEED: & str = "dispatch";
 const POSTBOX_SEED: & str = "postbox";
 const POST_SEED: & str = "post";
 const MODERATOR_SEED: & str = "moderator";
+const OWNER_SEED: & str = "owners";
 
 const POSTBOX_INIT_SETTINGS: usize = 3;
 #[constant]
 const POSTBOX_GROW_CHILDREN_BY: u32 = 1;
 
-// initialize postbox
-// create post
-// delete by owner
-// delete by moderator
+// Features to support:
+// --------------------
+// initialize postbox (in progress)
+// create post (done)
+// delete by poster (done)
+// delete by moderator (done)
 // issue moderator token
 // vote
+
+// TODO(mfasman): charge a fee
+// TODO(mfasman): should we put reply data on chain?
 
 #[program]
 pub mod postbox {
     use super::*;
 
-    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
+    pub fn initialize(ctx: Context<Initialize>, subject: String, owners: Vec<Pubkey>) -> Result<()> {
+        if 0 == owners.len() || !owners.contains(&ctx.accounts.signer.key()) {
+            return Err(Error::from(ProgramError::InvalidArgument).with_source(source!()));
+        }
+        if 0 == subject.len() && ctx.accounts.subject_account.key() != ctx.accounts.signer.key() {
+            return Err(Error::from(ProgramError::InvalidArgument).with_values(("Subject string must have a value", subject)));
+        }
+
+        let owner_settings_account = &mut ctx.accounts.owner_settings;
+        owner_settings_account.owners = owners;
+
         let postbox_account = &mut ctx.accounts.postbox;
         postbox_account.max_child_id = 0;
         postbox_account.moderator_mint = ctx.accounts.moderator_mint.key();
-        postbox_account.settings_accounts = Vec::with_capacity(POSTBOX_INIT_SETTINGS);
+        postbox_account.settings_accounts = vec!(
+            SettingsAddress {
+                settings_type: SettingsAccountType::OwnerInfo,
+                address: owner_settings_account.key(),
+            },
+        );
+
         Ok(())
     }
 
@@ -67,27 +89,34 @@ pub mod postbox {
 }
 
 #[derive(Accounts)]
+#[instruction(subject: String, owners: Vec<Pubkey>)]
 pub struct Initialize<'info> {
     #[account(init,
-        payer = owner,
-        space = 8 + 4 + 32 + 4 + (2 + 32) * POSTBOX_INIT_SETTINGS,
-        seeds = [PROTOCOL_SEED.as_bytes(), POSTBOX_SEED.as_bytes(), owner.key().as_ref()],
+        payer = signer,
+        space = 8 + 4 + 32 + 4 + (1 + 32) * POSTBOX_INIT_SETTINGS,
+        seeds = [PROTOCOL_SEED.as_bytes(), POSTBOX_SEED.as_bytes(), subject_account.key().as_ref(), subject.as_bytes()],
         bump,
     )]
     pub postbox: Box<Account<'info, Postbox>>,
     #[account(init,
-        payer = owner,
-        seeds = [PROTOCOL_SEED.as_bytes(), MODERATOR_SEED.as_bytes(), owner.key().as_ref()],
+        payer = signer,
+        seeds = [PROTOCOL_SEED.as_bytes(), MODERATOR_SEED.as_bytes(), postbox.key().as_ref()],
         bump,
         mint::decimals = 0,
         mint::authority = postbox,
     )]
     pub moderator_mint: Box<Account<'info, token::Mint>>,
-    // For a user's message board, the owner has to sign and will become the authority
-    // For a single NFT, TODO(viksit): fill in
-    // For a collection, TODO(viksit): fill in
+    #[account(init,
+        payer = signer,
+        space = 8 + 4 + 32 * owners.len(),
+        seeds = [PROTOCOL_SEED.as_bytes(), OWNER_SEED.as_bytes(), postbox.key().as_ref()],
+        bump,
+    )]
+    pub owner_settings: Box<Account<'info, OwnerSettingsAccount>>,
+    /// CHECK: we use this account's address only for generating the PDA
+    pub subject_account: UncheckedAccount<'info>,
     #[account(mut)]
-    pub owner: Signer<'info>,
+    pub signer: Signer<'info>,
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, token::Token>,
     pub rent: Sysvar<'info, Rent>,
@@ -158,8 +187,17 @@ pub enum SettingsAccountType {
     Eq
 )]
 pub struct SettingsAddress {
-    settings_type: SettingsAccountType,
-    address: Pubkey,
+    pub settings_type: SettingsAccountType,
+    pub address: Pubkey,
+}
+
+pub fn get_settings_address(settings: &Vec<SettingsAddress>, settings_type: SettingsAccountType) -> Option<Pubkey> {
+    for setting in settings {
+        if settings_type == setting.settings_type {
+            return Some(setting.address);
+        }
+    }
+    return None;
 }
 
 #[account]
@@ -178,6 +216,12 @@ pub struct Post {
     up_votes: u16,
     down_votes: u16,
     extra: Vec<u8>,
+}
+
+#[account]
+#[derive(Default)]
+pub struct OwnerSettingsAccount {
+    owners: Vec<Pubkey>,
 }
 
 #[event]
