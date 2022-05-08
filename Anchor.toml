@@ -1,14 +1,14 @@
 [programs.localnet]
 messaging = "BHJ4tRcogS88tUhYotPfYWDjR4q7MGdizdiguY3N54rb"
-postbox = "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS"
+postbox = "Fs5wSa7GYtTqivXGqHyx673v5oPuD5Cb7ij9utsFKdLb"
 
 [programs.devnet]
 messaging = "BHJ4tRcogS88tUhYotPfYWDjR4q7MGdizdiguY3N54rb"
-postbox = "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS"
+postbox = "Fs5wSa7GYtTqivXGqHyx673v5oPuD5Cb7ij9utsFKdLb"
 
 [programs.mainnet]
 messaging = "BHJ4tRcogS88tUhYotPfYWDjR4q7MGdizdiguY3N54rb"
-postbox = "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS"
+postbox = "Fs5wSa7GYtTqivXGqHyx673v5oPuD5Cb7ij9utsFKdLb"
 
 [registry]
 url = "https://anchor.projectserum.com"

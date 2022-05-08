@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::{token};
 
-declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
+declare_id!("Fs5wSa7GYtTqivXGqHyx673v5oPuD5Cb7ij9utsFKdLb");
 
 const PROTOCOL_SEED: & str = "dispatch";
 const POSTBOX_SEED: & str = "postbox";
