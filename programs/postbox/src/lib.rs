@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::{token};
+use anchor_spl::{token, associated_token};
 
 declare_id!("Fs5wSa7GYtTqivXGqHyx673v5oPuD5Cb7ij9utsFKdLb");
 
@@ -15,11 +15,11 @@ const POSTBOX_GROW_CHILDREN_BY: u32 = 1;
 
 // Features to support:
 // --------------------
-// initialize postbox (in progress)
+// initialize postbox (done)
 // create post (done)
 // delete by poster (done)
 // delete by moderator (done)
-// issue moderator token
+// issue moderator token (done)
 // vote
 
 // TODO(mfasman): charge a fee
@@ -84,6 +84,25 @@ pub mod postbox {
         if 0 == ctx.accounts.moderator_token_ata.amount {
             return Err(Error::from(ProgramError::InsufficientFunds).with_source(source!()));
         }
+        Ok(())
+    }
+
+    pub fn designate_moderator(ctx: Context<DesignateModerator>) -> Result<()> {
+        let postbox_address = ctx.accounts.postbox.key();
+        let signer_seeds: &[&[&[u8]]] = &[&[
+            PROTOCOL_SEED.as_bytes(),
+            MODERATOR_SEED.as_bytes(),
+            postbox_address.as_ref(),
+            &[*ctx.bumps.get("moderator_mint").unwrap()],
+        ]];
+
+        let mint_ctx = CpiContext::new_with_signer(ctx.accounts.token_program.to_account_info(), token::MintTo {
+            mint: ctx.accounts.moderator_mint.to_account_info(),
+            authority: ctx.accounts.postbox.to_account_info(),
+            to: ctx.accounts.new_moderator.to_account_info(),
+        }, signer_seeds);
+        token::mint_to(mint_ctx, 1)?;
+
         Ok(())
     }
 }
@@ -152,7 +171,7 @@ pub struct DeleteOwnPost<'info> {
 pub struct DeletePostByModerator<'info> {
     #[account(mut, close=poster, has_one=poster,
         seeds=[PROTOCOL_SEED.as_bytes(), POST_SEED.as_bytes(), postbox.key().as_ref(), &post_id.to_le_bytes()],
-        bump
+        bump,
     )]
     pub post: Box<Account<'info, Post>>,
     pub postbox: Box<Account<'info, Postbox>>,
@@ -162,6 +181,34 @@ pub struct DeletePostByModerator<'info> {
     pub moderator: Signer<'info>,
     #[account(associated_token::mint=postbox.moderator_mint, associated_token::authority=moderator)]
     pub moderator_token_ata: Account<'info, token::TokenAccount>,
+}
+
+#[derive(Accounts)]
+pub struct DesignateModerator<'info> {
+    #[account(has_one = moderator_mint)]
+    pub postbox: Box<Account<'info, Postbox>>,
+    #[account(
+        seeds = [PROTOCOL_SEED.as_bytes(), MODERATOR_SEED.as_bytes(), postbox.key().as_ref()],
+        bump,
+    )]
+    pub moderator_mint: Box<Account<'info, token::Mint>>,
+    #[account(address = get_settings_address(&postbox.settings_accounts, SettingsAccountType::OwnerInfo).unwrap())]
+    pub owner_settings: Box<Account<'info, OwnerSettingsAccount>>,
+    #[account(mut)]
+    pub owner: Signer<'info>,
+    /// CHECK: we do not access the account data other than for address for ATA
+    pub new_moderator: UncheckedAccount<'info>,
+    #[account(init,
+        payer = owner,
+        associated_token::mint = moderator_mint,
+        associated_token::authority = new_moderator,
+    )]
+    pub moderator_ata: Box<Account<'info, token::TokenAccount>>,
+
+    pub system_program: Program<'info, System>,
+    pub token_program: Program<'info, token::Token>,
+    pub associated_token_program: Program<'info, associated_token::AssociatedToken>,
+    pub rent: Sysvar<'info, Rent>,
 }
 
 #[derive(
