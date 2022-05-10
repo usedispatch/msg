@@ -83,6 +83,7 @@ export class Postbox extends DispatchConnection {
       .accounts({
         signer: this.wallet.publicKey!,
         subjectAccount: this.subject.key,
+        treasury: this.addresses.treasuryAddress,
       })
       .transaction();
     return this.sendTransaction(ix);
@@ -101,6 +102,7 @@ export class Postbox extends DispatchConnection {
       .accounts({
         postbox: await this.getAddress(),
         poster: this.wallet.publicKey!,
+        treasury: this.addresses.treasuryAddress,
       })
       .transaction();
     return this.sendTransaction(ix);

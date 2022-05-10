@@ -1,6 +1,11 @@
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::system_instruction;
 use anchor_spl::{token, associated_token};
+mod treasury;
 
+#[cfg(feature = "mainnet")]
+declare_id!("Fs5wSa7GYtTqivXGqHyx673v5oPuD5Cb7ij9utsFKdLb");
+#[cfg(not(feature = "mainnet"))]
 declare_id!("Fs5wSa7GYtTqivXGqHyx673v5oPuD5Cb7ij9utsFKdLb");
 
 const PROTOCOL_SEED: & str = "dispatch";
@@ -13,6 +18,15 @@ const POSTBOX_INIT_SETTINGS: usize = 3;
 #[constant]
 const POSTBOX_GROW_CHILDREN_BY: u32 = 1;
 
+#[constant]
+const FEE_NEW_POSTBOX: u64 = 1_000_000_000;
+#[constant]
+const FEE_POST: u64 = 50_000;
+#[constant]
+const FEE_VOTE: u64 = 50_000;
+
+const MAX_VOTE: u16 = 60_000;
+
 // Features to support:
 // --------------------
 // initialize postbox (done)
@@ -20,9 +34,8 @@ const POSTBOX_GROW_CHILDREN_BY: u32 = 1;
 // delete by poster (done)
 // delete by moderator (done)
 // issue moderator token (done)
-// vote
+// vote (done)
 
-// TODO(mfasman): charge a fee
 // TODO(mfasman): should we put reply data on chain?
 
 #[program]
@@ -50,6 +63,7 @@ pub mod postbox {
             },
         );
 
+        system_instruction::transfer(&ctx.accounts.signer.key(), &ctx.accounts.treasury.key(), FEE_NEW_POSTBOX);
         Ok(())
     }
 
@@ -73,6 +87,7 @@ pub mod postbox {
             data: post_account.data.clone(),
         });
 
+        system_instruction::transfer(&ctx.accounts.poster.key(), &ctx.accounts.treasury.key(), FEE_POST);
         Ok(())
     }
 
@@ -84,6 +99,15 @@ pub mod postbox {
         if 0 == ctx.accounts.moderator_token_ata.amount {
             return Err(Error::from(ProgramError::InsufficientFunds).with_source(source!()));
         }
+        Ok(())
+    }
+
+    pub fn vote(ctx: Context<Vote>, _post_id: u32, up_vote: bool) -> Result<()> {
+        let post_account = &mut ctx.accounts.post;
+        let vote_count = if up_vote {&mut post_account.up_votes} else {&mut post_account.down_votes};
+        *vote_count += if MAX_VOTE == *vote_count {0} else {1};
+
+        system_instruction::transfer(&ctx.accounts.voter.key(), &ctx.accounts.treasury.key(), FEE_VOTE);
         Ok(())
     }
 
@@ -136,6 +160,9 @@ pub struct Initialize<'info> {
     pub subject_account: UncheckedAccount<'info>,
     #[account(mut)]
     pub signer: Signer<'info>,
+    /// CHECK: we do not access the data in the fee_receiver other than to transfer lamports to it
+    #[account(mut, address = treasury::TREASURY_ADDRESS)]
+    pub treasury: UncheckedAccount<'info>,
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, token::Token>,
     pub rent: Sysvar<'info, Rent>,
@@ -155,6 +182,9 @@ pub struct CreatePost<'info> {
     pub postbox: Box<Account<'info, Postbox>>,
     #[account(mut)]
     pub poster: Signer<'info>,
+    /// CHECK: we do not access the data in the fee_receiver other than to transfer lamports to it
+    #[account(mut, address = treasury::TREASURY_ADDRESS)]
+    pub treasury: UncheckedAccount<'info>,
     pub system_program: Program<'info, System>,
 }
 
@@ -181,6 +211,24 @@ pub struct DeletePostByModerator<'info> {
     pub moderator: Signer<'info>,
     #[account(associated_token::mint=postbox.moderator_mint, associated_token::authority=moderator)]
     pub moderator_token_ata: Account<'info, token::TokenAccount>,
+}
+
+#[derive(Accounts)]
+#[instruction(post_id: u32)]
+pub struct Vote<'info> {
+    #[account(
+        seeds = [PROTOCOL_SEED.as_bytes(), POST_SEED.as_bytes(), postbox.key().as_ref(), &post_id.to_le_bytes()],
+        bump,
+    )]
+    pub post: Box<Account<'info, Post>>,
+    #[account(mut)]
+    pub postbox: Box<Account<'info, Postbox>>,
+    #[account(mut)]
+    pub voter: Signer<'info>,
+    /// CHECK: we do not access the data in the fee_receiver other than to transfer lamports to it
+    #[account(mut, address = treasury::TREASURY_ADDRESS)]
+    pub treasury: UncheckedAccount<'info>,
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
