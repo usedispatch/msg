@@ -6,9 +6,6 @@ import { DispatchConnection, DispatchConnectionOpts } from './connection';
 import { compress, decompress } from './compress';
 
 
-// TODO(mfasman): Should we have PostNode be a base class and both Postbox
-// and Post extend it? This might play nicer with a tree structure.
-
 export type PostboxOpts = DispatchConnectionOpts;
 
 export type PostboxSubject = {
@@ -205,7 +202,6 @@ export class Postbox extends DispatchConnection {
     return this._address;
   }
 
-  // TODO(mfasman): make the parent a PostNode that is passed in
   async getPostAddress(postId: number): Promise<web3.PublicKey> {
     const postboxAddress = await this.getAddress();
     const msgCountBuf = Buffer.allocUnsafe(4);

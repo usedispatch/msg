@@ -36,8 +36,6 @@ const MAX_VOTE: u16 = 60_000;
 // issue moderator token (done)
 // vote (done)
 
-// TODO(mfasman): should we put reply data on chain?
-
 #[program]
 pub mod postbox {
     use super::*;
@@ -89,6 +87,7 @@ pub mod postbox {
             post_pubkey: post_account.key(),
             post_id: post_id,
             data: post_account.data.clone(),
+            reply_to: post_account.reply_to,
         });
 
         system_instruction::transfer(&ctx.accounts.poster.key(), &ctx.accounts.treasury.key(), FEE_POST);
@@ -365,6 +364,7 @@ pub struct PostEvent {
     pub post_pubkey: Pubkey,
     pub post_id: u32,
     pub data: Vec<u8>,
+    pub reply_to: Option<Pubkey>,
 }
 
 #[event]
