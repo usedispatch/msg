@@ -40,12 +40,12 @@ const MAX_VOTE: u16 = 60_000;
 pub mod postbox {
     use super::*;
 
-    pub fn initialize(ctx: Context<Initialize>, subject: String, owners: Vec<Pubkey>) -> Result<()> {
+    pub fn initialize(ctx: Context<Initialize>, target: String, owners: Vec<Pubkey>) -> Result<()> {
         if 0 == owners.len() || !owners.contains(&ctx.accounts.signer.key()) {
             return Err(Error::from(ProgramError::InvalidArgument).with_source(source!()));
         }
-        if 0 == subject.len() && ctx.accounts.subject_account.key() != ctx.accounts.signer.key() {
-            return Err(Error::from(ProgramError::InvalidArgument).with_values(("Subject string must have a value", subject)));
+        if 0 == target.len() && ctx.accounts.target_account.key() != ctx.accounts.signer.key() {
+            return Err(Error::from(ProgramError::InvalidArgument).with_values(("Target string must have a value", target)));
         }
 
         let owner_settings_account = &mut ctx.accounts.owner_settings;
@@ -127,13 +127,13 @@ pub mod postbox {
         Ok(())
     }
 
-    pub fn designate_moderator(ctx: Context<DesignateModerator>, subject: String) -> Result<()> {
-        let subject_account_address = ctx.accounts.subject_account.key();
+    pub fn designate_moderator(ctx: Context<DesignateModerator>, target: String) -> Result<()> {
+        let target_account_address = ctx.accounts.target_account.key();
         let signer_seeds: &[&[&[u8]]] = &[&[
             PROTOCOL_SEED.as_bytes(),
             POSTBOX_SEED.as_bytes(),
-            subject_account_address.as_ref(),
-            subject.as_bytes(),
+            target_account_address.as_ref(),
+            target.as_bytes(),
             &[*ctx.bumps.get("postbox").unwrap()],
         ]];
 
@@ -149,12 +149,12 @@ pub mod postbox {
 }
 
 #[derive(Accounts)]
-#[instruction(subject: String, owners: Vec<Pubkey>)]
+#[instruction(target: String, owners: Vec<Pubkey>)]
 pub struct Initialize<'info> {
     #[account(init,
         payer = signer,
         space = 8 + 4 + 32 + 4 + (1 + 32) * POSTBOX_INIT_SETTINGS,
-        seeds = [PROTOCOL_SEED.as_bytes(), POSTBOX_SEED.as_bytes(), subject_account.key().as_ref(), subject.as_bytes()],
+        seeds = [PROTOCOL_SEED.as_bytes(), POSTBOX_SEED.as_bytes(), target_account.key().as_ref(), target.as_bytes()],
         bump,
     )]
     pub postbox: Box<Account<'info, Postbox>>,
@@ -174,7 +174,7 @@ pub struct Initialize<'info> {
     )]
     pub owner_settings: Box<Account<'info, OwnerSettingsAccount>>,
     /// CHECK: we use this account's address only for generating the PDA
-    pub subject_account: UncheckedAccount<'info>,
+    pub target_account: UncheckedAccount<'info>,
     #[account(mut)]
     pub signer: Signer<'info>,
     /// CHECK: we do not access the data in the fee_receiver other than to transfer lamports to it
@@ -260,16 +260,16 @@ pub struct Vote<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(subject: String)]
+#[instruction(target: String)]
 pub struct DesignateModerator<'info> {
     #[account(
-        seeds = [PROTOCOL_SEED.as_bytes(), POSTBOX_SEED.as_bytes(), subject_account.key().as_ref(), subject.as_bytes()],
+        seeds = [PROTOCOL_SEED.as_bytes(), POSTBOX_SEED.as_bytes(), target_account.key().as_ref(), target.as_bytes()],
         bump,
         has_one = moderator_mint,
     )]
     pub postbox: Box<Account<'info, Postbox>>,
     /// CHECK: we use this account's address only for generating the PDA
-    pub subject_account: UncheckedAccount<'info>,
+    pub target_account: UncheckedAccount<'info>,
     #[account(
         mut,
         seeds = [PROTOCOL_SEED.as_bytes(), MODERATOR_SEED.as_bytes(), postbox.key().as_ref()],

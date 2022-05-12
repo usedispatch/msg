@@ -39,12 +39,12 @@ describe('postbox', () => {
   });
 
   it('Creates a third party postbox', async () => {
-    const subject = anchor.web3.Keypair.generate().publicKey;
+    const target = anchor.web3.Keypair.generate().publicKey;
     const owner1 = new anchor.Wallet(anchor.web3.Keypair.generate());
     const owner2 = new anchor.Wallet(anchor.web3.Keypair.generate());
     await conn.confirmTransaction(await conn.requestAirdrop(owner1.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
 
-    const postbox = new Postbox(conn, owner1, {key: subject, str: "Public"});
+    const postbox = new Postbox(conn, owner1, {key: target, str: "Public"});
     const tx0 = await postbox.initialize([owner1.publicKey, owner2.publicKey]);
     await conn.confirmTransaction(tx0);
 

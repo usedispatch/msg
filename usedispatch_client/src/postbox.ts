@@ -8,7 +8,7 @@ import { compress, decompress } from './compress';
 
 export type PostboxOpts = DispatchConnectionOpts;
 
-export type PostboxSubject = {
+export type PostboxTarget = {
   key: web3.PublicKey;
   str?: string;
 };
@@ -67,7 +67,7 @@ export class Postbox extends DispatchConnection {
   constructor(
     public conn: web3.Connection,
     public wallet: WalletInterface,
-    public subject: PostboxSubject,
+    public target: PostboxTarget,
     opts?: PostboxOpts,
     ) {
     super(conn, wallet, opts);
@@ -76,10 +76,10 @@ export class Postbox extends DispatchConnection {
   // Init functions
   async initialize(owners?: web3.PublicKey[]): Promise<web3.TransactionSignature> {
     const ix = await this.postboxProgram.methods
-      .initialize(this.subject.str ?? "", owners ?? [this.wallet.publicKey!])
+      .initialize(this.target.str ?? "", owners ?? [this.wallet.publicKey!])
       .accounts({
         signer: this.wallet.publicKey!,
-        subjectAccount: this.subject.key,
+        targetAccount: this.target.key,
         treasury: this.addresses.treasuryAddress,
       })
       .transaction();
@@ -178,10 +178,10 @@ export class Postbox extends DispatchConnection {
     const ownerSettings = await this.getSettingsAddress(info, "ownerInfo");
     const ata = await splToken.getAssociatedTokenAddress(info.moderatorMint, newModerator);
     const ix = await this.postboxProgram.methods
-      .designateModerator(this.subject.str ?? "")
+      .designateModerator(this.target.str ?? "")
       .accounts({
         postbox: await this.getAddress(),
-        subjectAccount: this.subject.key,
+        targetAccount: this.target.key,
         newModerator: newModerator,
         ownerSettings,
         moderatorAta: ata,
@@ -194,7 +194,7 @@ export class Postbox extends DispatchConnection {
   async getAddress(): Promise<web3.PublicKey> {
     if (!this._address) {
       const [postAddress] = await web3.PublicKey.findProgramAddress(
-        [seeds.protocolSeed, seeds.postboxSeed, this.subject.key.toBuffer(), Buffer.from(this.subject.str ?? "")],
+        [seeds.protocolSeed, seeds.postboxSeed, this.target.key.toBuffer(), Buffer.from(this.target.str ?? "")],
         this.postboxProgram.programId,
       );
       this._address = postAddress;
