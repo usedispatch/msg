@@ -4,7 +4,6 @@ import { seeds } from './constants';
 import { WalletInterface } from './wallets';
 import { DispatchConnection, DispatchConnectionOpts } from './connection';
 import { compress, decompress } from './compress';
-import * as idlTypes from '../lib/target/types/postbox';
 
 
 // TODO(mfasman): Should we have PostNode be a base class and both Postbox
@@ -23,7 +22,6 @@ export type InputPostData = {
   subj?: string;
   body: string;
   meta?: object;
-  replyTo?: web3.PublicKey;
 };
 
 export type PostData = InputPostData & {
@@ -34,7 +32,6 @@ type ChainPostdata = {
   s?: string;
   b?: string;
   m?: object;
-  r?: string;
   t?: EpochSeconds;
 };
 
@@ -43,11 +40,12 @@ export type PostNode = Post | Postbox;
 export type Post = {
   parent: PostNode;
   address: web3.PublicKey;
+  postId: number;
   poster: web3.PublicKey;
   data: PostData;
   upVotes: number;
   downVotes: number;
-  postId: number;
+  replyTo?: web3.PublicKey;
 };
 
 type ChainPost = {
@@ -55,6 +53,7 @@ type ChainPost = {
   data: Buffer;
   upVotes: number;
   downVotes: number;
+  replyTo: web3.PublicKey | null;
 };
 
 type NullableChainPost = null | ChainPost;
@@ -91,7 +90,7 @@ export class Postbox extends DispatchConnection {
   }
 
   // Basic commands
-  async createPost(input: InputPostData): Promise<web3.TransactionSignature> {
+  async createPost(input: InputPostData, replyTo?: Post): Promise<web3.TransactionSignature> {
     // TODO(mfasman): make this be a better allocation algorithm
     const growBy = 1; // TODO(mfasman): pull from the IDL
     const maxId = (await this.getChainPostboxInfo()).maxChildId;
@@ -104,9 +103,14 @@ export class Postbox extends DispatchConnection {
         postbox: await this.getAddress(),
         poster: this.wallet.publicKey!,
         treasury: this.addresses.treasuryAddress,
+        replyTo: replyTo?.address ?? web3.PublicKey.default,
       })
       .transaction();
     return this.sendTransaction(ix);
+  }
+
+  async replyToPost(input: InputPostData, replyTo: Post): Promise<web3.TransactionSignature> {
+    return this.createPost(input, replyTo);
   }
 
   async deletePost(post: Post): Promise<web3.TransactionSignature> {
@@ -133,12 +137,6 @@ export class Postbox extends DispatchConnection {
       })
       .transaction();
     return this.sendTransaction(ix);
-  }
-
-  async replyToPost(post: Post, input: InputPostData): Promise<web3.TransactionSignature> {
-    const postData = input as PostData;
-    postData.replyTo = post.address;
-    return this.createPost(postData);
   }
 
   async vote(post: Post, up: boolean): Promise<web3.TransactionSignature> {
@@ -170,11 +168,11 @@ export class Postbox extends DispatchConnection {
   }
 
   async fetchPosts(): Promise<Post[]> {
-    return (await this.fetchAllPosts()).filter((p) => !p.data.replyTo);
+    return (await this.fetchAllPosts()).filter((p) => !p.replyTo);
   }
 
   async fetchReplies(post: Post): Promise<Post[]> {
-    return (await this.fetchAllPosts()).filter((p) => p.data.replyTo && p.data.replyTo.equals(post.address));
+    return (await this.fetchAllPosts()).filter((p) => p.replyTo && p.replyTo.equals(post.address));
   }
 
   // Admin functions
@@ -240,11 +238,12 @@ export class Postbox extends DispatchConnection {
     return {
       parent,
       address,
+      postId,
       poster: chainPost.poster,
       data,
       upVotes: chainPost.upVotes,
       downVotes: chainPost.downVotes,
-      postId,
+      replyTo: chainPost.replyTo || undefined,
     };
   }
 
@@ -263,7 +262,6 @@ export class Postbox extends DispatchConnection {
       s: postData.subj,
       b: postData.body,
       m: postData.meta,
-      r: postData.replyTo?.toBase58(),
       t: Math.floor(new Date().getTime() / 1000),
     };
     const dataString = JSON.stringify(pd);
@@ -277,7 +275,6 @@ export class Postbox extends DispatchConnection {
       subj: postData.s,
       body: postData.b ?? '',
       ts: new Date((postData.t?? 0) * 1000),
-      replyTo: postData.r ? new web3.PublicKey(postData.r) : undefined,
       meta: postData.m,
     };
   }

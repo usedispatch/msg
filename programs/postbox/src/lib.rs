@@ -80,6 +80,9 @@ pub mod postbox {
         post_account.poster = ctx.accounts.poster.key();
         post_account.data = data;
 
+        let reply_to = ctx.accounts.reply_to.key();
+        post_account.reply_to = if reply_to == Pubkey::default() {None} else {Some(reply_to)};
+
         emit!(PostEvent {
             poster_pubkey: ctx.accounts.poster.key(),
             postbox_pubkey: ctx.accounts.postbox.key(),
@@ -188,7 +191,7 @@ pub struct Initialize<'info> {
 pub struct CreatePost<'info> {
     #[account(init,
         payer = poster,
-        space = 8 + 32 + 4 + data.len() + 4 + 4,
+        space = 8 + 32 + 4 + data.len() + 4 + 4 + 1 + (if reply_to.key() != Pubkey::default() {32} else {0}),
         seeds = [PROTOCOL_SEED.as_bytes(), POST_SEED.as_bytes(), postbox.key().as_ref(), &post_id.to_le_bytes()],
         bump,
     )]
@@ -197,9 +200,11 @@ pub struct CreatePost<'info> {
     pub postbox: Box<Account<'info, Postbox>>,
     #[account(mut)]
     pub poster: Signer<'info>,
-    /// CHECK: we do not access the data in the fee_receiver other than to transfer lamports to it
+    /// CHECK: we do not access the data in the treasury other than to transfer lamports to it
     #[account(mut, address = treasury::TREASURY_ADDRESS)]
     pub treasury: UncheckedAccount<'info>,
+    /// CHECK: we do not access the data in reply to (so it might not be a post!) TODO(mfasman): fix this
+    pub reply_to: UncheckedAccount<'info>,
     pub system_program: Program<'info, System>,
 }
 
@@ -343,6 +348,7 @@ pub struct Post {
     data: Vec<u8>,
     up_votes: u16,
     down_votes: u16,
+    reply_to: Option<Pubkey>,
     extra: Vec<u8>,
 }
 

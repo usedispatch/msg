@@ -74,14 +74,14 @@ describe('postbox', () => {
 
     const posts = await postbox.fetchPosts();
     const replyPost = {body: "This is a reply post"};
-    const tx2 = await postbox.replyToPost(posts[0], replyPost);
+    const tx2 = await postbox.replyToPost(replyPost, posts[0]);
     await conn.confirmTransaction(tx2);
 
     const topLevelPosts = await postbox.fetchPosts();
     assert.equal(topLevelPosts.length, 1);
     const replies = await postbox.fetchReplies(topLevelPosts[0]);
     assert.equal(replies.length, 1);
-    assert.ok(replies[0].data.replyTo.equals(topLevelPosts[0].address))
+    assert.ok(replies[0].replyTo.equals(topLevelPosts[0].address))
   });
 
   it('Designates a moderator who deletes', async () => {
