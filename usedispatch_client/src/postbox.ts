@@ -90,7 +90,7 @@ export class Postbox extends DispatchConnection {
     return this.sendTransaction(ix);
   }
 
-  // Basic functions
+  // Basic commands
   async createPost(input: InputPostData): Promise<web3.TransactionSignature> {
     // TODO(mfasman): make this be a better allocation algorithm
     const growBy = 1; // TODO(mfasman): pull from the IDL
@@ -141,6 +141,19 @@ export class Postbox extends DispatchConnection {
     return this.createPost(postData);
   }
 
+  async vote(post: Post, up: boolean): Promise<web3.TransactionSignature> {
+    const ix = await this.postboxProgram.methods
+      .vote(post.postId, up)
+      .accounts({
+        postbox: await this.getAddress(),
+        post: post.address,
+        treasury: this.addresses.treasuryAddress,
+      })
+      .transaction();
+    return this.sendTransaction(ix);
+  }
+
+  // Fetching functions
   async innerFetchPosts(parent: PostNode, maxChildId: number): Promise<Post[]> {
     if (maxChildId === 0) return [];
     const addresses = await this.getAddresses(maxChildId);

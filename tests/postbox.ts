@@ -115,5 +115,28 @@ describe('postbox', () => {
     assert.equal(posts.length, 0);
   });
 
-  // TODO(mfasman): test voting support
+  it('Allows voting', async () => {
+    const owner = new anchor.Wallet(anchor.web3.Keypair.generate());
+    const voter = new anchor.Wallet(anchor.web3.Keypair.generate());
+    await conn.confirmTransaction(await conn.requestAirdrop(owner.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
+    await conn.confirmTransaction(await conn.requestAirdrop(voter.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
+
+    const postboxAsOwner = new Postbox(conn, owner, {key: owner.publicKey});
+    const postboxAsVoter = new Postbox(conn, voter, {key: owner.publicKey});
+    const tx0 = await postboxAsOwner.initialize();
+    await conn.confirmTransaction(tx0);
+
+    const testPost = {subj: "Test", body: "This is a test post"};
+    const tx1 = await postboxAsOwner.createPost(testPost);
+    await conn.confirmTransaction(tx1);
+
+    const topLevelPosts = await postboxAsOwner.fetchPosts();
+    assert.equal(topLevelPosts.length, 1);
+
+    const tx2 = await postboxAsVoter.vote(topLevelPosts[0], true);
+    await conn.confirmTransaction(tx2);
+
+    const posts = await postboxAsOwner.fetchPosts();
+    assert.equal(posts[0].upVotes, 1);
+  });
 });

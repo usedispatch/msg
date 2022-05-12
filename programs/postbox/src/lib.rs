@@ -240,6 +240,7 @@ pub struct DeletePostByModerator<'info> {
 #[instruction(post_id: u32)]
 pub struct Vote<'info> {
     #[account(
+        mut,
         seeds = [PROTOCOL_SEED.as_bytes(), POST_SEED.as_bytes(), postbox.key().as_ref(), &post_id.to_le_bytes()],
         bump,
     )]
