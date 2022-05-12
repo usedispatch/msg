@@ -48,7 +48,12 @@ describe('postbox', () => {
     const tx0 = await postbox.initialize([owner1.publicKey, owner2.publicKey]);
     await conn.confirmTransaction(tx0);
 
-    // TODO: check that the owner account is set correctly
+    const info = await postbox.getChainPostboxInfo();
+    const ownerAddress = await postbox.getSettingsAddress(info, "ownerInfo");
+    const ownersAccount = await postbox.postboxProgram.account.ownerSettingsAccount.fetch(ownerAddress);
+    assert.equal(ownersAccount.owners.length, 2);
+    assert.ok(ownersAccount.owners[0].equals(owner1.publicKey));
+    assert.ok(ownersAccount.owners[1].equals(owner2.publicKey));
 
     const testPost = {subj: "Test", body: "This is a test post"};
     const tx1 = await postbox.createPost(testPost);
