@@ -84,5 +84,36 @@ describe('postbox', () => {
     assert.ok(replies[0].data.replyTo.equals(topLevelPosts[0].address))
   });
 
-  // TODO(mfasman): add voting support and API, add moderator support, fix up postbox ownership
+  it('Designates a moderator who deletes', async () => {
+    const owner = new anchor.Wallet(anchor.web3.Keypair.generate());
+    const poster = new anchor.Wallet(anchor.web3.Keypair.generate());
+    const moderator = new anchor.Wallet(anchor.web3.Keypair.generate());
+    await conn.confirmTransaction(await conn.requestAirdrop(owner.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
+    await conn.confirmTransaction(await conn.requestAirdrop(poster.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
+    await conn.confirmTransaction(await conn.requestAirdrop(moderator.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
+
+    const postboxAsOwner = new Postbox(conn, owner, {key: owner.publicKey});
+    const postboxAsPoster = new Postbox(conn, poster, {key: owner.publicKey});
+    const postboxAsModerator = new Postbox(conn, moderator, {key: owner.publicKey});
+    const tx0 = await postboxAsOwner.initialize();
+    await conn.confirmTransaction(tx0);
+
+    const testPost = {subj: "Test", body: "This is a test post"};
+    const tx1 = await postboxAsPoster.createPost(testPost);
+    await conn.confirmTransaction(tx1);
+
+    const topLevelPosts = await postboxAsOwner.fetchPosts();
+    assert.equal(topLevelPosts.length, 1);
+
+    const tx2 = await postboxAsOwner.addModerator(moderator.publicKey);
+    await conn.confirmTransaction(tx2);
+
+    const tx3 = await postboxAsModerator.deletePostAsModerator(topLevelPosts[0]);
+    await conn.confirmTransaction(tx3);
+
+    const posts = await postboxAsOwner.fetchPosts();
+    assert.equal(posts.length, 0);
+  });
+
+  // TODO(mfasman): test voting support
 });

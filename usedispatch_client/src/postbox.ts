@@ -4,6 +4,7 @@ import { seeds } from './constants';
 import { WalletInterface } from './wallets';
 import { DispatchConnection, DispatchConnectionOpts } from './connection';
 import { compress, decompress } from './compress';
+import * as idlTypes from '../lib/target/types/postbox';
 
 
 // TODO(mfasman): Should we have PostNode be a base class and both Postbox
@@ -44,15 +45,16 @@ export type Post = {
   address: web3.PublicKey;
   poster: web3.PublicKey;
   data: PostData;
-  up_votes: number;
-  down_votes: number;
+  upVotes: number;
+  downVotes: number;
+  postId: number;
 };
 
 type ChainPost = {
   poster: web3.PublicKey;
   data: Buffer;
-  up_votes: number;
-  down_votes: number;
+  upVotes: number;
+  downVotes: number;
 };
 
 type NullableChainPost = null | ChainPost;
@@ -60,8 +62,7 @@ type NullableChainPost = null | ChainPost;
 type ChainPostboxInfo = {
   maxChildId: number;
   moderatorMint: web3.PublicKey;
-  // ownerInfoAccount: web3.PublicKey;
-  // postRestrictionsAccount: web3.PublicKey;
+  settingsAccounts: any;
 };
 
 export class Postbox extends DispatchConnection {
@@ -110,8 +111,9 @@ export class Postbox extends DispatchConnection {
 
   async deletePost(post: Post): Promise<web3.TransactionSignature> {
     const ix = await this.postboxProgram.methods
-      .deleteOwnPost()
+      .deleteOwnPost(post.postId)
       .accounts({
+        postbox: await this.getAddress(),
         post: post.address,
       })
       .transaction();
@@ -119,10 +121,15 @@ export class Postbox extends DispatchConnection {
   }
 
   async deletePostAsModerator(post: Post): Promise<web3.TransactionSignature> {
+    const moderatorMint = (await this.getChainPostboxInfo()).moderatorMint;
+    const ata = await splToken.getAssociatedTokenAddress(moderatorMint, this.wallet.publicKey!);
     const ix = await this.postboxProgram.methods
-      .deletePostByModerator()
+      .deletePostByModerator(post.postId)
       .accounts({
+        postbox: await this.getAddress(),
         post: post.address,
+        poster: post.poster,
+        moderatorTokenAta: ata,
       })
       .transaction();
     return this.sendTransaction(ix);
@@ -139,7 +146,7 @@ export class Postbox extends DispatchConnection {
     const addresses = await this.getAddresses(maxChildId);
     const chainPosts = await this.postboxProgram.account.post.fetchMultiple(addresses) as NullableChainPost[];
     const convertedPosts = await Promise.all(chainPosts.map((rp, i) => {
-      return this.convertChainPost(rp, addresses[i], parent);
+      return this.convertChainPost(rp, addresses[i], parent, i);
     }));
     return convertedPosts.filter((p): p is Post => p !== null);
   }
@@ -160,23 +167,19 @@ export class Postbox extends DispatchConnection {
   // Admin functions
   async addModerator(newModerator: web3.PublicKey): Promise<web3.TransactionSignature> {
     const info = await this.getChainPostboxInfo();
-    const moderatorMint = info.moderatorMint;
-    const ata = await splToken.getAssociatedTokenAddress(moderatorMint, newModerator);
-    const ataAccountInfo = await this.conn.getAccountInfo(ata);
-    const tx = new web3.Transaction();
-
-    if (ataAccountInfo) {
-      const tokenAccount = await splToken.getAccount(this.conn, ata);
-      if (tokenAccount.amount > 0) {
-        throw new Error(`${newModerator.toBase58()} is already a moderator.`);
-      }
-    } else {
-      tx.add(splToken.createAssociatedTokenAccountInstruction(
-        this.wallet.publicKey!, ata, newModerator, moderatorMint
-      ));
-    }
-    tx.add(splToken.createMintToInstruction(moderatorMint, ata, this.wallet.publicKey!, 1));
-    return this.sendTransaction(tx);
+    const ownerSettings = await this.getSettingsAddress(info, "ownerInfo");
+    const ata = await splToken.getAssociatedTokenAddress(info.moderatorMint, newModerator);
+    const ix = await this.postboxProgram.methods
+      .designateModerator(this.subject.str ?? "")
+      .accounts({
+        postbox: await this.getAddress(),
+        subjectAccount: this.subject.key,
+        newModerator: newModerator,
+        ownerSettings,
+        moderatorAta: ata,
+      })
+      .transaction();
+    return this.sendTransaction(ix);
   }
 
   // Chain functions
@@ -218,7 +221,7 @@ export class Postbox extends DispatchConnection {
     return this.postboxProgram.account.postbox.fetch(await this.getAddress());
   }
 
-  async convertChainPost(chainPost: NullableChainPost, address: web3.PublicKey, parent: PostNode): Promise<Post | null> {
+  async convertChainPost(chainPost: NullableChainPost, address: web3.PublicKey, parent: PostNode, postId: number): Promise<Post | null> {
     if (!chainPost) return null;
     const data = await this.bufferToPostData(chainPost.data);
     return {
@@ -226,12 +229,22 @@ export class Postbox extends DispatchConnection {
       address,
       poster: chainPost.poster,
       data,
-      up_votes: chainPost.up_votes,
-      down_votes: chainPost.down_votes,
+      upVotes: chainPost.upVotes,
+      downVotes: chainPost.downVotes,
+      postId,
     };
   }
 
   // Utility functions
+  async getSettingsAddress(info: ChainPostboxInfo, settingsType: string): Promise<web3.PublicKey | undefined> {
+    for (const setting of info.settingsAccounts as any[]) {
+      if (settingsType in setting.settingsType) {
+        return setting.address;
+      }
+    }
+    return undefined;
+  }
+
   async postDataToBuffer(postData: InputPostData): Promise<Buffer> {
     const pd: ChainPostdata = {
       s: postData.subj,

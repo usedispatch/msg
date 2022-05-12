@@ -83,6 +83,7 @@ pub mod postbox {
         emit!(PostEvent {
             poster_pubkey: ctx.accounts.poster.key(),
             postbox_pubkey: ctx.accounts.postbox.key(),
+            post_pubkey: post_account.key(),
             post_id: post_id,
             data: post_account.data.clone(),
         });
@@ -91,14 +92,27 @@ pub mod postbox {
         Ok(())
     }
 
-    pub fn delete_own_post(_ctx: Context<DeleteOwnPost>) -> Result<()> {
+    pub fn delete_own_post(ctx: Context<DeleteOwnPost>, post_id: u32) -> Result<()> {
+        emit!(DeleteEvent {
+            deleter_pubkey: ctx.accounts.poster.key(),
+            postbox_pubkey: ctx.accounts.postbox.key(),
+            post_pubkey: ctx.accounts.post.key(),
+            post_id: post_id,
+        });
+
         Ok(())
     }
 
-    pub fn delete_post_by_moderator(ctx: Context<DeletePostByModerator>) -> Result<()> {
+    pub fn delete_post_by_moderator(ctx: Context<DeletePostByModerator>, post_id: u32) -> Result<()> {
         if 0 == ctx.accounts.moderator_token_ata.amount {
             return Err(Error::from(ProgramError::InsufficientFunds).with_source(source!()));
         }
+        emit!(DeleteEvent {
+            deleter_pubkey: ctx.accounts.moderator.key(),
+            postbox_pubkey: ctx.accounts.postbox.key(),
+            post_pubkey: ctx.accounts.post.key(),
+            post_id: post_id,
+        });
         Ok(())
     }
 
@@ -111,19 +125,20 @@ pub mod postbox {
         Ok(())
     }
 
-    pub fn designate_moderator(ctx: Context<DesignateModerator>) -> Result<()> {
-        let postbox_address = ctx.accounts.postbox.key();
+    pub fn designate_moderator(ctx: Context<DesignateModerator>, subject: String) -> Result<()> {
+        let subject_account_address = ctx.accounts.subject_account.key();
         let signer_seeds: &[&[&[u8]]] = &[&[
             PROTOCOL_SEED.as_bytes(),
-            MODERATOR_SEED.as_bytes(),
-            postbox_address.as_ref(),
-            &[*ctx.bumps.get("moderator_mint").unwrap()],
+            POSTBOX_SEED.as_bytes(),
+            subject_account_address.as_ref(),
+            subject.as_bytes(),
+            &[*ctx.bumps.get("postbox").unwrap()],
         ]];
 
         let mint_ctx = CpiContext::new_with_signer(ctx.accounts.token_program.to_account_info(), token::MintTo {
             mint: ctx.accounts.moderator_mint.to_account_info(),
             authority: ctx.accounts.postbox.to_account_info(),
-            to: ctx.accounts.new_moderator.to_account_info(),
+            to: ctx.accounts.moderator_ata.to_account_info(),
         }, signer_seeds);
         token::mint_to(mint_ctx, 1)?;
 
@@ -189,9 +204,14 @@ pub struct CreatePost<'info> {
 }
 
 #[derive(Accounts)]
+#[instruction(post_id: u32)]
 pub struct DeleteOwnPost<'info> {
-    #[account(mut, close=poster, has_one=poster)]
+    #[account(mut, close=poster, has_one=poster,
+        seeds=[PROTOCOL_SEED.as_bytes(), POST_SEED.as_bytes(), postbox.key().as_ref(), &post_id.to_le_bytes()],
+        bump,
+    )]
     pub post: Box<Account<'info, Post>>,
+    pub postbox: Box<Account<'info, Postbox>>,
     #[account(mut)]
     pub poster: Signer<'info>,
 }
@@ -209,7 +229,10 @@ pub struct DeletePostByModerator<'info> {
     #[account(mut)]
     pub poster: UncheckedAccount<'info>,
     pub moderator: Signer<'info>,
-    #[account(associated_token::mint=postbox.moderator_mint, associated_token::authority=moderator)]
+    #[account(
+        associated_token::mint = postbox.moderator_mint,
+        associated_token::authority = moderator,
+    )]
     pub moderator_token_ata: Account<'info, token::TokenAccount>,
 }
 
@@ -232,10 +255,18 @@ pub struct Vote<'info> {
 }
 
 #[derive(Accounts)]
+#[instruction(subject: String)]
 pub struct DesignateModerator<'info> {
-    #[account(has_one = moderator_mint)]
-    pub postbox: Box<Account<'info, Postbox>>,
     #[account(
+        seeds = [PROTOCOL_SEED.as_bytes(), POSTBOX_SEED.as_bytes(), subject_account.key().as_ref(), subject.as_bytes()],
+        bump,
+        has_one = moderator_mint,
+    )]
+    pub postbox: Box<Account<'info, Postbox>>,
+    /// CHECK: we use this account's address only for generating the PDA
+    pub subject_account: UncheckedAccount<'info>,
+    #[account(
+        mut,
         seeds = [PROTOCOL_SEED.as_bytes(), MODERATOR_SEED.as_bytes(), postbox.key().as_ref()],
         bump,
     )]
@@ -265,7 +296,8 @@ pub struct DesignateModerator<'info> {
     Copy,
     Clone,
     PartialEq,
-    Eq
+    Eq,
+    std::fmt::Debug
 )]
 pub enum SettingsAccountType {
     Description,
@@ -323,6 +355,15 @@ pub struct OwnerSettingsAccount {
 pub struct PostEvent {
     pub poster_pubkey: Pubkey,
     pub postbox_pubkey: Pubkey,
+    pub post_pubkey: Pubkey,
     pub post_id: u32,
     pub data: Vec<u8>,
+}
+
+#[event]
+pub struct DeleteEvent {
+    pub deleter_pubkey: Pubkey,
+    pub postbox_pubkey: Pubkey,
+    pub post_pubkey: Pubkey,
+    pub post_id: u32,
 }
