@@ -1,3 +1,12 @@
+import * as splToken from '@solana/spl-token';
+import * as web3 from '@solana/web3.js';
+import { seeds } from './constants';
+import { WalletInterface } from './wallets';
+import { DispatchConnection, DispatchConnectionOpts } from './connection';
+import { compress, decompress } from './compress';
+import { PostboxSubject } from './postbox';
+import * as postbox from './postbox';
+
 // This is taken from the postboxWrapper
 
 // TODO: somehow need to get this from inbox core
@@ -11,6 +20,7 @@ export interface Forum {
   description: string;
   timestamp: Date;
 };
+
 
 export interface ForumPost {
   postId: number;
@@ -62,10 +72,32 @@ export interface IForum {
 
  **/
 
+
 export class Forum implements IForum {
 
-  constructor() {
+  /**
+     postboxId: number;
+     collectionId: string;
+     owner: string;
+     moderators: string; // object
+     title: string;
+     description: string;
+     timestamp: Date;
+  **/
+
+  private _postbox: postbox.Postbox | undefined;
+
+  constructor(
+    public conn: web3.Connection,
+    public wallet: WalletInterface,
+    public collectionId: string,
+    public subject: PostboxSubject,
+
+    // TODO(msfasman): Add description field to postbox
+    public description: string
+  ) {
     // Create a third party postbox for this forum
+    this._postbox = new postbox.Postbox(conn, wallet, {key: subject, str: })
   }
 
   async initialize() {
