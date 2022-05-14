@@ -101,14 +101,10 @@ pub mod postbox {
             post_pubkey: ctx.accounts.post.key(),
             post_id: post_id,
         });
-
         Ok(())
     }
 
     pub fn delete_post_by_moderator(ctx: Context<DeletePostByModerator>, post_id: u32) -> Result<()> {
-        if 0 == ctx.accounts.moderator_token_ata.amount {
-            return Err(Error::from(ProgramError::InsufficientFunds).with_source(source!()));
-        }
         emit!(DeleteEvent {
             deleter_pubkey: ctx.accounts.moderator.key(),
             postbox_pubkey: ctx.accounts.postbox.key(),
@@ -144,6 +140,24 @@ pub mod postbox {
         }, signer_seeds);
         token::mint_to(mint_ctx, 1)?;
 
+        Ok(())
+    }
+
+    pub fn set_settings_account(ctx: Context<SetSettingsAccount>, settings_type: SettingsAccountType) -> Result<()> {
+        let new_address = ctx.accounts.new_account.key();
+        let mut updated = false;
+        for setting in &mut ctx.accounts.postbox.settings_accounts {
+            if settings_type == setting.settings_type {
+                setting.address = new_address;
+                updated = true;
+            }
+        }
+        if !updated {
+            ctx.accounts.postbox.settings_accounts.push(SettingsAddress {
+                settings_type: settings_type,
+                address: new_address,
+            });
+        }
         Ok(())
     }
 }
@@ -236,6 +250,7 @@ pub struct DeletePostByModerator<'info> {
     #[account(
         associated_token::mint = postbox.moderator_mint,
         associated_token::authority = moderator,
+        constraint = (moderator_token_ata.amount > 0),
     )]
     pub moderator_token_ata: Account<'info, token::TokenAccount>,
 }
@@ -278,7 +293,7 @@ pub struct DesignateModerator<'info> {
     pub moderator_mint: Box<Account<'info, token::Mint>>,
     #[account(address = get_settings_address(&postbox.settings_accounts, SettingsAccountType::OwnerInfo).unwrap())]
     pub owner_settings: Box<Account<'info, OwnerSettingsAccount>>,
-    #[account(mut)]
+    #[account(mut, constraint=(owner_is_valid(&owner, &owner_settings)))]
     pub owner: Signer<'info>,
     /// CHECK: we do not access the account data other than for address for ATA
     pub new_moderator: UncheckedAccount<'info>,
@@ -293,6 +308,19 @@ pub struct DesignateModerator<'info> {
     pub token_program: Program<'info, token::Token>,
     pub associated_token_program: Program<'info, associated_token::AssociatedToken>,
     pub rent: Sysvar<'info, Rent>,
+}
+
+#[derive(Accounts)]
+#[instruction(account_type: SettingsAccountType)]
+pub struct SetSettingsAccount<'info> {
+    pub postbox: Box<Account<'info, Postbox>>,
+    /// CHECK: we verify tha this is the right type in the function body
+    #[account(constraint=(account_matches_type(account_type, &new_account)))]
+    pub new_account: AccountInfo<'info>,
+    #[account(address = get_settings_address(&postbox.settings_accounts, SettingsAccountType::OwnerInfo).unwrap())]
+    pub owner_settings: Box<Account<'info, OwnerSettingsAccount>>,
+    #[account(mut, constraint=(owner_is_valid(&owner, &owner_settings)))]
+    pub owner: Signer<'info>,
 }
 
 #[derive(
@@ -332,6 +360,20 @@ pub fn get_settings_address(settings: &Vec<SettingsAddress>, settings_type: Sett
     return None;
 }
 
+pub fn account_matches_type(account_type: SettingsAccountType, account_info: &AccountInfo) -> bool {
+    // TODO(mfasman): make this macro generated
+    let res = match account_type {
+        SettingsAccountType::Description => Account::<DescriptionAccount>::try_from(account_info).is_ok(),
+        SettingsAccountType::OwnerInfo => Account::<OwnerSettingsAccount>::try_from(account_info).is_ok(),
+        _ => false,
+    };
+    return res;
+}
+
+pub fn owner_is_valid(owner: & Signer, owner_settings_account: & Box<Account<OwnerSettingsAccount>>) -> bool {
+    return owner_settings_account.owners.contains(&owner.key());
+}
+
 #[account]
 #[derive(Default)]
 pub struct Postbox {
@@ -355,6 +397,13 @@ pub struct Post {
 #[derive(Default)]
 pub struct OwnerSettingsAccount {
     owners: Vec<Pubkey>,
+}
+
+#[account]
+#[derive(Default)]
+pub struct DescriptionAccount {
+    title: String,
+    desc: String,
 }
 
 #[event]
