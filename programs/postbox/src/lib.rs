@@ -67,11 +67,11 @@ pub mod postbox {
 
     pub fn create_post(ctx: Context<CreatePost>, data: Vec<u8>, post_id: u32) -> Result<()> {
         let postbox_account = &mut ctx.accounts.postbox;
-        if post_id > postbox_account.max_child_id {
+        if post_id > postbox_account.max_child_id + POSTBOX_GROW_CHILDREN_BY {
             return Err(Error::from(ProgramError::InvalidArgument).with_source(source!()));
         }
-        if post_id == postbox_account.max_child_id {
-            postbox_account.max_child_id = postbox_account.max_child_id + POSTBOX_GROW_CHILDREN_BY;
+        if post_id >= postbox_account.max_child_id {
+            postbox_account.max_child_id += POSTBOX_GROW_CHILDREN_BY;
         }
 
         let post_account = &mut ctx.accounts.post;
@@ -314,7 +314,7 @@ pub struct DesignateModerator<'info> {
 #[instruction(account_type: SettingsAccountType)]
 pub struct SetSettingsAccount<'info> {
     pub postbox: Box<Account<'info, Postbox>>,
-    /// CHECK: we verify tha this is the right type in the function body
+    /// CHECK: we verify that this is the right type ourself
     #[account(constraint=(account_matches_type(account_type, &new_account)))]
     pub new_account: AccountInfo<'info>,
     #[account(address = get_settings_address(&postbox.settings_accounts, SettingsAccountType::OwnerInfo).unwrap())]
