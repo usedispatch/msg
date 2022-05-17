@@ -2,16 +2,10 @@ import * as splToken from '@solana/spl-token';
 import * as web3 from '@solana/web3.js';
 import * as anchor from '@project-serum/anchor';
 import * as CryptoJS from 'crypto-js';
-import { Messaging } from '../../target/types/messaging';
-import messagingProgramIdl from '../../target/idl/messaging.json';
-import { clusterAddresses, defaultCluster, seeds, DispatchAddresses, eventName } from './constants';
-import {
-  WalletInterface,
-  WalletAdapterInterface,
-  AnchorNodeWalletInterface,
-  AnchorExpectedWalletInterface,
-} from './wallets';
+import { seeds, eventName } from './constants';
+import { WalletInterface } from './wallets';
 import { convertSolanartToDispatchMessage } from './solanart';
+import { DispatchConnection, DispatchConnectionOpts } from './connection';
 
 export type MailboxAccount = {
   messageCount: number;
@@ -55,11 +49,9 @@ export type SentMessageAccount = {
   messageId: number;
 };
 
-export type MailboxOpts = {
+export type MailboxOpts = DispatchConnectionOpts & {
   mailboxOwner?: web3.PublicKey;
   payer?: web3.PublicKey;
-  skipAnchorProvider?: boolean;
-  cluster?: web3.Cluster;
   sendObfuscated?: boolean;
 };
 
@@ -73,32 +65,16 @@ export type SendOpts = {
   incentive?: IncentiveArgs;
 };
 
-export class Mailbox {
+export class Mailbox extends DispatchConnection {
   public mailboxOwner: web3.PublicKey;
   public payer?: web3.PublicKey;
-  public addresses: DispatchAddresses;
-  public program: anchor.Program<Messaging>;
   public obfuscate: boolean;
 
   constructor(public conn: web3.Connection, public wallet: WalletInterface, opts?: MailboxOpts) {
-    if (!wallet.publicKey) {
-      throw new Error('Provided wallet must have a public key defined');
-    }
+    super(conn, wallet, opts);
     this.mailboxOwner = opts?.mailboxOwner ?? wallet.publicKey!;
     this.payer = opts?.payer;
-    this.addresses = clusterAddresses.get(opts?.cluster ?? defaultCluster)!;
     this.obfuscate = opts?.sendObfuscated ?? false;
-
-    // Initialize anchor
-    if (!opts?.skipAnchorProvider) {
-      if (this.wallet.signTransaction && this.wallet.signAllTransactions) {
-        const anchorWallet = this.wallet as AnchorExpectedWalletInterface;
-        anchor.setProvider(new anchor.AnchorProvider(conn, anchorWallet, {}));
-      } else {
-        throw new Error('The provided wallet is unable to sign transactions');
-      }
-    }
-    this.program = new anchor.Program<Messaging>(messagingProgramIdl as any, this.addresses.programAddress);
   }
 
   /*
@@ -164,7 +140,7 @@ export class Mailbox {
       .fill(0)
       .map((_element, index) => index + mailbox.readMessageCount);
     const addresses = await Promise.all(messageIds.map((id) => this.getMessageAddress(id)));
-    const messages = await this.program.account.message.fetchMultiple(addresses);
+    const messages = await this.messagingProgram.account.message.fetchMultiple(addresses);
     const normalize = (messageAccount: any | null, index: number) => {
       return this.normalizeMessageAccountDeprecated(messageAccount, index + mailbox.readMessageCount);
     };
@@ -184,7 +160,7 @@ export class Mailbox {
       .fill(0)
       .map((_element, index) => index + mailbox.readMessageCount);
     const addresses = await Promise.all(messageIds.map((id) => this.getMessageAddress(id)));
-    const messages = await this.program.account.message.fetchMultiple(addresses);
+    const messages = await this.messagingProgram.account.message.fetchMultiple(addresses);
     const normalize = (messageAccount: any | null, index: number) => {
       return this.normalizeMessageAccount(messageAccount, index + mailbox.readMessageCount);
     };
@@ -193,7 +169,7 @@ export class Mailbox {
 
   async fetchMessageById(messageId: number): Promise<MessageAccount> {
     const messageAddress = await this.getMessageAddress(messageId);
-    const messageAccount = await this.program.account.message.fetch(messageAddress);
+    const messageAccount = await this.messagingProgram.account.message.fetch(messageAddress);
     return this.normalizeMessageAccount(messageAccount, messageId)!;
   }
 
@@ -270,11 +246,11 @@ export class Mailbox {
         associatedTokenProgram: splToken.ASSOCIATED_TOKEN_PROGRAM_ID,
         rent: web3.SYSVAR_RENT_PUBKEY,
       };
-      tx = this.program.transaction.sendMessageWithIncentive(message, new anchor.BN(opts.incentive.amount), {
+      tx = this.messagingProgram.transaction.sendMessageWithIncentive(message, new anchor.BN(opts.incentive.amount), {
         accounts: incentiveAccounts,
       });
     } else {
-      tx = this.program.transaction.sendMessage(message, { accounts });
+      tx = this.messagingProgram.transaction.sendMessage(message, { accounts });
     }
 
     return this.setTransactionPayer(tx);
@@ -293,8 +269,8 @@ export class Mailbox {
   /// Returns null if message account doesn't exist, the transaction otherwise
   async makeDeleteTx(messageId: number, receiverAddress?: web3.PublicKey): Promise<web3.Transaction> {
     const messageAddress = await this.getMessageAddress(messageId, receiverAddress ?? this.mailboxOwner);
-    const messageAccount = await this.program.account.message.fetch(messageAddress);
-    const tx = await this.program.methods
+    const messageAccount = await this.messagingProgram.account.message.fetch(messageAddress);
+    const tx = await this.messagingProgram.methods
       .deleteMessage(messageId)
       .accounts({
         receiver: receiverAddress ?? this.mailboxOwner,
@@ -309,11 +285,11 @@ export class Mailbox {
   async makeClaimIncentiveTx(messageId: number, receiverAddress?: web3.PublicKey): Promise<web3.Transaction> {
     const receiver = receiverAddress ?? this.mailboxOwner;
     const messageAddress = await this.getMessageAddress(messageId, receiver);
-    const messageAccount = await this.program.account.message.fetch(messageAddress);
+    const messageAccount = await this.messagingProgram.account.message.fetch(messageAddress);
     const mint = messageAccount.incentiveMint;
     const ata = await splToken.getAssociatedTokenAddress(mint, messageAddress, true);
     const receiverAta = await splToken.getAssociatedTokenAddress(mint, receiver, true);
-    const tx = await this.program.methods
+    const tx = await this.messagingProgram.methods
       .claimIncentive(messageId)
       .accounts({
         receiver,
@@ -332,7 +308,7 @@ export class Mailbox {
 
   // Reminder this is every single message on the protocol, which we filter here
   addMessageListener(callback: (message: MessageAccount) => void): number {
-    return this.program.addEventListener(eventName, (event: any, _slot: number) => {
+    return this.messagingProgram.addEventListener(eventName, (event: any, _slot: number) => {
       if (event.receiverPubkey.equals(this.mailboxOwner)) {
         callback({
           sender: event.senderPubkey,
@@ -345,7 +321,7 @@ export class Mailbox {
   }
 
   addSentMessageListener(callback: (message: SentMessageAccount) => void): number {
-    return this.program.addEventListener(eventName, (event: any, _slot: number) => {
+    return this.messagingProgram.addEventListener(eventName, (event: any, _slot: number) => {
       if (event.senderPubkey.equals(this.mailboxOwner)) {
         callback({
           receiver: event.receiverPubkey,
@@ -356,7 +332,7 @@ export class Mailbox {
   }
 
   removeMessageListener(subscriptionId: number) {
-    this.program.removeEventListener(subscriptionId);
+    this.messagingProgram.removeEventListener(subscriptionId);
   }
 
   /*
@@ -367,7 +343,7 @@ export class Mailbox {
     const ownerAddress = mailboxOwner ?? this.mailboxOwner;
     const [mailboxAddress] = await web3.PublicKey.findProgramAddress(
       [seeds.protocolSeed, seeds.mailboxSeed, ownerAddress.toBuffer()],
-      this.program.programId,
+      this.messagingProgram.programId,
     );
 
     return mailboxAddress;
@@ -380,7 +356,7 @@ export class Mailbox {
     msgCountBuf.writeInt32LE(index);
     const [messageAddress] = await web3.PublicKey.findProgramAddress(
       [seeds.protocolSeed, seeds.messageSeed, mailboxAddress.toBuffer(), msgCountBuf],
-      this.program.programId,
+      this.messagingProgram.programId,
     );
 
     return messageAddress;
@@ -388,7 +364,7 @@ export class Mailbox {
 
   private async fetchMailbox(mailboxAddress?: web3.PublicKey) {
     const address = mailboxAddress ?? (await this.getMailboxAddress());
-    const mailboxAccount = await this.program.account.mailbox.fetchNullable(address);
+    const mailboxAccount = await this.messagingProgram.account.mailbox.fetchNullable(address);
     return mailboxAccount;
   }
 
@@ -399,22 +375,6 @@ export class Mailbox {
     if (this.payer && !this.payer.equals(this.mailboxOwner)) {
       throw new Error('`mailboxOwner` must equal `payer` to send transaction');
     }
-  }
-
-  private async sendTransaction(tx: web3.Transaction) {
-    let sig: string;
-    if ('sendTransaction' in this.wallet) {
-      const wallet = this.wallet as WalletAdapterInterface;
-      sig = await wallet.sendTransaction(tx, this.conn);
-    } else if ('payer' in this.wallet) {
-      const wallet = this.wallet as AnchorNodeWalletInterface;
-      const signer = wallet.payer;
-      sig = await this.conn.sendTransaction(tx, [signer]);
-    } else {
-      throw new Error('`wallet` has neither `sendTransaction` nor `payer` so cannot send transaction');
-    }
-    await this.conn.confirmTransaction(sig, 'recent');
-    return sig;
   }
 
   private setTransactionPayer(tx: web3.Transaction): web3.Transaction {
