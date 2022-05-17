@@ -4,7 +4,7 @@ import { seeds } from './constants';
 import { WalletInterface } from './wallets';
 import { DispatchConnection, DispatchConnectionOpts } from './connection';
 import { compress, decompress } from './compress';
-import { PostboxSubject } from './postbox';
+import { PostboxTarget } from './postbox';
 import * as postbox from './postbox';
 
 // This is taken from the postboxWrapper
@@ -88,16 +88,31 @@ export class Forum implements IForum {
   private _postbox: postbox.Postbox | undefined;
 
   constructor(
+    // Creation
     public conn: web3.Connection,
     public wallet: WalletInterface,
-    public collectionId: string,
-    public subject: PostboxSubject,
+
+    // Target for forum
+    // Should this be something else, eg, a hash?
+    public collectionId: web3.PublicKey,
+
+    // Owners and mods
+    public owner: web3.PublicKey,
+    public moderators: web3.PublicKey[],
 
     // TODO(msfasman): Add description field to postbox
-    public description: string
+    public title: string,
+    public description: string,
+
   ) {
     // Create a third party postbox for this forum
-    this._postbox = new postbox.Postbox(conn, wallet, {key: subject, str: })
+    this._postbox = new postbox.Postbox(conn, wallet, {
+      key: collectionId,
+      // TODO(msfasman): Rename this to something else (eg, type)
+      // Public means its not a "personal" wall postbox
+      str: "Public",
+    });
+
   }
 
   async initialize() {
