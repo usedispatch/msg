@@ -414,7 +414,7 @@ describe('messaging', () => {
     const receiverMailbox = new Mailbox(conn, receiver);
 
     const messageAddress = await receiverMailbox.getMessageAddress(0);
-    const messageAccount = await receiverMailbox.program.account.message.fetch(messageAddress);
+    const messageAccount = await receiverMailbox.messagingProgram.account.message.fetch(messageAddress);
     assert.ok(messageAccount.data !== testMessage);
 
     const resultingMessage = await receiverMailbox.fetchMessageById(0);
