@@ -108,7 +108,11 @@ export class Postbox {
     return this.createPost(input, replyTo);
   }
 
+<<<<<<< HEAD
   async deletePost(post: InteractablePost): Promise<web3.TransactionSignature> {
+=======
+  async deletePost(post: Post): Promise<web3.TransactionSignature> {
+>>>>>>> Change postbox to have a dispatch connection not inherit
     const ix = await this.dispatch.postboxProgram.methods
       .deleteOwnPost(post.postId)
       .accounts({
