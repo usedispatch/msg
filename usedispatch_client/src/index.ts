@@ -1,3 +1,4 @@
+export { DispatchConnection } from './connection';
 export { clusterAddresses, defaultCluster, seeds } from './constants';
 export { MailboxAccount, MessageAccount, MailboxOpts, Mailbox } from './mailbox';
 export { lookupDotSol } from './naming';
