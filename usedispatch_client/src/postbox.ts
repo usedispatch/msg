@@ -15,7 +15,7 @@ export type EpochSeconds = number;
 export type InputPostData = {
   subj?: string;
   body: string;
-  meta?: object;
+  meta?: any;
 };
 
 export type PostData = InputPostData & {
@@ -25,7 +25,7 @@ export type PostData = InputPostData & {
 type ChainPostdata = {
   s?: string;
   b?: string;
-  m?: object;
+  m?: any;
   t?: EpochSeconds;
 };
 
@@ -40,6 +40,12 @@ export type Post = {
   upVotes: number;
   downVotes: number;
   replyTo?: web3.PublicKey;
+};
+
+export type InteractablePost = {
+  postId: number,
+  address: web3.PublicKey,
+  poster: web3.PublicKey,
 };
 
 type ChainPost = {
@@ -80,7 +86,7 @@ export class Postbox {
   }
 
   // Basic commands
-  async createPost(input: InputPostData, replyTo?: Post): Promise<web3.TransactionSignature> {
+  async createPost(input: InputPostData, replyTo?: InteractablePost): Promise<web3.TransactionSignature> {
     // TODO(mfasman): make this be a better allocation algorithm
     const growBy = 1; // TODO(mfasman): pull from the IDL
     const maxId = (await this.getChainPostboxInfo()).maxChildId;
@@ -99,11 +105,11 @@ export class Postbox {
     return this.dispatch.sendTransaction(ix);
   }
 
-  async replyToPost(input: InputPostData, replyTo: Post): Promise<web3.TransactionSignature> {
+  async replyToPost(input: InputPostData, replyTo: InteractablePost): Promise<web3.TransactionSignature> {
     return this.createPost(input, replyTo);
   }
 
-  async deletePost(post: Post): Promise<web3.TransactionSignature> {
+  async deletePost(post: InteractablePost): Promise<web3.TransactionSignature> {
     const ix = await this.dispatch.postboxProgram.methods
       .deleteOwnPost(post.postId)
       .accounts({
@@ -114,7 +120,7 @@ export class Postbox {
     return this.dispatch.sendTransaction(ix);
   }
 
-  async deletePostAsModerator(post: Post): Promise<web3.TransactionSignature> {
+  async deletePostAsModerator(post: InteractablePost): Promise<web3.TransactionSignature> {
     const moderatorMint = (await this.getChainPostboxInfo()).moderatorMint;
     const ata = await splToken.getAssociatedTokenAddress(moderatorMint, this.dispatch.wallet.publicKey!);
     const ix = await this.dispatch.postboxProgram.methods
