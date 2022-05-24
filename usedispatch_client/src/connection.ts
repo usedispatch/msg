@@ -41,7 +41,7 @@ export class DispatchConnection {
     this.postboxProgram = new anchor.Program<Postbox>(postboxProgramIdl as any, this.addresses.postboxAddress);
   }
 
-  protected async sendTransaction(tx: web3.Transaction) {
+  public async sendTransaction(tx: web3.Transaction) {
     let sig: string;
     if ('sendTransaction' in this.wallet) {
       const wallet = this.wallet as WalletAdapterInterface;
