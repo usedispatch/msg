@@ -1,12 +1,9 @@
 import * as splToken from '@solana/spl-token';
 import * as web3 from '@solana/web3.js';
 import { seeds } from './constants';
-import { WalletInterface } from './wallets';
-import { DispatchConnection, DispatchConnectionOpts } from './connection';
+import { DispatchConnection } from './connection';
 import { compress, decompress } from './compress';
 
-
-export type PostboxOpts = DispatchConnectionOpts;
 
 export type PostboxTarget = {
   key: web3.PublicKey;
@@ -18,7 +15,7 @@ export type EpochSeconds = number;
 export type InputPostData = {
   subj?: string;
   body: string;
-  meta?: object;
+  meta?: any;
 };
 
 export type PostData = InputPostData & {
@@ -28,7 +25,7 @@ export type PostData = InputPostData & {
 type ChainPostdata = {
   s?: string;
   b?: string;
-  m?: object;
+  m?: any;
   t?: EpochSeconds;
 };
 
@@ -43,6 +40,12 @@ export type Post = {
   upVotes: number;
   downVotes: number;
   replyTo?: web3.PublicKey;
+};
+
+export type InteractablePost = {
+  postId: number,
+  address: web3.PublicKey,
+  poster: web3.PublicKey,
 };
 
 type ChainPost = {
@@ -61,70 +64,66 @@ type ChainPostboxInfo = {
   settingsAccounts: any;
 };
 
-export class Postbox extends DispatchConnection {
+export class Postbox {
   private _address: web3.PublicKey | undefined;
 
   constructor(
-    public conn: web3.Connection,
-    public wallet: WalletInterface,
+    public dispatch: DispatchConnection,
     public target: PostboxTarget,
-    opts?: PostboxOpts,
-    ) {
-    super(conn, wallet, opts);
-  }
+    ) {}
 
   // Init functions
   async initialize(owners?: web3.PublicKey[]): Promise<web3.TransactionSignature> {
-    const ix = await this.postboxProgram.methods
-      .initialize(this.target.str ?? "", owners ?? [this.wallet.publicKey!])
+    const ix = await this.dispatch.postboxProgram.methods
+      .initialize(this.target.str ?? "", owners ?? [this.dispatch.wallet.publicKey!])
       .accounts({
-        signer: this.wallet.publicKey!,
+        signer: this.dispatch.wallet.publicKey!,
         targetAccount: this.target.key,
-        treasury: this.addresses.treasuryAddress,
+        treasury: this.dispatch.addresses.treasuryAddress,
       })
       .transaction();
-    return this.sendTransaction(ix);
+    return this.dispatch.sendTransaction(ix);
   }
 
   // Basic commands
-  async createPost(input: InputPostData, replyTo?: Post): Promise<web3.TransactionSignature> {
+  async createPost(input: InputPostData, replyTo?: InteractablePost): Promise<web3.TransactionSignature> {
     // TODO(mfasman): make this be a better allocation algorithm
     const growBy = 1; // TODO(mfasman): pull from the IDL
     const maxId = (await this.getChainPostboxInfo()).maxChildId;
     const addresses = await this.getAddresses(maxId, Math.max(0, maxId - growBy));
-    const infos = await this.conn.getMultipleAccountsInfo(addresses);
+    const infos = await this.dispatch.conn.getMultipleAccountsInfo(addresses);
     const data = await this.postDataToBuffer(input);
-    const ix = await this.postboxProgram.methods
+    const ix = await this.dispatch.postboxProgram.methods
       .createPost(data, maxId)
       .accounts({
         postbox: await this.getAddress(),
-        poster: this.wallet.publicKey!,
-        treasury: this.addresses.treasuryAddress,
+        poster: this.dispatch.wallet.publicKey!,
+        treasury: this.dispatch.addresses.treasuryAddress,
         replyTo: replyTo?.address ?? web3.PublicKey.default,
       })
       .transaction();
-    return this.sendTransaction(ix);
+    return this.dispatch.sendTransaction(ix);
   }
 
-  async replyToPost(input: InputPostData, replyTo: Post): Promise<web3.TransactionSignature> {
+  async replyToPost(input: InputPostData, replyTo: InteractablePost): Promise<web3.TransactionSignature> {
     return this.createPost(input, replyTo);
   }
 
-  async deletePost(post: Post): Promise<web3.TransactionSignature> {
-    const ix = await this.postboxProgram.methods
+  async deletePost(post: InteractablePost): Promise<web3.TransactionSignature> {
+    const ix = await this.dispatch.postboxProgram.methods
       .deleteOwnPost(post.postId)
       .accounts({
         postbox: await this.getAddress(),
         post: post.address,
       })
       .transaction();
-    return this.sendTransaction(ix);
+    return this.dispatch.sendTransaction(ix);
   }
 
-  async deletePostAsModerator(post: Post): Promise<web3.TransactionSignature> {
+  async deletePostAsModerator(post: InteractablePost): Promise<web3.TransactionSignature> {
     const moderatorMint = (await this.getChainPostboxInfo()).moderatorMint;
-    const ata = await splToken.getAssociatedTokenAddress(moderatorMint, this.wallet.publicKey!);
-    const ix = await this.postboxProgram.methods
+    const ata = await splToken.getAssociatedTokenAddress(moderatorMint, this.dispatch.wallet.publicKey!);
+    const ix = await this.dispatch.postboxProgram.methods
       .deletePostByModerator(post.postId)
       .accounts({
         postbox: await this.getAddress(),
@@ -133,26 +132,26 @@ export class Postbox extends DispatchConnection {
         moderatorTokenAta: ata,
       })
       .transaction();
-    return this.sendTransaction(ix);
+    return this.dispatch.sendTransaction(ix);
   }
 
   async vote(post: Post, up: boolean): Promise<web3.TransactionSignature> {
-    const ix = await this.postboxProgram.methods
+    const ix = await this.dispatch.postboxProgram.methods
       .vote(post.postId, up)
       .accounts({
         postbox: await this.getAddress(),
         post: post.address,
-        treasury: this.addresses.treasuryAddress,
+        treasury: this.dispatch.addresses.treasuryAddress,
       })
       .transaction();
-    return this.sendTransaction(ix);
+    return this.dispatch.sendTransaction(ix);
   }
 
   // Fetching functions
   async innerFetchPosts(parent: PostNode, maxChildId: number): Promise<Post[]> {
     if (maxChildId === 0) return [];
     const addresses = await this.getAddresses(maxChildId);
-    const chainPosts = await this.postboxProgram.account.post.fetchMultiple(addresses) as NullableChainPost[];
+    const chainPosts = await this.dispatch.postboxProgram.account.post.fetchMultiple(addresses) as NullableChainPost[];
     const convertedPosts = await Promise.all(chainPosts.map((rp, i) => {
       return this.convertChainPost(rp, addresses[i], parent, i);
     }));
@@ -177,7 +176,7 @@ export class Postbox extends DispatchConnection {
     const info = await this.getChainPostboxInfo();
     const ownerSettings = await this.getSettingsAddress(info, "ownerInfo");
     const ata = await splToken.getAssociatedTokenAddress(info.moderatorMint, newModerator);
-    const ix = await this.postboxProgram.methods
+    const ix = await this.dispatch.postboxProgram.methods
       .designateModerator(this.target.str ?? "")
       .accounts({
         postbox: await this.getAddress(),
@@ -187,7 +186,7 @@ export class Postbox extends DispatchConnection {
         moderatorAta: ata,
       })
       .transaction();
-    return this.sendTransaction(ix);
+    return this.dispatch.sendTransaction(ix);
   }
 
   // Chain functions
@@ -195,7 +194,7 @@ export class Postbox extends DispatchConnection {
     if (!this._address) {
       const [postAddress] = await web3.PublicKey.findProgramAddress(
         [seeds.protocolSeed, seeds.postboxSeed, this.target.key.toBuffer(), Buffer.from(this.target.str ?? "")],
-        this.postboxProgram.programId,
+        this.dispatch.postboxProgram.programId,
       );
       this._address = postAddress;
     }
@@ -208,7 +207,7 @@ export class Postbox extends DispatchConnection {
     msgCountBuf.writeInt32LE(postId);
     const [postAddress] = await web3.PublicKey.findProgramAddress(
       [seeds.protocolSeed, seeds.postSeed, postboxAddress.toBuffer(), msgCountBuf],
-      this.postboxProgram.programId,
+      this.dispatch.postboxProgram.programId,
     );
     return postAddress;
   }
@@ -225,7 +224,7 @@ export class Postbox extends DispatchConnection {
   }
 
   async getChainPostboxInfo(): Promise<ChainPostboxInfo> {
-    return this.postboxProgram.account.postbox.fetch(await this.getAddress());
+    return this.dispatch.postboxProgram.account.postbox.fetch(await this.getAddress());
   }
 
   async convertChainPost(chainPost: NullableChainPost, address: web3.PublicKey, parent: PostNode, postId: number): Promise<Post | null> {

@@ -1,7 +1,7 @@
 import * as anchor from '@project-serum/anchor';
 import { strict as assert } from 'assert';
 
-import { Postbox } from '../usedispatch_client/src';
+import { Postbox, DispatchConnection, Forum } from '../usedispatch_client/src';
 
 describe('postbox', () => {
 
@@ -15,7 +15,7 @@ describe('postbox', () => {
     const owner = new anchor.Wallet(anchor.web3.Keypair.generate());
     await conn.confirmTransaction(await conn.requestAirdrop(owner.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
 
-    const postbox = new Postbox(conn, owner, {key: owner.publicKey});
+    const postbox = new Postbox(new DispatchConnection(conn, owner), {key: owner.publicKey});
     const tx0 = await postbox.initialize();
     await conn.confirmTransaction(tx0);
 
@@ -44,13 +44,13 @@ describe('postbox', () => {
     const owner2 = new anchor.Wallet(anchor.web3.Keypair.generate());
     await conn.confirmTransaction(await conn.requestAirdrop(owner1.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
 
-    const postbox = new Postbox(conn, owner1, {key: target, str: "Public"});
+    const postbox = new Postbox(new DispatchConnection(conn, owner1), {key: target, str: "Public"});
     const tx0 = await postbox.initialize([owner1.publicKey, owner2.publicKey]);
     await conn.confirmTransaction(tx0);
 
     const info = await postbox.getChainPostboxInfo();
     const ownerAddress = await postbox.getSettingsAddress(info, "ownerInfo");
-    const ownersAccount = await postbox.postboxProgram.account.ownerSettingsAccount.fetch(ownerAddress);
+    const ownersAccount = await postbox.dispatch.postboxProgram.account.ownerSettingsAccount.fetch(ownerAddress);
     assert.equal(ownersAccount.owners.length, 2);
     assert.ok(ownersAccount.owners[0].equals(owner1.publicKey));
     assert.ok(ownersAccount.owners[1].equals(owner2.publicKey));
@@ -69,7 +69,7 @@ describe('postbox', () => {
     await conn.confirmTransaction(await conn.requestAirdrop(owner.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
     await conn.confirmTransaction(await conn.requestAirdrop(replier.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
 
-    const postbox = new Postbox(conn, owner, {key: owner.publicKey});
+    const postbox = new Postbox(new DispatchConnection(conn, owner), {key: owner.publicKey});
     const tx0 = await postbox.initialize();
     await conn.confirmTransaction(tx0);
 
@@ -97,9 +97,9 @@ describe('postbox', () => {
     await conn.confirmTransaction(await conn.requestAirdrop(poster.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
     await conn.confirmTransaction(await conn.requestAirdrop(moderator.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
 
-    const postboxAsOwner = new Postbox(conn, owner, {key: owner.publicKey});
-    const postboxAsPoster = new Postbox(conn, poster, {key: owner.publicKey});
-    const postboxAsModerator = new Postbox(conn, moderator, {key: owner.publicKey});
+    const postboxAsOwner = new Postbox(new DispatchConnection(conn, owner), {key: owner.publicKey});
+    const postboxAsPoster = new Postbox(new DispatchConnection(conn, poster), {key: owner.publicKey});
+    const postboxAsModerator = new Postbox(new DispatchConnection(conn, moderator), {key: owner.publicKey});
     const tx0 = await postboxAsOwner.initialize();
     await conn.confirmTransaction(tx0);
 
@@ -126,8 +126,8 @@ describe('postbox', () => {
     await conn.confirmTransaction(await conn.requestAirdrop(owner.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
     await conn.confirmTransaction(await conn.requestAirdrop(voter.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
 
-    const postboxAsOwner = new Postbox(conn, owner, {key: owner.publicKey});
-    const postboxAsVoter = new Postbox(conn, voter, {key: owner.publicKey});
+    const postboxAsOwner = new Postbox(new DispatchConnection(conn, owner), {key: owner.publicKey});
+    const postboxAsVoter = new Postbox(new DispatchConnection(conn, voter), {key: owner.publicKey});
     const tx0 = await postboxAsOwner.initialize();
     await conn.confirmTransaction(tx0);
 
@@ -143,5 +143,70 @@ describe('postbox', () => {
 
     const posts = await postboxAsOwner.fetchPosts();
     assert.equal(posts[0].upVotes, 1);
+  });
+
+  it('Uses the forum.ts wrapper', async () => {
+    const collectionId = anchor.web3.Keypair.generate().publicKey;
+
+    const owner = new anchor.Wallet(anchor.web3.Keypair.generate());
+    const moderator = new anchor.Wallet(anchor.web3.Keypair.generate());
+    const poster = new anchor.Wallet(anchor.web3.Keypair.generate());
+    await conn.confirmTransaction(await conn.requestAirdrop(owner.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
+    await conn.confirmTransaction(await conn.requestAirdrop(moderator.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
+    await conn.confirmTransaction(await conn.requestAirdrop(poster.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
+
+    const forumAsOwner = new Forum(new DispatchConnection(conn, owner), collectionId);
+    const forumAsModerator = new Forum(new DispatchConnection(conn, moderator), collectionId);
+    const forumAsPoster = new Forum(new DispatchConnection(conn, poster), collectionId);
+
+    if (!await forumAsOwner.exists()) {
+      const txs = await forumAsOwner.createForum({
+        collectionId,
+        owners: [owner.publicKey],
+        moderators: [owner.publicKey, moderator.publicKey],
+        title: "Test Forum",
+        description: "A forum for the test suite",
+      });
+      await Promise.all(txs.map((t) => conn.confirmTransaction(t)));
+    }
+
+    // TODO: check that all fields are set correctly on the forum
+
+    const topic0 = {subj: "Test Topic", body: "This is a test topic."};
+    const tx0 = await forumAsPoster.createTopic(topic0);
+    await conn.confirmTransaction(tx0);
+
+    const topics = await forumAsPoster.getTopicsForForum();
+    assert.equal(topics.length, 1);
+
+    const testPost0 = {subj: "Test", body: "This is a test post"};
+    const tx1 = await forumAsPoster.createForumPost(testPost0, topics[0]);
+    await conn.confirmTransaction(tx1);
+
+    const testPost1 = {subj: "Spam", body: "This is a spam post"};
+    const tx2 = await forumAsPoster.createForumPost(testPost1, topics[0]);
+    await conn.confirmTransaction(tx2);
+
+    let topicPosts = await forumAsModerator.getTopicMessages(topics[0]);
+    assert.equal(topicPosts.length, 2);
+
+    const delTxs = (await Promise.all(topicPosts.map(async (p) => {
+      if ((p.data.subj ?? "") === "Spam") {
+        return await forumAsModerator.deleteForumPost(p, true);
+      }
+      return null;
+    }))).filter((t) => t !== null);
+    await Promise.all(delTxs.map((t) => conn.confirmTransaction(t)));
+
+    topicPosts = await forumAsPoster.getTopicMessages(topics[0]);
+    assert.equal(topicPosts.length, 1);
+
+    const tx3 = await forumAsPoster.deleteForumPost(topicPosts[0]);
+    await conn.confirmTransaction(tx3);
+
+    topicPosts = await forumAsOwner.getTopicMessages(topics[0]);
+    assert.equal(topicPosts.length, 0);
+
+    // TODO: test replies and votes
   });
 });
