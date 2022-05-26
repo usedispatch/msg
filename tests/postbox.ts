@@ -48,12 +48,10 @@ describe('postbox', () => {
     const tx0 = await postbox.initialize([owner1.publicKey, owner2.publicKey]);
     await conn.confirmTransaction(tx0);
 
-    const info = await postbox.getChainPostboxInfo();
-    const ownerAddress = await postbox.getSettingsAddress(info, SettingsType.ownerInfo);
-    const ownersAccount = await postbox.dispatch.postboxProgram.account.settingsAccount.fetch(ownerAddress);
-    assert.equal((ownersAccount.data as any).ownerInfo.owners.length, 2);
-    assert.ok((ownersAccount.data as any).ownerInfo.owners[0].equals(owner1.publicKey));
-    assert.ok((ownersAccount.data as any).ownerInfo.owners[1].equals(owner2.publicKey));
+    const owners = await postbox.getOwners();
+    assert.equal(owners.length, 2);
+    assert.ok(owners[0].equals(owner1.publicKey));
+    assert.ok(owners[1].equals(owner2.publicKey));
 
     const testPost = {subj: "Test", body: "This is a test post"};
     const tx1 = await postbox.createPost(testPost);
@@ -159,18 +157,31 @@ describe('postbox', () => {
     const forumAsModerator = new Forum(new DispatchConnection(conn, moderator), collectionId);
     const forumAsPoster = new Forum(new DispatchConnection(conn, poster), collectionId);
 
+    const descStr = "A forum for the test suite";
     if (!await forumAsOwner.exists()) {
       const txs = await forumAsOwner.createForum({
         collectionId,
         owners: [owner.publicKey],
-        moderators: [owner.publicKey, moderator.publicKey],
+        moderators: [owner.publicKey],  // We add the moderator below as a test
         title: "Test Forum",
-        description: "A forum for the test suite",
+        description: descStr,
       });
       await Promise.all(txs.map((t) => conn.confirmTransaction(t)));
     }
 
-    // TODO: check that all fields are set correctly on the forum
+    const owners = await forumAsOwner.getOwners();
+    assert.ok(owners[0].equals(owner.publicKey));
+    // const desc = await forumAsOwner.getDescription();
+    // assert.equal(desc.title, "Test Forum");
+    // assert.equal(desc.desc, descStr);
+
+    // const txA = await forumAsOwner.setDescription({title: "Test", desc: descStr});
+    // await conn.confirmTransaction(txA);
+    // const desc2 = await forumAsOwner.getDescription();
+    // assert.equal(desc2.title, "Test");
+
+    const txB = await forumAsOwner.addModerator(moderator.publicKey);
+    await conn.confirmTransaction(txB);
 
     const topic0 = {subj: "Test Topic", body: "This is a test topic."};
     const tx0 = await forumAsPoster.createTopic(topic0);
@@ -207,6 +218,23 @@ describe('postbox', () => {
     topicPosts = await forumAsOwner.getTopicMessages(topics[0]);
     assert.equal(topicPosts.length, 0);
 
-    // TODO: test replies and votes
+    const testPost2 = {subj: "Test2", body: "Another test"};
+    const tx4 = await forumAsPoster.createForumPost(testPost2, topics[0]);
+    await conn.confirmTransaction(tx4);
+
+    const posts = await forumAsModerator.getTopicMessages(topics[0]);
+    const tx5 = await forumAsModerator.voteOnForumPost(posts[0], true);
+    await conn.confirmTransaction(tx5);
+
+    const postsAgain = await forumAsModerator.getTopicMessages(topics[0]);
+    assert.equal(postsAgain[0].upVotes, 1);
+
+    const replyPost = {subj: "Reply", body: "Testing reply"};
+    const tx6 = await forumAsModerator.replyToForumPost(postsAgain[0], replyPost);
+    await conn.confirmTransaction(tx6);
+
+    const replies = await forumAsModerator.getReplies(postsAgain[0]);
+    assert.equal(replies.length, 1);
+    assert.equal(replies[0].data.subj, "Reply");
   });
 });
