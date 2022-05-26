@@ -78,11 +78,11 @@ export class Forum implements IForum {
     }
     const initTx = await this._postbox.initialize(info.owners);
     await this._postbox.dispatch.conn.confirmTransaction(initTx);
+    const descTx = await this._postbox.setDescription(info.title, info.description);
     const modTxs = await Promise.all(info.moderators.map((m) => {
       return this._postbox.addModerator(m);
     }));
-    // TODO: set the title + description
-    return [initTx, ...modTxs];
+    return [initTx, descTx, ...modTxs];
   }
 
   async getTopicsForForum(): Promise<ForumPost[]> {
