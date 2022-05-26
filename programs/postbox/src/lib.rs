@@ -332,6 +332,7 @@ pub struct DesignateModerator<'info> {
 #[derive(Accounts)]
 #[instruction(account_type: SettingsAccountType, account_data: SettingsAccountData, account_seed: String)]
 pub struct AddSettingsAccount<'info> {
+    #[account(mut)]
     pub postbox: Box<Account<'info, Postbox>>,
     #[account(init,
         payer = owner,
@@ -351,6 +352,7 @@ pub struct AddSettingsAccount<'info> {
 #[derive(Accounts)]
 #[instruction(account_type: SettingsAccountType, account_data: SettingsAccountData, account_seed: String, account_version: u32)]
 pub struct UpdateSettingsAccount<'info> {
+    #[account(mut)]
     pub postbox: Box<Account<'info, Postbox>>,
     #[account(init,
         payer = owner,
