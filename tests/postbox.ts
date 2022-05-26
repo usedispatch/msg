@@ -171,14 +171,14 @@ describe('postbox', () => {
 
     const owners = await forumAsOwner.getOwners();
     assert.ok(owners[0].equals(owner.publicKey));
-    // const desc = await forumAsOwner.getDescription();
-    // assert.equal(desc.title, "Test Forum");
-    // assert.equal(desc.desc, descStr);
+    const desc = await forumAsOwner.getDescription();
+    assert.equal(desc.title, "Test Forum");
+    assert.equal(desc.desc, descStr);
 
-    // const txA = await forumAsOwner.setDescription({title: "Test", desc: descStr});
-    // await conn.confirmTransaction(txA);
-    // const desc2 = await forumAsOwner.getDescription();
-    // assert.equal(desc2.title, "Test");
+    const txA = await forumAsOwner.setDescription({title: "Test", desc: descStr});
+    await conn.confirmTransaction(txA);
+    const desc2 = await forumAsOwner.getDescription();
+    assert.equal(desc2.title, "Test");
 
     const txB = await forumAsOwner.addModerator(moderator.publicKey);
     await conn.confirmTransaction(txB);
