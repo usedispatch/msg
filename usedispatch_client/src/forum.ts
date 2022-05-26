@@ -13,7 +13,7 @@ export type ForumInfo = {
 export type ForumPost = postbox.Post & {
   forum: Forum;
   isTopic: boolean;
-}
+};
 
 export interface IForum {
   // Does the forum exist on chain?
@@ -44,6 +44,21 @@ export interface IForum {
 
   // For a given topic, the messages
   getReplies(topic: ForumPost): Promise<ForumPost[]>;
+
+  // Vote a post up or down
+  voteOnForumPost(post: ForumPost, up: boolean): Promise<web3.TransactionSignature>;
+
+  // Get a list of the owners of this forum
+  getOwners(): Promise<web3.PublicKey[]>;
+
+  // Get the description of the forum: title and blurb
+  getDescription(): Promise<postbox.Description | undefined>;
+
+  // Update the description of the forum
+  setDescription(desc: postbox.Description): Promise<web3.TransactionSignature>;
+
+  // Delegate the given account as a moderator by giving them a moderator token
+  addModerator(newMod: web3.PublicKey): Promise<web3.TransactionSignature>;
 };
 
 /**
@@ -78,7 +93,9 @@ export class Forum implements IForum {
     }
     const initTx = await this._postbox.initialize(info.owners);
     await this._postbox.dispatch.conn.confirmTransaction(initTx);
-    const descTx = await this._postbox.setDescription(info.title, info.description);
+    const descTx = await this._postbox.setDescription({
+      title: info.title, desc: info.description
+    });
     const modTxs = await Promise.all(info.moderators.map((m) => {
       return this._postbox.addModerator(m);
     }));
@@ -154,6 +171,33 @@ export class Forum implements IForum {
       // Oldest message first
       return a.data.ts.getTime() - b.data.ts.getTime();
     });
+  }
+
+  async voteOnForumPost(
+    post: ForumPost,
+    up: boolean,
+  ): Promise<web3.TransactionSignature> {
+    return this._postbox.vote(post, up);
+  }
+
+  async getOwners(): Promise<web3.PublicKey[]> {
+    return this._postbox.getOwners();
+  }
+
+  async getDescription(): Promise<postbox.Description | undefined> {
+    return this._postbox.getDescription();
+  }
+
+  async setDescription(
+    desc: postbox.Description
+  ): Promise<web3.TransactionSignature> {
+    return this._postbox.setDescription(desc);
+  }
+
+  async addModerator(
+    newMod: web3.PublicKey
+  ): Promise<web3.TransactionSignature> {
+    return this._postbox.addModerator(newMod);
   }
 
   // Helper functions

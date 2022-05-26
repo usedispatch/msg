@@ -63,6 +63,19 @@ type ChainPostboxInfo = {
   settingsAccounts: any;
 };
 
+export type Description = {
+  title: string;
+  desc: string;
+};
+
+type SettingsAccountData = {
+  description?: Description;
+  ownerInfo?: {
+    owners: web3.PublicKey[];
+  }
+  postRestrictions?: {};
+};
+
 export enum SettingsType {
   ownerInfo = "ownerInfo",
   description = "description",
@@ -194,9 +207,34 @@ export class Postbox {
     return this.dispatch.sendTransaction(ix);
   }
 
-  async setDescription(title: string, desc: string): Promise<web3.TransactionSignature> {
+  // Settings functions
+
+  async getOwners(): Promise<web3.PublicKey[]> {
+    const info = await this.getChainPostboxInfo();
+    const ownerAddress = await this.getSettingsAddress(info, SettingsType.ownerInfo);
+    if (!ownerAddress) return [];
+    const ownersAccount = await this.dispatch.postboxProgram.account.settingsAccount.fetch(ownerAddress);
+    return (ownersAccount.data as SettingsAccountData).ownerInfo?.owners ?? [];
+  }
+
+  async setOwners(owners: web3.PublicKey[]): Promise<web3.TransactionSignature> {
+    const settingsType = SettingsType.ownerInfo;
+    const settingsData = {ownerInfo : {owners}};
+    const settingsSeed = "owners";
+    return this.innerSetSetting(settingsType, settingsData, settingsSeed);
+  }
+
+  async getDescription(): Promise<Description | undefined> {
+    const info = await this.getChainPostboxInfo();
+    const descAddress = await this.getSettingsAddress(info, SettingsType.description);
+    if (!descAddress) return undefined;
+    const descAccount = await this.dispatch.postboxProgram.account.settingsAccount.fetch(descAddress);
+    return (descAccount.data as SettingsAccountData).description;
+  }
+
+  async setDescription(description: Description): Promise<web3.TransactionSignature> {
     const settingsType = SettingsType.description;
-    const settingsData = {description : {title, desc}};
+    const settingsData = {description};
     const settingsSeed = "description";
     return this.innerSetSetting(settingsType, settingsData, settingsSeed);
   }
