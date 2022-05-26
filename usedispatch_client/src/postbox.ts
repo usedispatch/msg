@@ -64,6 +64,12 @@ type ChainPostboxInfo = {
   settingsAccounts: any;
 };
 
+export enum SettingsType {
+  ownerInfo = "ownerInfo",
+  description = "description",
+  postRestrictions = "postRestrictions",
+};
+
 export class Postbox {
   private _address: web3.PublicKey | undefined;
 
@@ -174,7 +180,7 @@ export class Postbox {
   // Admin functions
   async addModerator(newModerator: web3.PublicKey): Promise<web3.TransactionSignature> {
     const info = await this.getChainPostboxInfo();
-    const ownerSettings = await this.getSettingsAddress(info, "ownerInfo");
+    const ownerSettings = await this.getSettingsAddress(info, SettingsType.ownerInfo);
     const ata = await splToken.getAssociatedTokenAddress(info.moderatorMint, newModerator);
     const ix = await this.dispatch.postboxProgram.methods
       .designateModerator(this.target.str ?? "")
@@ -186,6 +192,42 @@ export class Postbox {
         moderatorAta: ata,
       })
       .transaction();
+    return this.dispatch.sendTransaction(ix);
+  }
+
+  async setDescription(title: string, desc: string): Promise<web3.TransactionSignature> {
+    const settingsType = SettingsType.description;
+    const settingsData = {description : {title, desc}};
+    const settingsSeed = "description";
+    return this.innerSetSetting(settingsType, settingsData, settingsSeed);
+  }
+
+  async innerSetSetting(settingsType: SettingsType, settingsData: any, settingsSeed: string): Promise<web3.TransactionSignature> {
+    const info = await this.getChainPostboxInfo();
+    const ownerSettings = await this.getSettingsAddress(info, SettingsType.ownerInfo);
+    const oldAddress = await this.getSettingsAddress(info, settingsType);
+    // This next line looks weird but seems to work
+    const settingsEnum = { [settingsType.valueOf()]: {}};
+    let ix;
+    if (oldAddress) {
+      const oldAccount = await this.dispatch.postboxProgram.account.settingsAccount.fetch(oldAddress);
+      ix = await this.dispatch.postboxProgram.methods
+      .updateSettingsAccount(settingsEnum, settingsData, settingsSeed, oldAccount.version + 1)
+      .accounts({
+        postbox: await this.getAddress(),
+        oldAccount: oldAddress,
+        ownerSettings,
+      })
+      .transaction();
+    } else {
+      ix = await this.dispatch.postboxProgram.methods
+      .addSettingsAccount(settingsEnum, settingsData, settingsSeed)
+      .accounts({
+        postbox: await this.getAddress(),
+        ownerSettings,
+      })
+      .transaction();
+    }
     return this.dispatch.sendTransaction(ix);
   }
 
@@ -243,7 +285,7 @@ export class Postbox {
   }
 
   // Utility functions
-  async getSettingsAddress(info: ChainPostboxInfo, settingsType: string): Promise<web3.PublicKey | undefined> {
+  async getSettingsAddress(info: ChainPostboxInfo, settingsType: SettingsType): Promise<web3.PublicKey | undefined> {
     for (const setting of info.settingsAccounts as any[]) {
       if (settingsType in setting.settingsType) {
         return setting.address;

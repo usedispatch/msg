@@ -1,7 +1,7 @@
 import * as anchor from '@project-serum/anchor';
 import { strict as assert } from 'assert';
 
-import { Postbox, DispatchConnection, Forum } from '../usedispatch_client/src';
+import { Postbox, DispatchConnection, Forum, SettingsType } from '../usedispatch_client/src';
 
 describe('postbox', () => {
 
@@ -49,11 +49,11 @@ describe('postbox', () => {
     await conn.confirmTransaction(tx0);
 
     const info = await postbox.getChainPostboxInfo();
-    const ownerAddress = await postbox.getSettingsAddress(info, "ownerInfo");
-    const ownersAccount = await postbox.dispatch.postboxProgram.account.ownerSettingsAccount.fetch(ownerAddress);
-    assert.equal(ownersAccount.owners.length, 2);
-    assert.ok(ownersAccount.owners[0].equals(owner1.publicKey));
-    assert.ok(ownersAccount.owners[1].equals(owner2.publicKey));
+    const ownerAddress = await postbox.getSettingsAddress(info, SettingsType.ownerInfo);
+    const ownersAccount = await postbox.dispatch.postboxProgram.account.settingsAccount.fetch(ownerAddress);
+    assert.equal((ownersAccount.data as any).ownerInfo.owners.length, 2);
+    assert.ok((ownersAccount.data as any).ownerInfo.owners[0].equals(owner1.publicKey));
+    assert.ok((ownersAccount.data as any).ownerInfo.owners[1].equals(owner2.publicKey));
 
     const testPost = {subj: "Test", body: "This is a test post"};
     const tx1 = await postbox.createPost(testPost);
