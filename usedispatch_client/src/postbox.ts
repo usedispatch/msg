@@ -2,7 +2,6 @@ import * as splToken from '@solana/spl-token';
 import * as web3 from '@solana/web3.js';
 import { seeds } from './constants';
 import { DispatchConnection } from './connection';
-import { compress, decompress } from './compress';
 
 
 export type PostboxTarget = {
@@ -260,11 +259,11 @@ export class Postbox {
       t: Math.floor(new Date().getTime() / 1000),
     };
     const dataString = JSON.stringify(pd);
-    return compress(dataString);
+    return Buffer.from(dataString);
   }
 
   async bufferToPostData(input: Buffer): Promise<PostData> {
-    const dataString = (await decompress(input)).toString();
+    const dataString = input.toString();
     const postData = JSON.parse(dataString) as ChainPostdata;
     return {
       subj: postData.s,
