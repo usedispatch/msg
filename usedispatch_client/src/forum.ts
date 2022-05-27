@@ -200,6 +200,16 @@ export class Forum implements IForum {
     return this._postbox.addModerator(newMod);
   }
 
+  // Role functions
+
+  async isOwner(): Promise<boolean> {
+    return this._postbox.isOwner();
+  }
+
+  async isModerator(): Promise<boolean> {
+    return this._postbox.isModerator();
+  }
+
   // Helper functions
 
   protected convertPostboxToForum(p: postbox.Post): ForumPost {

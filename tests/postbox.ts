@@ -174,6 +174,7 @@ describe('postbox', () => {
     const desc = await forumAsOwner.getDescription();
     assert.equal(desc.title, "Test Forum");
     assert.equal(desc.desc, descStr);
+    assert.ok(await forumAsOwner.isOwner());
 
     const txA = await forumAsOwner.setDescription({title: "Test", desc: descStr});
     await conn.confirmTransaction(txA);
@@ -182,6 +183,7 @@ describe('postbox', () => {
 
     const txB = await forumAsOwner.addModerator(moderator.publicKey);
     await conn.confirmTransaction(txB);
+    assert.ok(await forumAsModerator.isModerator());
 
     const topic0 = {subj: "Test Topic", body: "This is a test topic."};
     const tx0 = await forumAsPoster.createTopic(topic0);

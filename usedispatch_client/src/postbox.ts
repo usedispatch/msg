@@ -139,7 +139,7 @@ export class Postbox {
   }
 
   async deletePostAsModerator(post: InteractablePost): Promise<web3.TransactionSignature> {
-    const moderatorMint = (await this.getChainPostboxInfo()).moderatorMint;
+    const moderatorMint = await this.getModeratorMint();
     const ata = await splToken.getAssociatedTokenAddress(moderatorMint, this.dispatch.wallet.publicKey!);
     const ix = await this.dispatch.postboxProgram.methods
       .deletePostByModerator(post.postId)
@@ -268,6 +268,26 @@ export class Postbox {
     return this.dispatch.sendTransaction(ix);
   }
 
+  // Role functions
+  async isOwner(): Promise<boolean> {
+    const owners = await this.getOwners();
+    return owners.some((o) => o.equals(this.dispatch.wallet.publicKey!));
+  }
+
+  async isModerator(): Promise<boolean> {
+    const moderatorMint = await this.getModeratorMint();
+    const ata = await splToken.getAssociatedTokenAddress(moderatorMint, this.dispatch.wallet.publicKey!);
+    try {
+      const tokenAccount = await splToken.getAccount(this.dispatch.conn, ata);
+      if (tokenAccount.amount > 0) {
+        return true;
+      }
+    } catch (e) {
+      // Fall through to default false return value
+    }
+    return false;
+  }
+
   // Chain functions
   async getAddress(): Promise<web3.PublicKey> {
     if (!this._address) {
@@ -306,6 +326,20 @@ export class Postbox {
     return this.dispatch.postboxProgram.account.postbox.fetch(await this.getAddress());
   }
 
+  async getSettingsAddress(info: ChainPostboxInfo, settingsType: SettingsType): Promise<web3.PublicKey | undefined> {
+    for (const setting of info.settingsAccounts as any[]) {
+      if (settingsType in setting.settingsType) {
+        return setting.address;
+      }
+    }
+    return undefined;
+  }
+
+  async getModeratorMint(): Promise<web3.PublicKey> {
+    return (await this.getChainPostboxInfo()).moderatorMint;
+  }
+
+  // Utility functions
   async convertChainPost(chainPost: NullableChainPost, address: web3.PublicKey, parent: PostNode, postId: number): Promise<Post | null> {
     if (!chainPost) return null;
     const data = await this.bufferToPostData(chainPost.data);
@@ -319,16 +353,6 @@ export class Postbox {
       downVotes: chainPost.downVotes,
       replyTo: chainPost.replyTo || undefined,
     };
-  }
-
-  // Utility functions
-  async getSettingsAddress(info: ChainPostboxInfo, settingsType: SettingsType): Promise<web3.PublicKey | undefined> {
-    for (const setting of info.settingsAccounts as any[]) {
-      if (settingsType in setting.settingsType) {
-        return setting.address;
-      }
-    }
-    return undefined;
   }
 
   async postDataToBuffer(postData: InputPostData): Promise<Buffer> {
