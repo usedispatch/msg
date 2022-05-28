@@ -3,7 +3,6 @@ import * as web3 from '@solana/web3.js';
 import { seeds } from './constants';
 import { DispatchConnection } from './connection';
 
-
 export type PostboxTarget = {
   key: web3.PublicKey;
   str?: string;
@@ -42,9 +41,9 @@ export type Post = {
 };
 
 export type InteractablePost = {
-  postId: number,
-  address: web3.PublicKey,
-  poster: web3.PublicKey,
+  postId: number;
+  address: web3.PublicKey;
+  poster: web3.PublicKey;
 };
 
 type ChainPost = {
@@ -72,28 +71,25 @@ type SettingsAccountData = {
   description?: Description;
   ownerInfo?: {
     owners: web3.PublicKey[];
-  }
+  };
   postRestrictions?: {};
 };
 
 export enum SettingsType {
-  ownerInfo = "ownerInfo",
-  description = "description",
-  postRestrictions = "postRestrictions",
-};
+  ownerInfo = 'ownerInfo',
+  description = 'description',
+  postRestrictions = 'postRestrictions',
+}
 
 export class Postbox {
   private _address: web3.PublicKey | undefined;
 
-  constructor(
-    public dispatch: DispatchConnection,
-    public target: PostboxTarget,
-    ) {}
+  constructor(public dispatch: DispatchConnection, public target: PostboxTarget) {}
 
   // Init functions
   async initialize(owners?: web3.PublicKey[]): Promise<web3.TransactionSignature> {
     const ix = await this.dispatch.postboxProgram.methods
-      .initialize(this.target.str ?? "", owners ?? [this.dispatch.wallet.publicKey!])
+      .initialize(this.target.str ?? '', owners ?? [this.dispatch.wallet.publicKey!])
       .accounts({
         signer: this.dispatch.wallet.publicKey!,
         targetAccount: this.target.key,
@@ -169,10 +165,14 @@ export class Postbox {
   async innerFetchPosts(parent: PostNode, maxChildId: number): Promise<Post[]> {
     if (maxChildId === 0) return [];
     const addresses = await this.getAddresses(maxChildId);
-    const chainPosts = await this.dispatch.postboxProgram.account.post.fetchMultiple(addresses) as NullableChainPost[];
-    const convertedPosts = await Promise.all(chainPosts.map((rp, i) => {
-      return this.convertChainPost(rp, addresses[i], parent, i);
-    }));
+    const chainPosts = (await this.dispatch.postboxProgram.account.post.fetchMultiple(
+      addresses,
+    )) as NullableChainPost[];
+    const convertedPosts = await Promise.all(
+      chainPosts.map((rp, i) => {
+        return this.convertChainPost(rp, addresses[i], parent, i);
+      }),
+    );
     return convertedPosts.filter((p): p is Post => p !== null);
   }
 
@@ -195,11 +195,11 @@ export class Postbox {
     const ownerSettings = await this.getSettingsAddress(info, SettingsType.ownerInfo);
     const ata = await splToken.getAssociatedTokenAddress(info.moderatorMint, newModerator);
     const ix = await this.dispatch.postboxProgram.methods
-      .designateModerator(this.target.str ?? "")
+      .designateModerator(this.target.str ?? '')
       .accounts({
         postbox: await this.getAddress(),
         targetAccount: this.target.key,
-        newModerator: newModerator,
+        newModerator,
         ownerSettings,
         moderatorAta: ata,
       })
@@ -219,8 +219,8 @@ export class Postbox {
 
   async setOwners(owners: web3.PublicKey[]): Promise<web3.TransactionSignature> {
     const settingsType = SettingsType.ownerInfo;
-    const settingsData = {ownerInfo : {owners}};
-    const settingsSeed = "owners";
+    const settingsData = { ownerInfo: { owners } };
+    const settingsSeed = 'owners';
     return this.innerSetSetting(settingsType, settingsData, settingsSeed);
   }
 
@@ -234,36 +234,40 @@ export class Postbox {
 
   async setDescription(description: Description): Promise<web3.TransactionSignature> {
     const settingsType = SettingsType.description;
-    const settingsData = {description};
-    const settingsSeed = "description";
+    const settingsData = { description };
+    const settingsSeed = 'description';
     return this.innerSetSetting(settingsType, settingsData, settingsSeed);
   }
 
-  async innerSetSetting(settingsType: SettingsType, settingsData: any, settingsSeed: string): Promise<web3.TransactionSignature> {
+  async innerSetSetting(
+    settingsType: SettingsType,
+    settingsData: any,
+    settingsSeed: string,
+  ): Promise<web3.TransactionSignature> {
     const info = await this.getChainPostboxInfo();
     const ownerSettings = await this.getSettingsAddress(info, SettingsType.ownerInfo);
     const oldAddress = await this.getSettingsAddress(info, settingsType);
     // This next line looks weird but seems to work
-    const settingsEnum = { [settingsType.valueOf()]: {}};
+    const settingsEnum = { [settingsType.valueOf()]: {} };
     let ix;
     if (oldAddress) {
       const oldAccount = await this.dispatch.postboxProgram.account.settingsAccount.fetch(oldAddress);
       ix = await this.dispatch.postboxProgram.methods
-      .updateSettingsAccount(settingsEnum, settingsData, settingsSeed, oldAccount.version + 1)
-      .accounts({
-        postbox: await this.getAddress(),
-        oldAccount: oldAddress,
-        ownerSettings,
-      })
-      .transaction();
+        .updateSettingsAccount(settingsEnum, settingsData, settingsSeed, oldAccount.version + 1)
+        .accounts({
+          postbox: await this.getAddress(),
+          oldAccount: oldAddress,
+          ownerSettings,
+        })
+        .transaction();
     } else {
       ix = await this.dispatch.postboxProgram.methods
-      .addSettingsAccount(settingsEnum, settingsData, settingsSeed)
-      .accounts({
-        postbox: await this.getAddress(),
-        ownerSettings,
-      })
-      .transaction();
+        .addSettingsAccount(settingsEnum, settingsData, settingsSeed)
+        .accounts({
+          postbox: await this.getAddress(),
+          ownerSettings,
+        })
+        .transaction();
     }
     return this.dispatch.sendTransaction(ix);
   }
@@ -292,7 +296,7 @@ export class Postbox {
   async getAddress(): Promise<web3.PublicKey> {
     if (!this._address) {
       const [postAddress] = await web3.PublicKey.findProgramAddress(
-        [seeds.protocolSeed, seeds.postboxSeed, this.target.key.toBuffer(), Buffer.from(this.target.str ?? "")],
+        [seeds.protocolSeed, seeds.postboxSeed, this.target.key.toBuffer(), Buffer.from(this.target.str ?? '')],
         this.dispatch.postboxProgram.programId,
       );
       this._address = postAddress;
@@ -339,8 +343,18 @@ export class Postbox {
     return (await this.getChainPostboxInfo()).moderatorMint;
   }
 
+  async getSomeModerators(): Promise<web3.PublicKey[]> {
+    const balances = await this.dispatch.conn.getTokenLargestAccounts(await this.getModeratorMint());
+    return balances.value.map((b) => (+b.amount > 0 ? b.address : null)).filter((a): a is web3.PublicKey => a !== null);
+  }
+
   // Utility functions
-  async convertChainPost(chainPost: NullableChainPost, address: web3.PublicKey, parent: PostNode, postId: number): Promise<Post | null> {
+  async convertChainPost(
+    chainPost: NullableChainPost,
+    address: web3.PublicKey,
+    parent: PostNode,
+    postId: number,
+  ): Promise<Post | null> {
     if (!chainPost) return null;
     const data = await this.bufferToPostData(chainPost.data);
     return {
@@ -372,7 +386,7 @@ export class Postbox {
     return {
       subj: postData.s,
       body: postData.b ?? '',
-      ts: new Date((postData.t?? 0) * 1000),
+      ts: new Date((postData.t ?? 0) * 1000),
       meta: postData.m,
     };
   }
