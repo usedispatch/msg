@@ -59,63 +59,56 @@ export interface IForum {
 
   // Delegate the given account as a moderator by giving them a moderator token
   addModerator(newMod: web3.PublicKey): Promise<web3.TransactionSignature>;
-};
+}
 
 /**
- - A forum object is initialized around one postbox
- - We should cache messages within forums not postboxes
- **/
+ * - A forum object is initialized around one postbox
+ * - We should cache messages within forums not postboxes
+ */
 export class Forum implements IForum {
   protected _postbox: postbox.Postbox;
 
-  constructor(
-    public dispatchConn: DispatchConnection,
-    public collectionId: web3.PublicKey,
-  ) {
+  constructor(public dispatchConn: DispatchConnection, public collectionId: web3.PublicKey) {
     // Create a third party postbox for this forum
     this._postbox = new postbox.Postbox(dispatchConn, {
       key: collectionId,
-      str: "Public",
+      str: 'Public',
     });
   }
 
   async exists(): Promise<boolean> {
-    const info = await this._postbox.dispatch.conn.getAccountInfo(
-      await this._postbox.getAddress());
+    const info = await this._postbox.dispatch.conn.getAccountInfo(await this._postbox.getAddress());
     return info !== null;
   }
 
-  async createForum(
-    info: ForumInfo
-  ): Promise<web3.TransactionSignature[]> {
+  async createForum(info: ForumInfo): Promise<web3.TransactionSignature[]> {
     if (!this.collectionId.equals(info.collectionId)) {
-      throw new Error("Collection ID must match");
+      throw new Error('Collection ID must match');
     }
     const initTx = await this._postbox.initialize(info.owners);
     await this._postbox.dispatch.conn.confirmTransaction(initTx);
     const descTx = await this._postbox.setDescription({
-      title: info.title, desc: info.description
+      title: info.title,
+      desc: info.description,
     });
-    const modTxs = await Promise.all(info.moderators.map((m) => {
-      return this._postbox.addModerator(m);
-    }));
+    const modTxs = await Promise.all(
+      info.moderators.map((m) => {
+        return this._postbox.addModerator(m);
+      }),
+    );
     return [initTx, descTx, ...modTxs];
   }
 
   async getTopicsForForum(): Promise<ForumPost[]> {
     const topLevelPosts = await this._postbox.fetchPosts();
-    const topics = topLevelPosts.filter(
-      (p) => p.data.meta?.topic === true
-    );
+    const topics = topLevelPosts.filter((p) => p.data.meta?.topic === true);
     return topics.map(this.convertPostboxToForum).sort((a, b) => {
       // Newest topic first
-      return - (a.data.ts.getTime() - b.data.ts.getTime());
+      return -(a.data.ts.getTime() - b.data.ts.getTime());
     });
   }
 
-  async getTopicMessages(
-    topic: ForumPost
-  ): Promise<ForumPost[]> {
+  async getTopicMessages(topic: ForumPost): Promise<ForumPost[]> {
     const messages = await this._postbox.fetchReplies(topic);
     return messages.map(this.convertPostboxToForum).sort((a, b) => {
       // Oldest message first
@@ -123,9 +116,7 @@ export class Forum implements IForum {
     });
   }
 
-  async createTopic(
-    forumPost: postbox.InputPostData
-  ): Promise<web3.TransactionSignature> {
+  async createTopic(forumPost: postbox.InputPostData): Promise<web3.TransactionSignature> {
     if (!forumPost.meta) {
       forumPost.meta = {};
     }
@@ -133,39 +124,24 @@ export class Forum implements IForum {
     return this._postbox.createPost(forumPost);
   }
 
-  async createForumPost(
-    forumPost: postbox.InputPostData, topic: ForumPost
-  ): Promise<web3.TransactionSignature> {
-    if (!topic.isTopic) throw new Error("`topic` must have isTopic true");
+  async createForumPost(forumPost: postbox.InputPostData, topic: ForumPost): Promise<web3.TransactionSignature> {
+    if (!topic.isTopic) throw new Error('`topic` must have isTopic true');
     return this._postbox.createPost(forumPost, topic);
   }
 
-  async deleteForumPost(
-    forumPost: ForumPost,
-    asModerator?: boolean,
-  ): Promise<web3.TransactionSignature> {
-    const pPost = this.convertForumToInteractable(
-      forumPost
-    );
+  async deleteForumPost(forumPost: ForumPost, asModerator?: boolean): Promise<web3.TransactionSignature> {
+    const pPost = this.convertForumToInteractable(forumPost);
     if (asModerator) {
-      return this._postbox.deletePostAsModerator(
-        pPost
-      );
+      return this._postbox.deletePostAsModerator(pPost);
     }
     return this._postbox.deletePost(pPost);
   }
 
-  async replyToForumPost(
-    replyToPost: ForumPost, post: postbox.InputPostData
-  ): Promise<web3.TransactionSignature> {
-    return this._postbox.replyToPost(
-      post, replyToPost
-    );
+  async replyToForumPost(replyToPost: ForumPost, post: postbox.InputPostData): Promise<web3.TransactionSignature> {
+    return this._postbox.replyToPost(post, replyToPost);
   }
 
-  async getReplies(
-    post: ForumPost
-  ): Promise<ForumPost[]> {
+  async getReplies(post: ForumPost): Promise<ForumPost[]> {
     const messages = await this._postbox.fetchReplies(post);
     return messages.map(this.convertPostboxToForum).sort((a, b) => {
       // Oldest message first
@@ -173,10 +149,7 @@ export class Forum implements IForum {
     });
   }
 
-  async voteOnForumPost(
-    post: ForumPost,
-    up: boolean,
-  ): Promise<web3.TransactionSignature> {
+  async voteOnForumPost(post: ForumPost, up: boolean): Promise<web3.TransactionSignature> {
     return this._postbox.vote(post, up);
   }
 
@@ -188,15 +161,11 @@ export class Forum implements IForum {
     return this._postbox.getDescription();
   }
 
-  async setDescription(
-    desc: postbox.Description
-  ): Promise<web3.TransactionSignature> {
+  async setDescription(desc: postbox.Description): Promise<web3.TransactionSignature> {
     return this._postbox.setDescription(desc);
   }
 
-  async addModerator(
-    newMod: web3.PublicKey
-  ): Promise<web3.TransactionSignature> {
+  async addModerator(newMod: web3.PublicKey): Promise<web3.TransactionSignature> {
     return this._postbox.addModerator(newMod);
   }
 
@@ -220,9 +189,7 @@ export class Forum implements IForum {
     };
   }
 
-  protected convertForumToInteractable(
-    p: ForumPost
-  ): postbox.InteractablePost {
+  protected convertForumToInteractable(p: ForumPost): postbox.InteractablePost {
     return {
       postId: p.postId,
       address: p.address,
