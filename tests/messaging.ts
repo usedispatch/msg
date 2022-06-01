@@ -22,8 +22,6 @@ describe('messaging', () => {
     const payer = anchor.web3.Keypair.generate();
     await conn.confirmTransaction(await conn.requestAirdrop(payer.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
 
-    const treasuryBalance = await conn.getBalance(TREASURY);
-
     // send a couple of messages
     const [mailbox] = await anchor.web3.PublicKey.findProgramAddress([
       seeds.protocolSeed,
@@ -97,9 +95,6 @@ describe('messaging', () => {
     assert.ok(messageAccount1.sender.equals(sender.publicKey))
     assert.ok(messageAccount1.data === "text1");
 
-    // const endTreasuryBalance = await conn.getBalance(TREASURY);
-    // assert.equal(endTreasuryBalance, treasuryBalance + 2 * MESSAGE_FEE_LAMPORTS);
-
     // delete messages
     const tx2 = await program.rpc.deleteMessage(0, {
       accounts: {
@@ -158,8 +153,13 @@ describe('messaging', () => {
     assert.ok(emptyCountEx.messageCount === 0);
     assert.ok(emptyCountEx.readMessageCount === 0);
 
+    const treasuryBalance = await conn.getBalance(TREASURY);
+
     await senderMailbox.send("text0", receiver.publicKey);
     await senderMailbox.send("text1", receiver.publicKey);
+
+    const endTreasuryBalance = await conn.getBalance(TREASURY);
+    assert.equal(endTreasuryBalance, treasuryBalance + 2 * 50_000);
 
     assert.ok(await receiverMailbox.count() === 2);
 
