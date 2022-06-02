@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::system_instruction;
+use anchor_lang::solana_program;
 use anchor_spl::{token, associated_token};
 mod treasury;
 
@@ -14,13 +14,14 @@ const PROTOCOL_SEED: & str = "dispatch";
 const MAILBOX_SEED: & str = "mailbox";
 const MESSAGE_SEED: & str = "message";
 
-fn inner_send_message(mailbox: &mut Mailbox, message: &mut Message, data: String, sender: Pubkey,
-                      payer: Pubkey, receiver: Pubkey, fee_receiver: Pubkey) -> Result<()> {
+fn inner_send_message<'info>(mailbox: &mut Mailbox, message: &mut Message, data: String, sender: Pubkey,
+                      payer: AccountInfo<'info>, receiver: Pubkey, fee_receiver: AccountInfo<'info>) -> Result<()> {
     mailbox.message_count += 1;
     message.sender = sender;
-    message.payer = payer;
+    message.payer = payer.key();
     message.data = data;
-    system_instruction::transfer(&payer, &fee_receiver, MESSAGE_FEE_LAMPORTS);
+    let ix = solana_program::system_instruction::transfer(&payer.key(), &fee_receiver.key(), MESSAGE_FEE_LAMPORTS);
+    solana_program::program::invoke(&ix, &[payer, fee_receiver])?;
     emit!(DispatchMessage {
         sender_pubkey: message.sender,
         receiver_pubkey: receiver,
@@ -41,9 +42,9 @@ pub mod messaging {
             &mut ctx.accounts.message,
             data,
             ctx.accounts.sender.key(),
-            ctx.accounts.payer.key(),
+            ctx.accounts.payer.to_account_info(),
             ctx.accounts.receiver.key(),
-            ctx.accounts.fee_receiver.key()
+            ctx.accounts.fee_receiver.to_account_info(),
         )?;
         Ok(())
     }
@@ -81,9 +82,9 @@ pub mod messaging {
             message,
             data,
             ctx.accounts.sender.key(),
-            ctx.accounts.payer.key(),
+            ctx.accounts.payer.to_account_info(),
             ctx.accounts.receiver.key(),
-            ctx.accounts.fee_receiver.key()
+            ctx.accounts.fee_receiver.to_account_info(),
         )?;
         message.incentive_mint = ctx.accounts.incentive_mint.key();
 

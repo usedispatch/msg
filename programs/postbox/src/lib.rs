@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::system_instruction;
+use anchor_lang::solana_program;
 use anchor_spl::{token, associated_token};
 mod treasury;
 
@@ -65,7 +65,8 @@ pub mod postbox {
             },
         );
 
-        system_instruction::transfer(&ctx.accounts.signer.key(), &ctx.accounts.treasury.key(), FEE_NEW_POSTBOX);
+        let ix = solana_program::system_instruction::transfer(&ctx.accounts.signer.key(), &ctx.accounts.treasury.key(), FEE_NEW_POSTBOX);
+        solana_program::program::invoke(&ix, &[ctx.accounts.signer.to_account_info(), ctx.accounts.treasury.to_account_info()])?;
         Ok(())
     }
 
@@ -97,7 +98,8 @@ pub mod postbox {
             reply_to: post_account.reply_to,
         });
 
-        system_instruction::transfer(&ctx.accounts.poster.key(), &ctx.accounts.treasury.key(), FEE_POST);
+        let ix = solana_program::system_instruction::transfer(&ctx.accounts.poster.key(), &ctx.accounts.treasury.key(), FEE_POST);
+        solana_program::program::invoke(&ix, &[ctx.accounts.poster.to_account_info(), ctx.accounts.treasury.to_account_info()])?;
         Ok(())
     }
 
@@ -126,7 +128,8 @@ pub mod postbox {
         let vote_count = if up_vote {&mut post_account.up_votes} else {&mut post_account.down_votes};
         *vote_count += if MAX_VOTE == *vote_count {0} else {1};
 
-        system_instruction::transfer(&ctx.accounts.voter.key(), &ctx.accounts.treasury.key(), FEE_VOTE);
+        let ix = solana_program::system_instruction::transfer(&ctx.accounts.voter.key(), &ctx.accounts.treasury.key(), FEE_VOTE);
+        solana_program::program::invoke(&ix, &[ctx.accounts.voter.to_account_info(), ctx.accounts.treasury.to_account_info()])?;
         Ok(())
     }
 
