@@ -1,5 +1,4 @@
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program;
 use anchor_spl::{token, associated_token};
 mod treasury;
 
@@ -12,15 +11,9 @@ const PROTOCOL_SEED: & str = "dispatch";
 const POSTBOX_SEED: & str = "postbox";
 const POST_SEED: & str = "post";
 const MODERATOR_SEED: & str = "moderator";
-const OWNER_SEED: & str = "owners";
-const DESCRIPTION_SEED: & str = "description";
-const POST_RESTRICTIONS_SEED: & str = "post_restrictions";
 
-const POSTBOX_INIT_SETTINGS: usize = 3;
 #[constant]
 const POSTBOX_GROW_CHILDREN_BY: u32 = 1;
-
-const INIT_SETTINGS_VERSION: u32 = 0;
 
 #[constant]
 const FEE_NEW_POSTBOX: u64 = 1_000_000_000;
@@ -45,28 +38,18 @@ pub mod postbox {
     use super::*;
 
     pub fn initialize(ctx: Context<Initialize>, target: String, owners: Vec<Pubkey>) -> Result<()> {
-        if 0 == owners.len() || !owners.contains(&ctx.accounts.signer.key()) {
-            return Err(Error::from(ProgramError::InvalidArgument).with_source(source!()));
-        }
         if 0 == target.len() && ctx.accounts.target_account.key() != ctx.accounts.signer.key() {
             return Err(Error::from(ProgramError::InvalidArgument).with_values(("Target string must have a value", target)));
         }
 
-        let owner_settings_account = &mut ctx.accounts.owner_settings;
-        owner_settings_account.data = SettingsAccountData::OwnerInfo { owners };
-
         let postbox_account = &mut ctx.accounts.postbox;
         postbox_account.max_child_id = 0;
         postbox_account.moderator_mint = ctx.accounts.moderator_mint.key();
-        postbox_account.settings_accounts = vec!(
-            SettingsAddress {
-                settings_type: SettingsAccountType::OwnerInfo,
-                address: owner_settings_account.key(),
-            },
+        postbox_account.settings = vec!(
+            SettingsData::OwnerInfo { owners },
         );
 
-        let ix = solana_program::system_instruction::transfer(&ctx.accounts.signer.key(), &ctx.accounts.treasury.key(), FEE_NEW_POSTBOX);
-        solana_program::program::invoke(&ix, &[ctx.accounts.signer.to_account_info(), ctx.accounts.treasury.to_account_info()])?;
+        treasury::transfer_lamports(&ctx.accounts.signer, &ctx.accounts.treasury, FEE_NEW_POSTBOX)?;
         Ok(())
     }
 
@@ -98,8 +81,7 @@ pub mod postbox {
             reply_to: post_account.reply_to,
         });
 
-        let ix = solana_program::system_instruction::transfer(&ctx.accounts.poster.key(), &ctx.accounts.treasury.key(), FEE_POST);
-        solana_program::program::invoke(&ix, &[ctx.accounts.poster.to_account_info(), ctx.accounts.treasury.to_account_info()])?;
+        treasury::transfer_lamports(&ctx.accounts.poster, &ctx.accounts.treasury, FEE_POST)?;
         Ok(())
     }
 
@@ -128,8 +110,7 @@ pub mod postbox {
         let vote_count = if up_vote {&mut post_account.up_votes} else {&mut post_account.down_votes};
         *vote_count += if MAX_VOTE == *vote_count {0} else {1};
 
-        let ix = solana_program::system_instruction::transfer(&ctx.accounts.voter.key(), &ctx.accounts.treasury.key(), FEE_VOTE);
-        solana_program::program::invoke(&ix, &[ctx.accounts.voter.to_account_info(), ctx.accounts.treasury.to_account_info()])?;
+        treasury::transfer_lamports(&ctx.accounts.voter, &ctx.accounts.treasury, FEE_VOTE)?;
         Ok(())
     }
 
@@ -153,33 +134,15 @@ pub mod postbox {
         Ok(())
     }
 
-    pub fn add_settings_account(ctx: Context<AddSettingsAccount>, settings_type: SettingsAccountType,
-        account_data: SettingsAccountData, _account_seed: String) -> Result<()> {
-        ctx.accounts.new_account.data = account_data;
-        ctx.accounts.new_account.version = INIT_SETTINGS_VERSION;
-
-        match ctx.accounts.postbox.get_settings_address(settings_type) {
-            Some(_) => return Err(Error::from(ProgramError::InvalidArgument).with_source(source!())),
-            None => ctx.accounts.postbox.settings_accounts.push(SettingsAddress {
-                settings_type: settings_type,
-                address: ctx.accounts.new_account.key(),
-            }),
-        }
+    pub fn add_or_update_setting(ctx: Context<AddOrUpdateSetting>, settings_data: SettingsData) -> Result<()> {
+        msg!("Made it past account assertions. Starting to update postbox settings");
+        let postbox = & mut ctx.accounts.postbox;
+        postbox.settings.retain(|s| s.get_type() != settings_data.get_type());
+        postbox.settings.push(settings_data);
+        msg!("Postbox settings are updated. Starting to resize");
+        resize_account(postbox.to_account_info().as_ref(), & ctx.accounts.owner, postbox.get_size())?;
+        msg!("Postbox done resizing");
         Ok(())
-    }
-
-    pub fn update_settings_account(ctx: Context<UpdateSettingsAccount>, settings_type: SettingsAccountType,
-        account_data: SettingsAccountData, _account_seed: String, account_version: u32) -> Result<()> {
-        ctx.accounts.new_account.data = account_data;
-        ctx.accounts.new_account.version = account_version;
-
-        for setting in &mut ctx.accounts.postbox.settings_accounts {
-            if settings_type == setting.settings_type {
-                setting.address = ctx.accounts.new_account.key();
-                return Ok(());
-            }
-        }
-        return Err(Error::from(ProgramError::InvalidArgument).with_source(source!()));
     }
 }
 
@@ -188,7 +151,7 @@ pub mod postbox {
 pub struct Initialize<'info> {
     #[account(init,
         payer = signer,
-        space = 8 + 4 + 32 + 4 + (1 + 32) * POSTBOX_INIT_SETTINGS,
+        space = 8 + 4 + 32 + 4 + 1 + 4 + 32 * owners.len(),
         seeds = [PROTOCOL_SEED.as_bytes(), POSTBOX_SEED.as_bytes(), target_account.key().as_ref(), target.as_bytes()],
         bump,
     )]
@@ -201,16 +164,9 @@ pub struct Initialize<'info> {
         mint::authority = postbox,
     )]
     pub moderator_mint: Box<Account<'info, token::Mint>>,
-    #[account(init,
-        payer = signer,
-        space = 8 + 4 + 1 + 4 + 32 * owners.len(),
-        seeds = [PROTOCOL_SEED.as_bytes(), OWNER_SEED.as_bytes(), postbox.key().as_ref(), &INIT_SETTINGS_VERSION.to_le_bytes()],
-        bump,
-    )]
-    pub owner_settings: Box<Account<'info, SettingsAccount>>,
     /// CHECK: we use this account's address only for generating the PDA
     pub target_account: UncheckedAccount<'info>,
-    #[account(mut)]
+    #[account(mut, constraint = owners.contains(signer.key))]
     pub signer: Signer<'info>,
     /// CHECK: we do not access the data in the fee_receiver other than to transfer lamports to it
     #[account(mut, address = treasury::TREASURY_ADDRESS)]
@@ -305,7 +261,7 @@ pub struct DesignateModerator<'info> {
         has_one = moderator_mint,
     )]
     pub postbox: Box<Account<'info, Postbox>>,
-    /// CHECK: we use this account's address only for generating the PDA
+    /// CHECK: we use this account's address only for generating the PDA signature
     pub target_account: UncheckedAccount<'info>,
     #[account(
         mut,
@@ -313,9 +269,7 @@ pub struct DesignateModerator<'info> {
         bump,
     )]
     pub moderator_mint: Box<Account<'info, token::Mint>>,
-    #[account(address = postbox.get_settings_address(SettingsAccountType::OwnerInfo).unwrap())]
-    pub owner_settings: Box<Account<'info, SettingsAccount>>,
-    #[account(mut, constraint=(owner_is_valid(&owner, &owner_settings)))]
+    #[account(mut, constraint = postbox.has_owner(&owner.key))]
     pub owner: Signer<'info>,
     /// CHECK: we do not access the account data other than for address for ATA
     pub new_moderator: UncheckedAccount<'info>,
@@ -333,46 +287,10 @@ pub struct DesignateModerator<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(account_type: SettingsAccountType, account_data: SettingsAccountData, account_seed: String)]
-pub struct AddSettingsAccount<'info> {
+pub struct AddOrUpdateSetting<'info> {
     #[account(mut)]
     pub postbox: Box<Account<'info, Postbox>>,
-    #[account(init,
-        payer = owner,
-        space = 8 + 4 + account_data.get_size(),
-        seeds = [PROTOCOL_SEED.as_bytes(), account_seed.as_bytes(), postbox.key().as_ref(), &INIT_SETTINGS_VERSION.to_le_bytes()],
-        constraint = (account_type.get_seed() == account_seed),
-        bump,
-    )]
-    pub new_account: Account<'info, SettingsAccount>,
-    #[account(address = postbox.get_settings_address(SettingsAccountType::OwnerInfo).unwrap())]
-    pub owner_settings: Box<Account<'info, SettingsAccount>>,
-    #[account(mut, constraint=(owner_is_valid(&owner, &owner_settings)))]
-    pub owner: Signer<'info>,
-    pub system_program: Program<'info, System>,
-}
-
-#[derive(Accounts)]
-#[instruction(account_type: SettingsAccountType, account_data: SettingsAccountData, account_seed: String, account_version: u32)]
-pub struct UpdateSettingsAccount<'info> {
-    #[account(mut)]
-    pub postbox: Box<Account<'info, Postbox>>,
-    #[account(init,
-        payer = owner,
-        space = 8 + 4 + account_data.get_size(),
-        seeds = [PROTOCOL_SEED.as_bytes(), account_seed.as_bytes(), postbox.key().as_ref(), &account_version.to_le_bytes()],
-        constraint = (account_type.get_seed() == account_seed),
-        bump,
-    )]
-    pub new_account: Account<'info, SettingsAccount>,
-    #[account(mut,
-        close = owner,
-        constraint=(old_account.data.is_type(account_type) && account_version == old_account.version + 1)
-    )]
-    pub old_account: Account<'info, SettingsAccount>,
-    #[account(address = postbox.get_settings_address(SettingsAccountType::OwnerInfo).unwrap())]
-    pub owner_settings: Box<Account<'info, SettingsAccount>>,
-    #[account(mut, constraint=(owner_is_valid(&owner, &owner_settings)))]
+    #[account(mut, constraint = postbox.has_owner(&owner.key))]
     pub owner: Signer<'info>,
     pub system_program: Program<'info, System>,
 }
@@ -384,13 +302,11 @@ pub fn is_post_or_default(account_info: & AccountInfo) -> bool {
 #[derive(
     AnchorSerialize,
     AnchorDeserialize,
-    Copy,
     Clone,
     PartialEq,
-    Eq,
-    std::fmt::Debug
+    Eq
 )]
-pub enum SettingsAccountType {
+pub enum SettingsType {
     Description,
     OwnerInfo,
     PostRestrictions,
@@ -403,68 +319,67 @@ pub enum SettingsAccountType {
     PartialEq,
     Eq
 )]
-pub enum SettingsAccountData {
+pub enum SettingsData {
     Description { title: String, desc: String },
     OwnerInfo { owners: Vec<Pubkey> },
     PostRestrictions,
 }
 
-#[derive(
-    AnchorSerialize,
-    AnchorDeserialize,
-    Copy,
-    Clone,
-    PartialEq,
-    Eq
-)]
-pub struct SettingsAddress {
-    pub settings_type: SettingsAccountType,
-    pub address: Pubkey,
-}
-
 impl Postbox {
-    pub fn get_settings_address(&self, settings_type: SettingsAccountType) -> Option<Pubkey> {
-        for setting in &self.settings_accounts {
-            if settings_type == setting.settings_type {
-                return Some(setting.address);
+    pub fn has_owner(&self, potential_owner: & Pubkey) -> bool {
+        match self.get_setting(SettingsType::OwnerInfo) {
+            Some(SettingsData::OwnerInfo { owners }) => return owners.contains(potential_owner),
+            _ => return false,
+        }
+    }
+
+    pub fn get_setting(&self, settings_type: SettingsType) -> Option<& SettingsData> {
+        for setting in &self.settings {
+            if setting.get_type() == settings_type {
+                return Some(& setting);
             }
         }
         return None;
     }
+
+    pub fn get_size(&self) -> usize {
+        // discriminator + max_child_id + moderator_mint + settings_length
+        let mut size = 8 + 4 + 32 + 4;
+        for setting in & self.settings {
+            size += setting.get_size();
+        }
+        return size;
+    }
 }
 
-impl SettingsAccountData {
-    pub fn is_type(&self, account_type: SettingsAccountType) -> bool {
-        return account_type == match self {
-            SettingsAccountData::Description { title: _, desc: _ } => SettingsAccountType::Description,
-            SettingsAccountData::OwnerInfo { owners: _ } => SettingsAccountType::OwnerInfo,
-            SettingsAccountData::PostRestrictions => SettingsAccountType::PostRestrictions,
-        };
-    }
-
+impl SettingsData {
     pub fn get_size(&self) -> usize {
         return match self.try_to_vec() {
             Ok(v) => v.len(),
             Err(_) => 0,
         };
     }
-}
 
-impl SettingsAccountType {
-    pub fn get_seed(&self) -> &'static str {
+    pub fn get_type(&self) -> SettingsType {
         return match self {
-            SettingsAccountType::Description => DESCRIPTION_SEED,
-            SettingsAccountType::OwnerInfo => OWNER_SEED,
-            SettingsAccountType::PostRestrictions => POST_RESTRICTIONS_SEED,
+            SettingsData::Description { title: _, desc: _ } => SettingsType::Description,
+            SettingsData::OwnerInfo { owners: _ } => SettingsType::OwnerInfo,
+            SettingsData::PostRestrictions => SettingsType::PostRestrictions,
         };
     }
 }
 
-pub fn owner_is_valid(owner: & Signer, owner_settings_account: & Box<Account<SettingsAccount>>) -> bool {
-    return match & owner_settings_account.data {
-        SettingsAccountData::OwnerInfo { owners } => owners.contains(&owner.key()),
-        _ => false,
-    };
+pub fn resize_account<'info>(data_account: &dyn ToAccountInfo<'info>, funding_account: &dyn ToAccountInfo<'info>, new_size: usize) -> Result<()> {
+    let rent = Rent::get()?;
+    let new_minimum_balance = rent.minimum_balance(new_size);
+    let data_info = data_account.to_account_info();
+
+    if new_minimum_balance > data_info.lamports() {
+        let lamports_diff = new_minimum_balance.saturating_sub(data_info.lamports());
+        treasury::transfer_lamports(funding_account, data_account, lamports_diff)?;
+    } // TODO(mfasman): free up lamports when reducing size (need to sign as PDA in transfer)
+    data_info.realloc(new_size, false)?;
+    Ok(())
 }
 
 #[account]
@@ -472,7 +387,7 @@ pub fn owner_is_valid(owner: & Signer, owner_settings_account: & Box<Account<Set
 pub struct Postbox {
     pub max_child_id: u32,
     pub moderator_mint: Pubkey,
-    pub settings_accounts: Vec<SettingsAddress>,
+    pub settings: Vec<SettingsData>,
 }
 
 #[account]
@@ -484,12 +399,6 @@ pub struct Post {
     down_votes: u16,
     reply_to: Option<Pubkey>,
     extra: Vec<u8>,
-}
-
-#[account]
-pub struct SettingsAccount {
-    version: u32,
-    data: SettingsAccountData,
 }
 
 #[event]
