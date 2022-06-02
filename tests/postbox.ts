@@ -1,7 +1,7 @@
 import * as anchor from '@project-serum/anchor';
 import { strict as assert } from 'assert';
 
-import { Postbox, DispatchConnection, Forum, SettingsType } from '../usedispatch_client/src';
+import { Postbox, DispatchConnection, Forum, clusterAddresses } from '../usedispatch_client/src';
 
 describe('postbox', () => {
 
@@ -9,19 +9,27 @@ describe('postbox', () => {
   anchor.setProvider(anchor.AnchorProvider.env());
 
   const conn = anchor.getProvider().connection;
+  const TREASURY = clusterAddresses.get("devnet").treasuryAddress;
 
   it('Initializes a postbox and creates a post', async () => {
     // Set up accounts
     const owner = new anchor.Wallet(anchor.web3.Keypair.generate());
     await conn.confirmTransaction(await conn.requestAirdrop(owner.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
+    await conn.confirmTransaction(await conn.requestAirdrop(TREASURY, 1 * anchor.web3.LAMPORTS_PER_SOL));
+
+    const treasuryBalance = await conn.getBalance(TREASURY);
 
     const postbox = new Postbox(new DispatchConnection(conn, owner), {key: owner.publicKey});
     const tx0 = await postbox.initialize();
     await conn.confirmTransaction(tx0);
 
+    assert.equal(await conn.getBalance(TREASURY), treasuryBalance + 1_000_000_000);
+
     const testPost = {subj: "Test", body: "This is a test post"};
     const tx1 = await postbox.createPost(testPost);
     await conn.confirmTransaction(tx1);
+
+    assert.equal(await conn.getBalance(TREASURY), treasuryBalance + 1_000_000_000 + 50_000);
 
     const posts = await postbox.fetchPosts();
     assert.equal(posts.length, 1);
@@ -136,11 +144,15 @@ describe('postbox', () => {
     const topLevelPosts = await postboxAsOwner.fetchPosts();
     assert.equal(topLevelPosts.length, 1);
 
+    const treasuryBalance = await conn.getBalance(TREASURY);
+
     const tx2 = await postboxAsVoter.vote(topLevelPosts[0], true);
     await conn.confirmTransaction(tx2);
 
     const posts = await postboxAsOwner.fetchPosts();
     assert.equal(posts[0].upVotes, 1);
+
+    assert.equal(await conn.getBalance(TREASURY), treasuryBalance + 50_000);
   });
 
   it('Uses the forum.ts wrapper', async () => {
