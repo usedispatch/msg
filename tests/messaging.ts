@@ -21,6 +21,7 @@ describe('messaging', () => {
 
     const payer = anchor.web3.Keypair.generate();
     await conn.confirmTransaction(await conn.requestAirdrop(payer.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
+    await conn.confirmTransaction(await conn.requestAirdrop(TREASURY, 1 * anchor.web3.LAMPORTS_PER_SOL));
 
     // send a couple of messages
     const [mailbox] = await anchor.web3.PublicKey.findProgramAddress([

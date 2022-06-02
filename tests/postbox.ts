@@ -15,6 +15,7 @@ describe('postbox', () => {
     // Set up accounts
     const owner = new anchor.Wallet(anchor.web3.Keypair.generate());
     await conn.confirmTransaction(await conn.requestAirdrop(owner.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
+    await conn.confirmTransaction(await conn.requestAirdrop(TREASURY, 1 * anchor.web3.LAMPORTS_PER_SOL));
 
     const treasuryBalance = await conn.getBalance(TREASURY);
 
