@@ -45,8 +45,11 @@ export interface IForum {
   // For a given topic, the messages
   getReplies(topic: ForumPost): Promise<ForumPost[]>;
 
-  // Vote a post up or down
-  voteOnForumPost(post: ForumPost, up: boolean): Promise<web3.TransactionSignature>;
+  // Vote a post up
+  voteUpForumPost(post: ForumPost): Promise<web3.TransactionSignature>;
+
+  // Vote a post down
+  voteDownForumPost(post: ForumPost): Promise<web3.TransactionSignature>;
 
   // Get a list of the owners of this forum
   getOwners(): Promise<web3.PublicKey[]>;
@@ -59,6 +62,9 @@ export interface IForum {
 
   // Delegate the given account as a moderator by giving them a moderator token
   addModerator(newMod: web3.PublicKey): Promise<web3.TransactionSignature>;
+
+  // Get a list of moderators
+  getModerators(): Promise<web3.PublicKey[]>;
 }
 
 /**
@@ -149,8 +155,12 @@ export class Forum implements IForum {
     });
   }
 
-  async voteOnForumPost(post: ForumPost, up: boolean): Promise<web3.TransactionSignature> {
-    return this._postbox.vote(post, up);
+  async voteUpForumPost(post: ForumPost): Promise<web3.TransactionSignature> {
+    return this._postbox.vote(post, true);
+  }
+
+  async voteDownForumPost(post: ForumPost): Promise<web3.TransactionSignature> {
+    return this._postbox.vote(post, false);
   }
 
   async getOwners(): Promise<web3.PublicKey[]> {
@@ -167,6 +177,10 @@ export class Forum implements IForum {
 
   async addModerator(newMod: web3.PublicKey): Promise<web3.TransactionSignature> {
     return this._postbox.addModerator(newMod);
+  }
+
+  async getModerators(): Promise<web3.PublicKey[]> {
+    return this._postbox.getSomeModerators();
   }
 
   // Role functions

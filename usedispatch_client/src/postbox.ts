@@ -59,7 +59,7 @@ type NullableChainPost = null | ChainPost;
 type ChainPostboxInfo = {
   maxChildId: number;
   moderatorMint: web3.PublicKey;
-  settingsAccounts: any;
+  settings: any;
 };
 
 export type Description = {
@@ -87,9 +87,13 @@ export class Postbox {
   constructor(public dispatch: DispatchConnection, public target: PostboxTarget) {}
 
   // Init functions
-  async initialize(owners?: web3.PublicKey[]): Promise<web3.TransactionSignature> {
+  async initialize(owners?: web3.PublicKey[], description?: Description): Promise<web3.TransactionSignature> {
     const ix = await this.dispatch.postboxProgram.methods
-      .initialize(this.target.str ?? '', owners ?? [this.dispatch.wallet.publicKey!])
+      .initialize(
+        this.target.str ?? '',
+        owners ?? [this.dispatch.wallet.publicKey!],
+        description ? { description } : null,
+      )
       .accounts({
         signer: this.dispatch.wallet.publicKey!,
         targetAccount: this.target.key,
@@ -192,7 +196,6 @@ export class Postbox {
   // Admin functions
   async addModerator(newModerator: web3.PublicKey): Promise<web3.TransactionSignature> {
     const info = await this.getChainPostboxInfo();
-    const ownerSettings = await this.getSettingsAddress(info, SettingsType.ownerInfo);
     const ata = await splToken.getAssociatedTokenAddress(info.moderatorMint, newModerator);
     const ix = await this.dispatch.postboxProgram.methods
       .designateModerator(this.target.str ?? '')
@@ -200,7 +203,6 @@ export class Postbox {
         postbox: await this.getAddress(),
         targetAccount: this.target.key,
         newModerator,
-        ownerSettings,
         moderatorAta: ata,
       })
       .transaction();
@@ -210,65 +212,40 @@ export class Postbox {
   // Settings functions
 
   async getOwners(): Promise<web3.PublicKey[]> {
-    const info = await this.getChainPostboxInfo();
-    const ownerAddress = await this.getSettingsAddress(info, SettingsType.ownerInfo);
-    if (!ownerAddress) return [];
-    const ownersAccount = await this.dispatch.postboxProgram.account.settingsAccount.fetch(ownerAddress);
-    return (ownersAccount.data as SettingsAccountData).ownerInfo?.owners ?? [];
+    return (await this.innerGetSetting(SettingsType.ownerInfo))?.ownerInfo?.owners ?? [];
   }
 
   async setOwners(owners: web3.PublicKey[]): Promise<web3.TransactionSignature> {
-    const settingsType = SettingsType.ownerInfo;
-    const settingsData = { ownerInfo: { owners } };
-    const settingsSeed = 'owners';
-    return this.innerSetSetting(settingsType, settingsData, settingsSeed);
+    return this.innerSetSetting({ ownerInfo: { owners } });
   }
 
   async getDescription(): Promise<Description | undefined> {
-    const info = await this.getChainPostboxInfo();
-    const descAddress = await this.getSettingsAddress(info, SettingsType.description);
-    if (!descAddress) return undefined;
-    const descAccount = await this.dispatch.postboxProgram.account.settingsAccount.fetch(descAddress);
-    return (descAccount.data as SettingsAccountData).description;
+    return (await this.innerGetSetting(SettingsType.description))?.description;
   }
 
   async setDescription(description: Description): Promise<web3.TransactionSignature> {
-    const settingsType = SettingsType.description;
-    const settingsData = { description };
-    const settingsSeed = 'description';
-    return this.innerSetSetting(settingsType, settingsData, settingsSeed);
+    return this.innerSetSetting({ description });
+  }
+
+  async innerGetSetting(settingsType: SettingsType): Promise<SettingsAccountData | undefined> {
+    const info = await this.getChainPostboxInfo();
+    for (const setting of info.settings) {
+      if(setting[settingsType]) {
+        return setting;
+      }
+    }
+    return undefined;
   }
 
   async innerSetSetting(
-    settingsType: SettingsType,
     settingsData: any,
-    settingsSeed: string,
   ): Promise<web3.TransactionSignature> {
-    const info = await this.getChainPostboxInfo();
-    const ownerSettings = await this.getSettingsAddress(info, SettingsType.ownerInfo);
-    const oldAddress = await this.getSettingsAddress(info, settingsType);
-    // This next line looks weird but seems to work
-    const settingsEnum = { [settingsType.valueOf()]: {} };
-    let ix;
-    if (oldAddress) {
-      const oldAccount = await this.dispatch.postboxProgram.account.settingsAccount.fetch(oldAddress);
-      ix = await this.dispatch.postboxProgram.methods
-        .updateSettingsAccount(settingsEnum, settingsData, settingsSeed, oldAccount.version + 1)
-        .accounts({
-          postbox: await this.getAddress(),
-          oldAccount: oldAddress,
-          ownerSettings,
-        })
-        .transaction();
-    } else {
-      ix = await this.dispatch.postboxProgram.methods
-        .addSettingsAccount(settingsEnum, settingsData, settingsSeed)
-        .accounts({
-          postbox: await this.getAddress(),
-          ownerSettings,
-        })
-        .transaction();
-    }
+    const ix = await this.dispatch.postboxProgram.methods
+      .addOrUpdateSetting(settingsData)
+      .accounts({
+        postbox: await this.getAddress(),
+      })
+      .transaction();
     return this.dispatch.sendTransaction(ix);
   }
 
@@ -328,15 +305,6 @@ export class Postbox {
 
   async getChainPostboxInfo(): Promise<ChainPostboxInfo> {
     return this.dispatch.postboxProgram.account.postbox.fetch(await this.getAddress());
-  }
-
-  async getSettingsAddress(info: ChainPostboxInfo, settingsType: SettingsType): Promise<web3.PublicKey | undefined> {
-    for (const setting of info.settingsAccounts as any[]) {
-      if (settingsType in setting.settingsType) {
-        return setting.address;
-      }
-    }
-    return undefined;
   }
 
   async getModeratorMint(): Promise<web3.PublicKey> {

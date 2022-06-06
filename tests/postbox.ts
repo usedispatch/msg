@@ -19,7 +19,7 @@ describe('postbox', () => {
 
     const treasuryBalance = await conn.getBalance(TREASURY);
 
-    const postbox = new Postbox(new DispatchConnection(conn, owner), {key: owner.publicKey});
+    const postbox = new Postbox(new DispatchConnection(conn, owner), {key: owner.publicKey, str: "Public"});
     const tx0 = await postbox.initialize();
     await conn.confirmTransaction(tx0);
 
@@ -237,7 +237,7 @@ describe('postbox', () => {
     await conn.confirmTransaction(tx4);
 
     const posts = await forumAsModerator.getTopicMessages(topics[0]);
-    const tx5 = await forumAsModerator.voteOnForumPost(posts[0], true);
+    const tx5 = await forumAsModerator.voteUpForumPost(posts[0]);
     await conn.confirmTransaction(tx5);
 
     const postsAgain = await forumAsModerator.getTopicMessages(topics[0]);
