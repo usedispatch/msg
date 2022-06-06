@@ -230,16 +230,14 @@ export class Postbox {
   async innerGetSetting(settingsType: SettingsType): Promise<SettingsAccountData | undefined> {
     const info = await this.getChainPostboxInfo();
     for (const setting of info.settings) {
-      if(setting[settingsType]) {
+      if (setting[settingsType]) {
         return setting;
       }
     }
     return undefined;
   }
 
-  async innerSetSetting(
-    settingsData: any,
-  ): Promise<web3.TransactionSignature> {
+  async innerSetSetting(settingsData: any): Promise<web3.TransactionSignature> {
     const ix = await this.dispatch.postboxProgram.methods
       .addOrUpdateSetting(settingsData)
       .accounts({
