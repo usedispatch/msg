@@ -18,6 +18,8 @@ const POSTBOX_GROW_CHILDREN_BY: u32 = 1;
 #[constant]
 const FEE_NEW_POSTBOX: u64 = 1_000_000_000;
 #[constant]
+const FEE_NEW_PERSONAL_BOX: u64 = 50_000;
+#[constant]
 const FEE_POST: u64 = 50_000;
 #[constant]
 const FEE_VOTE: u64 = 50_000;
@@ -37,9 +39,13 @@ const MAX_VOTE: u16 = 60_000;
 pub mod postbox {
     use super::*;
 
-    pub fn initialize(ctx: Context<Initialize>, target: String, owners: Vec<Pubkey>) -> Result<()> {
-        if 0 == target.len() && ctx.accounts.target_account.key() != ctx.accounts.signer.key() {
-            return Err(Error::from(ProgramError::InvalidArgument).with_values(("Target string must have a value", target)));
+    pub fn initialize(ctx: Context<Initialize>, target: String, owners: Vec<Pubkey>, desc: Option<SettingsData>) -> Result<()> {
+        let mut fee = FEE_NEW_POSTBOX;
+        if 0 == target.len() {  // Should be personal
+            if ctx.accounts.target_account.key() != ctx.accounts.signer.key() {
+                return Err(Error::from(ProgramError::InvalidArgument).with_values(("Target string must have a value", target)));
+            }
+            fee = FEE_NEW_PERSONAL_BOX;
         }
 
         let postbox_account = &mut ctx.accounts.postbox;
@@ -49,7 +55,13 @@ pub mod postbox {
             SettingsData::OwnerInfo { owners },
         );
 
-        treasury::transfer_lamports(&ctx.accounts.signer, &ctx.accounts.treasury, FEE_NEW_POSTBOX)?;
+        match desc {
+            None => {},
+            Some(SettingsData::Description { title: _, desc: _}) => postbox_account.settings.push(desc.unwrap()),
+            _ => return Err(Error::from(ProgramError::InvalidArgument).with_source(source!())),
+        }
+
+        treasury::transfer_lamports(&ctx.accounts.signer, &ctx.accounts.treasury, fee)?;
         Ok(())
     }
 
@@ -135,23 +147,22 @@ pub mod postbox {
     }
 
     pub fn add_or_update_setting(ctx: Context<AddOrUpdateSetting>, settings_data: SettingsData) -> Result<()> {
-        msg!("Made it past account assertions. Starting to update postbox settings");
         let postbox = & mut ctx.accounts.postbox;
+        // TODO: can we do this more efficiently?
         postbox.settings.retain(|s| s.get_type() != settings_data.get_type());
         postbox.settings.push(settings_data);
-        msg!("Postbox settings are updated. Starting to resize");
         resize_account(postbox.to_account_info().as_ref(), & ctx.accounts.owner, postbox.get_size())?;
-        msg!("Postbox done resizing");
         Ok(())
     }
 }
 
 #[derive(Accounts)]
-#[instruction(target: String, owners: Vec<Pubkey>)]
+#[instruction(target: String, owners: Vec<Pubkey>, desc: Option<SettingsData>)]
 pub struct Initialize<'info> {
     #[account(init,
         payer = signer,
-        space = 8 + 4 + 32 + 4 + 1 + 4 + 32 * owners.len(),
+        // discriminator, max_child_id, moderator_mint, settings vec size, owner enum type, owners vec size, owners, description
+        space = 8 + 4 + 32 + 4 + 1 + 4 + 32 * owners.len() + if desc.is_some() {desc.unwrap().get_size()} else {0},
         seeds = [PROTOCOL_SEED.as_bytes(), POSTBOX_SEED.as_bytes(), target_account.key().as_ref(), target.as_bytes()],
         bump,
     )]

@@ -87,9 +87,13 @@ export class Postbox {
   constructor(public dispatch: DispatchConnection, public target: PostboxTarget) {}
 
   // Init functions
-  async initialize(owners?: web3.PublicKey[]): Promise<web3.TransactionSignature> {
+  async initialize(owners?: web3.PublicKey[], description?: Description): Promise<web3.TransactionSignature> {
     const ix = await this.dispatch.postboxProgram.methods
-      .initialize(this.target.str ?? '', owners ?? [this.dispatch.wallet.publicKey!])
+      .initialize(
+        this.target.str ?? '',
+        owners ?? [this.dispatch.wallet.publicKey!],
+        description ? { description } : null,
+      )
       .accounts({
         signer: this.dispatch.wallet.publicKey!,
         targetAccount: this.target.key,
