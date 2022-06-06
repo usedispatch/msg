@@ -91,18 +91,18 @@ export class Forum implements IForum {
     if (!this.collectionId.equals(info.collectionId)) {
       throw new Error('Collection ID must match');
     }
-    const initTx = await this._postbox.initialize(info.owners);
-    await this._postbox.dispatch.conn.confirmTransaction(initTx);
-    const descTx = await this._postbox.setDescription({
+    const desc = {
       title: info.title,
       desc: info.description,
-    });
+    };
+    const initTx = await this._postbox.initialize(info.owners, desc);
+    await this._postbox.dispatch.conn.confirmTransaction(initTx);
     const modTxs = await Promise.all(
       info.moderators.map((m) => {
         return this._postbox.addModerator(m);
       }),
     );
-    return [initTx, descTx, ...modTxs];
+    return [initTx, ...modTxs];
   }
 
   async getTopicsForForum(): Promise<ForumPost[]> {
