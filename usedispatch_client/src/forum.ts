@@ -180,7 +180,7 @@ export class Forum implements IForum {
   }
 
   async getModerators(): Promise<web3.PublicKey[]> {
-    return this._postbox.getSomeModerators();
+    return this._postbox.getModerators();
   }
 
   // Role functions
