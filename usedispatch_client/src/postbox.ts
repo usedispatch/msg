@@ -309,9 +309,11 @@ export class Postbox {
     return (await this.getChainPostboxInfo()).moderatorMint;
   }
 
-  async getSomeModerators(): Promise<web3.PublicKey[]> {
-    const balances = await this.dispatch.conn.getTokenLargestAccounts(await this.getModeratorMint());
-    return balances.value.map((b) => (+b.amount > 0 ? b.address : null)).filter((a): a is web3.PublicKey => a !== null);
+  async getModerators(): Promise<web3.PublicKey[]> {
+    const infos = await this.dispatch.conn.getProgramAccounts(splToken.TOKEN_PROGRAM_ID, {
+      filters: [{ dataSize: 165 }, { memcmp: { offset: 0, bytes: (await this.getModeratorMint()).toBase58() } }],
+    });
+    return infos.map((ai) => splToken.AccountLayout.decode(ai.account.data).owner);
   }
 
   // Utility functions
