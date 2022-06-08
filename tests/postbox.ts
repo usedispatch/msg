@@ -197,6 +197,10 @@ describe('postbox', () => {
     await conn.confirmTransaction(txB);
     assert.ok(await forumAsModerator.isModerator());
 
+    const moderators = await forumAsOwner.getModerators();
+    assert.equal(moderators.length, 2);
+    assert.ok(moderators.map((m) => m.toBase58()).includes(moderator.publicKey.toBase58()));
+
     const topic0 = {subj: "Test Topic", body: "This is a test topic."};
     const tx0 = await forumAsPoster.createTopic(topic0);
     await conn.confirmTransaction(tx0);
