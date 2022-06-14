@@ -1,5 +1,11 @@
 use anchor_lang::prelude::*;
 use anchor_spl::{token, associated_token};
+use errors::PostboxErrorCode;
+use post_restrictions::PostRestrictionRule;
+
+mod errors;
+mod nft_metadata;
+mod post_restrictions;
 mod treasury;
 
 #[cfg(feature = "mainnet")]
@@ -42,9 +48,7 @@ pub mod postbox {
     pub fn initialize(ctx: Context<Initialize>, target: String, owners: Vec<Pubkey>, desc: Option<SettingsData>) -> Result<()> {
         let mut fee = FEE_NEW_POSTBOX;
         if 0 == target.len() {  // Should be personal
-            if ctx.accounts.target_account.key() != ctx.accounts.signer.key() {
-                return Err(Error::from(ProgramError::InvalidArgument).with_values(("Target string must have a value", target)));
-            }
+            require!(ctx.accounts.target_account.key() == ctx.accounts.signer.key(), PostboxErrorCode::NotPersonalPostbox);
             fee = FEE_NEW_PERSONAL_BOX;
         }
 
@@ -58,17 +62,19 @@ pub mod postbox {
         match desc {
             None => {},
             Some(SettingsData::Description { title: _, desc: _}) => postbox_account.settings.push(desc.unwrap()),
-            _ => return Err(Error::from(ProgramError::InvalidArgument).with_source(source!())),
+            _ => return Err(Error::from(PostboxErrorCode::BadDescriptionSetting).with_source(source!())),
         }
 
         treasury::transfer_lamports(&ctx.accounts.signer, &ctx.accounts.treasury, fee)?;
         Ok(())
     }
 
-    pub fn create_post(ctx: Context<CreatePost>, data: Vec<u8>, post_id: u32) -> Result<()> {
+    pub fn create_post(ctx: Context<CreatePost>, data: Vec<u8>, post_id: u32,
+        post_restriction: Option<PostRestrictionRule>
+    ) -> Result<()> {
         let postbox_account = &mut ctx.accounts.postbox;
         if post_id > postbox_account.max_child_id + POSTBOX_GROW_CHILDREN_BY {
-            return Err(Error::from(ProgramError::InvalidArgument).with_source(source!()));
+            return Err(Error::from(PostboxErrorCode::PostIdTooLarge).with_source(source!()));
         }
         if post_id >= postbox_account.max_child_id {
             postbox_account.max_child_id += POSTBOX_GROW_CHILDREN_BY;
@@ -78,11 +84,20 @@ pub mod postbox {
         post_account.poster = ctx.accounts.poster.key();
         post_account.data = data;
 
-        let reply_to = ctx.accounts.reply_to.key();
-        if reply_to != Pubkey::default() && Account::<Post>::try_from(&ctx.accounts.reply_to).is_err() {
-            return Err(Error::from(ProgramError::InvalidArgument).with_source(source!()));
+        let reply_to_key = ctx.accounts.reply_to.key();
+        if reply_to_key == Pubkey::default() {
+            post_account.reply_to = None;
+            post_account.post_restrictions = post_restriction;
+        } else {
+            if let Some(reply_to) = Account::<Post>::try_from(&ctx.accounts.reply_to).ok() {
+                reply_to.validate_reply_allowed(&ctx.accounts.poster.key(), &ctx.accounts.membership_token, &ctx.accounts.membership_mint_meta)?;
+                post_account.reply_to = Some(reply_to_key);
+                require!(post_restriction.is_none(), PostboxErrorCode::ReplyCannotRestrictReplies);
+                post_account.post_restrictions = reply_to.post_restrictions.clone();
+            } else {
+                return Err(Error::from(PostboxErrorCode::ReplyToNotPost).with_source(source!()));
+            }
         }
-        post_account.reply_to = if reply_to == Pubkey::default() {None} else {Some(reply_to)};
 
         emit!(PostEvent {
             poster_pubkey: ctx.accounts.poster.key(),
@@ -204,9 +219,12 @@ pub struct CreatePost<'info> {
     /// CHECK: we do not access the data in the treasury other than to transfer lamports to it
     #[account(mut, address = treasury::TREASURY_ADDRESS)]
     pub treasury: UncheckedAccount<'info>,
-    /// CHECK: we allow passing default or a post and verify ourself
-    #[account(constraint = is_post_or_default(&reply_to))]
+    /// CHECK: we allow passing default or a post, checked in body
     pub reply_to: UncheckedAccount<'info>,
+    /// CHECK: we allow passing default or a token account, checked in body
+    pub membership_token: UncheckedAccount<'info>,
+    /// CHECK: we allow passing default or a token metadata account, checked in body
+    pub membership_mint_meta: UncheckedAccount<'info>,
     pub system_program: Program<'info, System>,
 }
 
@@ -306,10 +324,6 @@ pub struct AddOrUpdateSetting<'info> {
     pub system_program: Program<'info, System>,
 }
 
-pub fn is_post_or_default(account_info: & AccountInfo) -> bool {
-    return account_info.key() == Pubkey::default() || Account::<Post>::try_from(account_info).is_ok();
-}
-
 #[derive(
     AnchorSerialize,
     AnchorDeserialize,
@@ -320,7 +334,6 @@ pub fn is_post_or_default(account_info: & AccountInfo) -> bool {
 pub enum SettingsType {
     Description,
     OwnerInfo,
-    PostRestrictions,
 }
 
 #[derive(
@@ -333,7 +346,6 @@ pub enum SettingsType {
 pub enum SettingsData {
     Description { title: String, desc: String },
     OwnerInfo { owners: Vec<Pubkey> },
-    PostRestrictions,
 }
 
 impl Postbox {
@@ -375,7 +387,6 @@ impl SettingsData {
         return match self {
             SettingsData::Description { title: _, desc: _ } => SettingsType::Description,
             SettingsData::OwnerInfo { owners: _ } => SettingsType::OwnerInfo,
-            SettingsData::PostRestrictions => SettingsType::PostRestrictions,
         };
     }
 }
@@ -409,7 +420,7 @@ pub struct Post {
     up_votes: u16,
     down_votes: u16,
     reply_to: Option<Pubkey>,
-    extra: Vec<u8>,
+    post_restrictions: Option<PostRestrictionRule>,
 }
 
 #[event]

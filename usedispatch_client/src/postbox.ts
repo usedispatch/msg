@@ -72,7 +72,6 @@ type SettingsAccountData = {
   ownerInfo?: {
     owners: web3.PublicKey[];
   };
-  postRestrictions?: {};
 };
 
 export enum SettingsType {
@@ -80,6 +79,21 @@ export enum SettingsType {
   description = 'description',
   postRestrictions = 'postRestrictions',
 }
+
+type TokenOwnerRestriction = {
+  tokenOwnership: {
+    mint: web3.PublicKey;
+    amount: number;
+  };
+};
+
+type NftOwnerRestriction = {
+  nftOwnership: {
+    collectionId: web3.PublicKey;
+  };
+};
+
+export type PostRestrictions = TokenOwnerRestriction | NftOwnerRestriction;
 
 export class Postbox {
   private _address: web3.PublicKey | undefined;
@@ -104,7 +118,11 @@ export class Postbox {
   }
 
   // Basic commands
-  async createPost(input: InputPostData, replyTo?: InteractablePost): Promise<web3.TransactionSignature> {
+  async createPost(
+    input: InputPostData,
+    replyTo?: InteractablePost,
+    postRestriction?: PostRestrictions,
+  ): Promise<web3.TransactionSignature> {
     // TODO(mfasman): make this be a better allocation algorithm
     const growBy = 1; // TODO(mfasman): pull from the IDL
     const maxId = (await this.getChainPostboxInfo()).maxChildId;
@@ -112,12 +130,18 @@ export class Postbox {
     const infos = await this.dispatch.conn.getMultipleAccountsInfo(addresses);
     const data = await this.postDataToBuffer(input);
     const ix = await this.dispatch.postboxProgram.methods
-      .createPost(data, maxId)
+      .createPost(
+        data,
+        maxId,
+        postRestriction ? postRestriction : null,
+      )
       .accounts({
         postbox: await this.getAddress(),
         poster: this.dispatch.wallet.publicKey!,
         treasury: this.dispatch.addresses.treasuryAddress,
         replyTo: replyTo?.address ?? web3.PublicKey.default,
+        membershipToken: web3.PublicKey.default,
+        membershipMintMeta: web3.PublicKey.default,
       })
       .transaction();
     return this.dispatch.sendTransaction(ix);
