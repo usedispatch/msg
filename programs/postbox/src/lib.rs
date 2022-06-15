@@ -90,7 +90,12 @@ pub mod postbox {
             post_account.post_restrictions = post_restriction;
         } else {
             if let Some(reply_to) = Account::<Post>::try_from(&ctx.accounts.reply_to).ok() {
-                reply_to.validate_reply_allowed(&ctx.accounts.poster.key(), &ctx.accounts.membership_token, &ctx.accounts.membership_mint_meta)?;
+                reply_to.validate_reply_allowed(
+                    &ctx.accounts.poster.key(),
+                    &ctx.accounts.membership_token,
+                    &ctx.accounts.membership_mint_meta,
+                    &ctx.accounts.membership_collection,
+                )?;
                 post_account.reply_to = Some(reply_to_key);
                 require!(post_restriction.is_none(), PostboxErrorCode::ReplyCannotRestrictReplies);
                 post_account.post_restrictions = reply_to.post_restrictions.clone();
@@ -225,6 +230,8 @@ pub struct CreatePost<'info> {
     pub membership_token: UncheckedAccount<'info>,
     /// CHECK: we allow passing default or a token metadata account, checked in body
     pub membership_mint_meta: UncheckedAccount<'info>,
+    /// CHECK: we allow passing default or a mint account, accessed in body
+    pub membership_collection: UncheckedAccount<'info>,
     pub system_program: Program<'info, System>,
 }
 
