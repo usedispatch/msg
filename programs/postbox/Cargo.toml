@@ -16,9 +16,6 @@ cpi = ["no-entrypoint"]
 default = []
 mainnet = []
 
-[profile.release]
-overflow-checks = true
-
 [dependencies]
 anchor-lang = "0.24.2"
 anchor-spl = "0.24.2"

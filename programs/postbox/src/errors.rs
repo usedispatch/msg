@@ -10,7 +10,7 @@ pub enum PostboxErrorCode {
 
     // Create post errors
     #[msg("The provided post ID is too large an increase")]
-    PostIdTooLarge = 1000,
+    PostIdTooLarge = 100,
     #[msg("The reply-to account is not a Post account")]
     ReplyToNotPost,
     #[msg("Replies cannot have a further reply restriction")]
@@ -18,7 +18,7 @@ pub enum PostboxErrorCode {
 
     // Post restriction errors
     #[msg("The provided token account is not a token account")]
-    NotTokenAccount = 2000,
+    NotTokenAccount = 200,
     #[msg("Missing the token required by the restriction")]
     MissingTokenRestriction,
     #[msg("Account provided is not expected metadata key")]
@@ -29,4 +29,10 @@ pub enum PostboxErrorCode {
     NoCollectionOnMetadata,
     #[msg("Missing an NFT from the collection required by the restriction")]
     MissingCollectionNftRestriction,
+    #[msg("Cannot parse a setting")]
+    MalformedSetting,
+    #[msg("Extra account offsets invalid for this restriction type")]
+    InvalidRestrictionExtraAccounts,
+    #[msg("Must supply offsets when a post restriction applies")]
+    MissingRequiredOffsets,
 }

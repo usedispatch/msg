@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::{token, associated_token};
 use errors::PostboxErrorCode;
-use post_restrictions::PostRestrictionRule;
+use post_restrictions::{PostRestrictionRule, PostRestrictionAccountIndices};
 
 mod errors;
 mod nft_metadata;
@@ -70,7 +70,8 @@ pub mod postbox {
     }
 
     pub fn create_post(ctx: Context<CreatePost>, data: Vec<u8>, post_id: u32,
-        post_restriction: Option<PostRestrictionRule>
+        post_restriction: Option<PostRestrictionRule>,
+        restriction_account_offsets: Option<PostRestrictionAccountIndices>,
     ) -> Result<()> {
         let postbox_account = &mut ctx.accounts.postbox;
         if post_id > postbox_account.max_child_id + POSTBOX_GROW_CHILDREN_BY {
@@ -86,22 +87,34 @@ pub mod postbox {
 
         let reply_to_key = ctx.accounts.reply_to.key();
         if reply_to_key == Pubkey::default() {
+            // Postbox setting specifies the default, which can be overriden in a post
+            if let Some(forum_post_restriction) = postbox_account.get_setting(SettingsType::PostRestriction) {
+                require!(restriction_account_offsets.is_some(), PostboxErrorCode::MissingRequiredOffsets);
+                match forum_post_restriction {
+                    SettingsData::PostRestriction{ post_restriction } => post_restriction.validate_reply_allowed(
+                        &ctx.accounts.poster.key(),
+                        ctx.remaining_accounts,
+                        &restriction_account_offsets.unwrap(),
+                    )?,
+                    _ => {return Err(Error::from(PostboxErrorCode::MalformedSetting).with_source(source!()))},
+                };
+            }
             post_account.reply_to = None;
             post_account.post_restrictions = post_restriction;
         } else {
-            if let Some(reply_to) = Account::<Post>::try_from(&ctx.accounts.reply_to).ok() {
-                reply_to.validate_reply_allowed(
+            let reply_to = Account::<Post>::try_from(&ctx.accounts.reply_to)?;
+            if let Some(parent_post_restriction) = &reply_to.post_restrictions {
+                require!(restriction_account_offsets.is_some(), PostboxErrorCode::MissingRequiredOffsets);
+                parent_post_restriction.validate_reply_allowed(
                     &ctx.accounts.poster.key(),
-                    &ctx.accounts.membership_token,
-                    &ctx.accounts.membership_mint_meta,
-                    &ctx.accounts.membership_collection,
+                    ctx.remaining_accounts,
+                    &restriction_account_offsets.unwrap(),
                 )?;
-                post_account.reply_to = Some(reply_to_key);
-                require!(post_restriction.is_none(), PostboxErrorCode::ReplyCannotRestrictReplies);
-                post_account.post_restrictions = reply_to.post_restrictions.clone();
-            } else {
-                return Err(Error::from(PostboxErrorCode::ReplyToNotPost).with_source(source!()));
             }
+            post_account.reply_to = Some(reply_to_key);
+            // Inherit our parent post restriction rather than allowing a new one on replies
+            require!(post_restriction.is_none(), PostboxErrorCode::ReplyCannotRestrictReplies);
+            post_account.post_restrictions = reply_to.post_restrictions.clone();
         }
 
         emit!(PostEvent {
@@ -208,11 +221,14 @@ pub struct Initialize<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(data: Vec<u8>, post_id: u32)]
+// TODO: pass in the new message as a full account, then validate it
+#[instruction(data: Vec<u8>, post_id: u32, post_restriction: Option<PostRestrictionRule>)]
 pub struct CreatePost<'info> {
     #[account(init,
         payer = poster,
-        space = 8 + 32 + 4 + data.len() + 4 + 4 + 1 + (if reply_to.key() != Pubkey::default() {32} else {0}),
+        space = 8 + 32 + 4 + data.len() + 2 + 2 + 1 + (if reply_to.key() != Pubkey::default() {32} else {0}) + 1 + (
+            if post_restriction.is_some() {post_restriction.unwrap().get_size()} else {0}
+        ) + post_restrictions::get_reply_restriction_size(&reply_to),
         seeds = [PROTOCOL_SEED.as_bytes(), POST_SEED.as_bytes(), postbox.key().as_ref(), &post_id.to_le_bytes()],
         bump,
     )]
@@ -226,12 +242,6 @@ pub struct CreatePost<'info> {
     pub treasury: UncheckedAccount<'info>,
     /// CHECK: we allow passing default or a post, checked in body
     pub reply_to: UncheckedAccount<'info>,
-    /// CHECK: we allow passing default or a token account, checked in body
-    pub membership_token: UncheckedAccount<'info>,
-    /// CHECK: we allow passing default or a token metadata account, checked in body
-    pub membership_mint_meta: UncheckedAccount<'info>,
-    /// CHECK: we allow passing default or a mint account, accessed in body
-    pub membership_collection: UncheckedAccount<'info>,
     pub system_program: Program<'info, System>,
 }
 
@@ -341,6 +351,7 @@ pub struct AddOrUpdateSetting<'info> {
 pub enum SettingsType {
     Description,
     OwnerInfo,
+    PostRestriction,
 }
 
 #[derive(
@@ -353,6 +364,7 @@ pub enum SettingsType {
 pub enum SettingsData {
     Description { title: String, desc: String },
     OwnerInfo { owners: Vec<Pubkey> },
+    PostRestriction { post_restriction: PostRestrictionRule },
 }
 
 impl Postbox {
@@ -394,6 +406,7 @@ impl SettingsData {
         return match self {
             SettingsData::Description { title: _, desc: _ } => SettingsType::Description,
             SettingsData::OwnerInfo { owners: _ } => SettingsType::OwnerInfo,
+            SettingsData::PostRestriction { post_restriction: _ } => SettingsType::PostRestriction,
         };
     }
 }

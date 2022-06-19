@@ -1,4 +1,5 @@
 import { Metaplex } from '@metaplex-foundation/js';
+import * as anchor from '@project-serum/anchor';
 import * as splToken from '@solana/spl-token';
 import * as web3 from '@solana/web3.js';
 import { seeds } from './constants';
@@ -87,7 +88,7 @@ export enum SettingsType {
 export type PostRestrictions = {
   tokenOwnership?: {
     mint: web3.PublicKey;
-    amount: number;
+    amount: anchor.BN;
   };
   nftOwnership?: {
     collectionId: web3.PublicKey;
@@ -127,33 +128,34 @@ export class Postbox {
           this.dispatch.wallet.publicKey!,
         );
         return {
-          membershipToken: ata,
-          membershipMintMeta: web3.PublicKey.default,
-          membershipCollection: web3.PublicKey.default,
+          pra: [{pubkey: ata, isWritable: false, isSigner: false}],
+          praIdxs: {tokenOwnership: {tokenIdx: 0}},
         };
       }
       if (replyTo.postRestrictions.nftOwnership) {
         const collectionId = replyTo.postRestrictions.nftOwnership.collectionId;
         const nftsOwned = await this.metaplex.nfts().findAllByOwner(this.dispatch.wallet.publicKey!);
-        const relevant = nftsOwned.filter((nft) => nft.collection?.key.equals(collectionId))
-        if (relevant.length) {
-          const nft = relevant[0];
+        const relevantNfts = nftsOwned.filter((nft) => nft.collection?.key.equals(collectionId))
+        if (relevantNfts.length) {
+          const nft = relevantNfts[0];
           const ata = await splToken.getAssociatedTokenAddress(
             nft.mint,
             this.dispatch.wallet.publicKey!,
           );
           return {
-            membershipToken: ata,
-            membershipMintMeta: nft.metadataAccount.publicKey,
-            membershipCollection: collectionId,
+            pra: [
+              {pubkey: ata, isWritable: false, isSigner: false},
+              {pubkey: nft.metadataAccount.publicKey, isWritable: false, isSigner: false},
+              {pubkey: collectionId, isWritable: false, isSigner: false},
+            ],
+            praIdxs: {nftOwnership: {tokenIdx: 0, meta_idx: 1, collection_idx: 2}},
           };
         }
       }
     }
     return {
-      membershipToken: web3.PublicKey.default,
-      membershipMintMeta: web3.PublicKey.default,
-      membershipCollection: web3.PublicKey.default,
+      pra: [],
+      praIdxs: null,
     };
 }
 
@@ -169,19 +171,21 @@ export class Postbox {
     const addresses = await this.getAddresses(maxId, Math.max(0, maxId - growBy));
     const infos = await this.dispatch.conn.getMultipleAccountsInfo(addresses);
     const data = await this.postDataToBuffer(input);
+    const postRestrictions = await this.getPostRestrictionAccounts(replyTo);
     const ix = await this.dispatch.postboxProgram.methods
       .createPost(
         data,
         maxId,
         postRestriction ? postRestriction : null,
+        postRestrictions.praIdxs,
       )
       .accounts({
         postbox: await this.getAddress(),
         poster: this.dispatch.wallet.publicKey!,
         treasury: this.dispatch.addresses.treasuryAddress,
         replyTo: replyTo?.address ?? web3.PublicKey.default,
-        ...await this.getPostRestrictionAccounts(replyTo),
       })
+      .remainingAccounts(postRestrictions.pra)
       .transaction();
     return this.dispatch.sendTransaction(ix);
   }
