@@ -352,6 +352,7 @@ pub enum SettingsType {
     Description,
     OwnerInfo,
     PostRestriction,
+    Null,
 }
 
 #[derive(
@@ -365,6 +366,7 @@ pub enum SettingsData {
     Description { title: String, desc: String },
     OwnerInfo { owners: Vec<Pubkey> },
     PostRestriction { post_restriction: PostRestrictionRule },
+    Null,
 }
 
 impl Postbox {
@@ -407,6 +409,7 @@ impl SettingsData {
             SettingsData::Description { title: _, desc: _ } => SettingsType::Description,
             SettingsData::OwnerInfo { owners: _ } => SettingsType::OwnerInfo,
             SettingsData::PostRestriction { post_restriction: _ } => SettingsType::PostRestriction,
+            SettingsData::Null => SettingsType::Null,
         };
     }
 }

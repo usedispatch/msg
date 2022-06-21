@@ -12,6 +12,7 @@ use crate::errors::PostboxErrorCode;
 pub enum PostRestrictionRule {
     TokenOwnership { mint: Pubkey, amount: u64 },
     NftOwnership { collection_id: Pubkey },
+    Null,
 }
 
 #[derive(
@@ -24,6 +25,7 @@ pub enum PostRestrictionRule {
 pub enum PostRestrictionAccountIndices {
     TokenOwnership { token_idx: u8 },
     NftOwnership { token_idx: u8, meta_idx: u8, collection_idx: u8 },
+    Null,
 }
 
 impl PostRestrictionRule {
@@ -78,6 +80,8 @@ impl PostRestrictionRule {
                     return Err(Error::from(PostboxErrorCode::InvalidRestrictionExtraAccounts).with_source(source!()));
                 }
             },
+
+            PostRestrictionRule::Null => {},
         }
 
         Ok(())
