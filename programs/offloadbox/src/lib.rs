@@ -21,7 +21,7 @@ pub mod offloadbox {
     pub fn initialize(ctx: Context<Initialize>, param: u32) -> Result<()> {
         let fee = FEE_NEW_OFFLOADBOX;
         let offloadbox = &mut ctx.accounts.offloadbox;
-        offloadbox.prop = param;
+        offloadbox.prop = vec![param];
 
         //
         // TODO set properties of the account here
@@ -53,5 +53,5 @@ pub struct Initialize<'info> {
 #[account]
 #[derive(Default)]
 pub struct Offloadbox {
-    pub prop: u32,
+    pub prop: Vec<u32>,
 }
