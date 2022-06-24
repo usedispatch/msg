@@ -3,7 +3,9 @@ import * as anchor from '@project-serum/anchor';
 import { Messaging } from '../../target/types/messaging';
 import messagingProgramIdl from '../../target/idl/messaging.json';
 import { Postbox } from '../../target/types/postbox';
+import { Offloadbox } from '../../target/types/offloadbox';
 import postboxProgramIdl from '../../target/idl/postbox.json';
+import offloadboxProgramIdl from '../../target/idl/offloadbox.json';
 import { clusterAddresses, defaultCluster, DispatchAddresses } from './constants';
 import {
   WalletInterface,
@@ -21,6 +23,7 @@ export class DispatchConnection {
   public addresses: DispatchAddresses;
   public messagingProgram: anchor.Program<Messaging>;
   public postboxProgram: anchor.Program<Postbox>;
+  public offloadboxProgram: anchor.Program<Offloadbox>;
 
   constructor(public conn: web3.Connection, public wallet: WalletInterface, opts?: DispatchConnectionOpts) {
     if (!wallet.publicKey) {
@@ -39,6 +42,7 @@ export class DispatchConnection {
     }
     this.messagingProgram = new anchor.Program<Messaging>(messagingProgramIdl as any, this.addresses.programAddress);
     this.postboxProgram = new anchor.Program<Postbox>(postboxProgramIdl as any, this.addresses.postboxAddress);
+    this.offloadboxProgram = new anchor.Program<Offloadbox>(offloadboxProgramIdl as any, this.addresses.offloadboxAddress);
   }
 
   public async sendTransaction(tx: web3.Transaction) {

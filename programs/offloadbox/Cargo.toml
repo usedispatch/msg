@@ -20,3 +20,4 @@ overflow-checks = true
 
 [dependencies]
 anchor-lang = "0.24.2"
+solana-program = "1.8.6"
