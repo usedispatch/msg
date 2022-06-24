@@ -40,5 +40,18 @@ describe('offloadbox', () => {
     );
 
     console.log('info', info);
+
+    const ex = await dispatch.offloadboxProgram.methods
+      .setData(947262)
+      .accounts({
+        offloadbox: offloadboxAddress
+      })
+      .transaction()
+    const receipt2 = await dispatch.sendTransaction(ex);
+    await conn.confirmTransaction(receipt2);
+    const info2 = await dispatch.offloadboxProgram.account.offloadbox.fetch(
+      offloadboxAddress
+    );
+    console.log('info2', info2);
   });
 });

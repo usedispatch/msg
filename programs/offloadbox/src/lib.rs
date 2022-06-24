@@ -30,9 +30,15 @@ pub mod offloadbox {
         treasury::transfer_lamports(&ctx.accounts.signer, &ctx.accounts.treasury, fee)?;
         Ok(())
     }
+
+    pub fn set_data(ctx: Context<SetData>, param: u32) -> Result<()> {
+        let account = &mut ctx.accounts.offloadbox;
+        account.prop = vec![param];
+        Ok(())
+    }
 }
 
-// TODO check permissions here
+// TODO check permissions for all these accounts
 #[derive(Accounts)]
 pub struct Initialize<'info> {
     #[account(init,
@@ -48,6 +54,12 @@ pub struct Initialize<'info> {
     #[account(mut, address = treasury::TREASURY_ADDRESS)]
     pub treasury: UncheckedAccount<'info>,
     pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct SetData<'info> {
+    #[account(mut)]
+    pub offloadbox: Box<Account<'info, Offloadbox>>
 }
 
 #[account]
