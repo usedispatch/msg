@@ -62,8 +62,14 @@ pub struct SetData<'info> {
     pub offloadbox: Box<Account<'info, Offloadbox>>
 }
 
+/// This datastructure is an account referencing data that has been offloaded to the Bundlr/Arweave
+/// network. Essentially, it is a vector of addresses that can be dereferenced using
+/// https://arweave.net/{address} to pull content. Post data, including content, data, and what the
+/// post is in reply to, is stored on arweave.
 #[account]
 #[derive(Default)]
 pub struct Offloadbox {
+    // TODO make this a vector of 32-byte buffers to support the Arweave key format
+    // See https://docs.arweave.org/developers/server/http-api#key-format
     pub prop: Vec<u32>,
 }
