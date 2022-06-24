@@ -783,6 +783,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "offloadbox"
+version = "0.1.0"
+dependencies = [
+ "anchor-lang",
+]
+
+[[package]]
 name = "opaque-debug"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
