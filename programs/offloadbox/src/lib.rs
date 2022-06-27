@@ -19,7 +19,7 @@ const FEE_NEW_OFFLOADBOX: u64 = 1_000_000_000;
 pub mod offloadbox {
     use super::*;
 
-    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
+    pub fn initialize(ctx: Context<Initialize>, identifier: String) -> Result<()> {
         let fee = FEE_NEW_OFFLOADBOX;
         let offloadbox = &mut ctx.accounts.offloadbox;
         offloadbox.addresses = vec![];
@@ -41,11 +41,12 @@ pub mod offloadbox {
 
 // TODO check permissions for all these accounts
 #[derive(Accounts)]
+#[instruction(identifier: String)]
 pub struct Initialize<'info> {
     #[account(init,
               payer = signer,
               space = mem::size_of::<[u8; 32]>() * 100,
-              seeds = [PROTOCOL_SEED.as_bytes(), OFFLOADBOX_SEED.as_bytes()],
+              seeds = [PROTOCOL_SEED.as_bytes(), OFFLOADBOX_SEED.as_bytes(), identifier.as_bytes()],
               bump,
              )]
     pub offloadbox: Box<Account<'info, Offloadbox>>,

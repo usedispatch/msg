@@ -17,41 +17,32 @@ describe('offloadbox', () => {
     await conn.confirmTransaction(await conn.requestAirdrop(TREASURY, 1 * anchor.web3.LAMPORTS_PER_SOL));
     // Initialize the Connection
     const dispatch = new DispatchConnection(conn, owner);
-    // Issue initialization instruction with some test data
-    const ix = await dispatch.offloadboxProgram.methods
-      .initialize()
-      .accounts({
-        signer: dispatch.wallet.publicKey!,
-        treasury: dispatch.addresses.treasuryAddress
-      })
-      .transaction();
 
-    const receipt = await dispatch.sendTransaction(ix);
-    await conn.confirmTransaction(receipt);
+    const identifier = 'spaghetti';
+
+    // Create the offloadbox
+    await offloadbox.createOffloadbox(
+      dispatch, identifier, dispatch.wallet.publicKey
+    );
 
     // Load the created account using the given seeds
-    const [offloadboxAddress] = await anchor.web3.PublicKey.findProgramAddress(
-      [seeds.protocolSeed, seeds.offloadboxSeed],
-      dispatch.offloadboxProgram.programId
-    )
-
-    const info = await dispatch.offloadboxProgram.account.offloadbox.fetch(
-      offloadboxAddress
+    const info = await offloadbox.fetchOffloadbox(
+      dispatch, identifier
     );
 
     console.log('info', info);
 
-    const ax = await dispatch.offloadboxProgram.methods
-      .makePost([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-      .accounts({
-        offloadbox: offloadboxAddress
-      })
-      .transaction()
-    const receipt2 = await dispatch.sendTransaction(ax);
-    await conn.confirmTransaction(receipt2);
-    const info2 = await dispatch.offloadboxProgram.account.offloadbox.fetch(
-      offloadboxAddress
-    );
-    console.log('info2', info2);
+    // const ax = await dispatch.offloadboxProgram.methods
+    //   .makePost([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+    //   .accounts({
+    //     offloadbox: offloadboxAddress
+    //   })
+    //   .transaction()
+    // const receipt2 = await dispatch.sendTransaction(ax);
+    // await conn.confirmTransaction(receipt2);
+    // const info2 = await dispatch.offloadboxProgram.account.offloadbox.fetch(
+    //   offloadboxAddress
+    // );
+    // console.log('info2', info2);
   });
 });
