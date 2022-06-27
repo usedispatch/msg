@@ -486,7 +486,7 @@ describe('messaging', () => {
       assert.ok(event.receiverPubkey.equals(receiver.publicKey));
       assert.ok(event.mint.equals(mint));
       assert.equal(event.messageIndex, 0);
-      assert.equal(event.amount, incentiveAmount);
+      assert.equal(event.amount.toNumber(), incentiveAmount);
     });
 
     await conn.confirmTransaction(await receiverMailbox.claimIncentive(messageAccount));

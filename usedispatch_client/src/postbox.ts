@@ -1,3 +1,5 @@
+import { Metaplex } from '@metaplex-foundation/js';
+import * as anchor from '@project-serum/anchor';
 import * as splToken from '@solana/spl-token';
 import * as web3 from '@solana/web3.js';
 import { seeds } from './constants';
@@ -38,12 +40,14 @@ export type Post = {
   upVotes: number;
   downVotes: number;
   replyTo?: web3.PublicKey;
+  postRestrictions?: PostRestrictions;
 };
 
 export type InteractablePost = {
   postId: number;
   address: web3.PublicKey;
   poster: web3.PublicKey;
+  postRestrictions?: PostRestrictions;
 };
 
 type ChainPost = {
@@ -52,6 +56,7 @@ type ChainPost = {
   upVotes: number;
   downVotes: number;
   replyTo: web3.PublicKey | null;
+  postRestrictions: PostRestrictions | null;
 };
 
 type NullableChainPost = null | ChainPost;
@@ -72,7 +77,6 @@ type SettingsAccountData = {
   ownerInfo?: {
     owners: web3.PublicKey[];
   };
-  postRestrictions?: {};
 };
 
 export enum SettingsType {
@@ -81,10 +85,23 @@ export enum SettingsType {
   postRestrictions = 'postRestrictions',
 }
 
+export type PostRestrictions = {
+  tokenOwnership?: {
+    mint: web3.PublicKey;
+    amount: anchor.BN;
+  };
+  nftOwnership?: {
+    collectionId: web3.PublicKey;
+  };
+};
+
 export class Postbox {
   private _address: web3.PublicKey | undefined;
+  public metaplex: Metaplex;
 
-  constructor(public dispatch: DispatchConnection, public target: PostboxTarget) {}
+  constructor(public dispatch: DispatchConnection, public target: PostboxTarget) {
+    this.metaplex = new Metaplex(dispatch.conn);
+  }
 
   // Init functions
   async initialize(owners?: web3.PublicKey[], description?: Description): Promise<web3.TransactionSignature> {
@@ -103,22 +120,72 @@ export class Postbox {
     return this.dispatch.sendTransaction(ix);
   }
 
+  async getPostRestrictionAccounts(replyTo?: InteractablePost) {
+    if (replyTo?.postRestrictions) {
+      if (replyTo.postRestrictions.tokenOwnership) {
+        const ata = await splToken.getAssociatedTokenAddress(
+          replyTo.postRestrictions.tokenOwnership.mint,
+          this.dispatch.wallet.publicKey!,
+        );
+        return {
+          pra: [{pubkey: ata, isWritable: false, isSigner: false}],
+          praIdxs: {tokenOwnership: {tokenIdx: 0}},
+        };
+      }
+      if (replyTo.postRestrictions.nftOwnership) {
+        const collectionId = replyTo.postRestrictions.nftOwnership.collectionId;
+        const nftsOwned = await this.metaplex.nfts().findAllByOwner(this.dispatch.wallet.publicKey!);
+        const relevantNfts = nftsOwned.filter((nft) => nft.collection?.key.equals(collectionId))
+        if (relevantNfts.length) {
+          const nft = relevantNfts[0];
+          const ata = await splToken.getAssociatedTokenAddress(
+            nft.mint,
+            this.dispatch.wallet.publicKey!,
+          );
+          return {
+            pra: [
+              {pubkey: ata, isWritable: false, isSigner: false},
+              {pubkey: nft.metadataAccount.publicKey, isWritable: false, isSigner: false},
+              {pubkey: collectionId, isWritable: false, isSigner: false},
+            ],
+            praIdxs: {nftOwnership: {tokenIdx: 0, meta_idx: 1, collection_idx: 2}},
+          };
+        }
+      }
+    }
+    return {
+      pra: [],
+      praIdxs: null,
+    };
+}
+
   // Basic commands
-  async createPost(input: InputPostData, replyTo?: InteractablePost): Promise<web3.TransactionSignature> {
+  async createPost(
+    input: InputPostData,
+    replyTo?: InteractablePost,
+    postRestriction?: PostRestrictions,
+  ): Promise<web3.TransactionSignature> {
     // TODO(mfasman): make this be a better allocation algorithm
     const growBy = 1; // TODO(mfasman): pull from the IDL
     const maxId = (await this.getChainPostboxInfo()).maxChildId;
     const addresses = await this.getAddresses(maxId, Math.max(0, maxId - growBy));
     const infos = await this.dispatch.conn.getMultipleAccountsInfo(addresses);
     const data = await this.postDataToBuffer(input);
+    const postRestrictions = await this.getPostRestrictionAccounts(replyTo);
     const ix = await this.dispatch.postboxProgram.methods
-      .createPost(data, maxId)
+      .createPost(
+        data,
+        maxId,
+        postRestriction ? postRestriction : null,
+        postRestrictions.praIdxs,
+      )
       .accounts({
         postbox: await this.getAddress(),
         poster: this.dispatch.wallet.publicKey!,
         treasury: this.dispatch.addresses.treasuryAddress,
         replyTo: replyTo?.address ?? web3.PublicKey.default,
       })
+      .remainingAccounts(postRestrictions.pra)
       .transaction();
     return this.dispatch.sendTransaction(ix);
   }
@@ -153,7 +220,7 @@ export class Postbox {
     return this.dispatch.sendTransaction(ix);
   }
 
-  async vote(post: Post, up: boolean): Promise<web3.TransactionSignature> {
+  async vote(post: InteractablePost, up: boolean): Promise<web3.TransactionSignature> {
     const ix = await this.dispatch.postboxProgram.methods
       .vote(post.postId, up)
       .accounts({
@@ -189,7 +256,7 @@ export class Postbox {
     return (await this.fetchAllPosts()).filter((p) => !p.replyTo);
   }
 
-  async fetchReplies(post: Post): Promise<Post[]> {
+  async fetchReplies(post: InteractablePost): Promise<Post[]> {
     return (await this.fetchAllPosts()).filter((p) => p.replyTo && p.replyTo.equals(post.address));
   }
 
@@ -334,6 +401,7 @@ export class Postbox {
       upVotes: chainPost.upVotes,
       downVotes: chainPost.downVotes,
       replyTo: chainPost.replyTo || undefined,
+      postRestrictions: chainPost.postRestrictions || undefined,
     };
   }
 
