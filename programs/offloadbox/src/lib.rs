@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use std::mem;
 mod treasury;
 
 #[cfg(feature = "mainnet")]
@@ -18,10 +19,10 @@ const FEE_NEW_OFFLOADBOX: u64 = 1_000_000_000;
 pub mod offloadbox {
     use super::*;
 
-    pub fn initialize(ctx: Context<Initialize>, param: u32) -> Result<()> {
+    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
         let fee = FEE_NEW_OFFLOADBOX;
         let offloadbox = &mut ctx.accounts.offloadbox;
-        offloadbox.prop = vec![param];
+        offloadbox.addresses = vec![];
 
         //
         // TODO set properties of the account here
@@ -31,9 +32,9 @@ pub mod offloadbox {
         Ok(())
     }
 
-    pub fn set_data(ctx: Context<SetData>, param: u32) -> Result<()> {
+    pub fn make_post(ctx: Context<MakePost>, address: ArweaveAddress) -> Result<()> {
         let account = &mut ctx.accounts.offloadbox;
-        account.prop = vec![param];
+        account.addresses.push(address);
         Ok(())
     }
 }
@@ -43,7 +44,7 @@ pub mod offloadbox {
 pub struct Initialize<'info> {
     #[account(init,
               payer = signer,
-              space = 256,
+              space = mem::size_of::<ArweaveAddress>() * 100,
               seeds = [PROTOCOL_SEED.as_bytes(), OFFLOADBOX_SEED.as_bytes()],
               bump,
              )]
@@ -57,10 +58,12 @@ pub struct Initialize<'info> {
 }
 
 #[derive(Accounts)]
-pub struct SetData<'info> {
+pub struct MakePost<'info> {
     #[account(mut)]
     pub offloadbox: Box<Account<'info, Offloadbox>>
 }
+
+pub type ArweaveAddress = [u8; 32];
 
 /// This datastructure is an account referencing data that has been offloaded to the Bundlr/Arweave
 /// network. Essentially, it is a vector of addresses that can be dereferenced using
@@ -71,5 +74,5 @@ pub struct SetData<'info> {
 pub struct Offloadbox {
     // TODO make this a vector of 32-byte buffers to support the Arweave key format
     // See https://docs.arweave.org/developers/server/http-api#key-format
-    pub prop: Vec<u32>,
+    pub addresses: Vec<ArweaveAddress>,
 }

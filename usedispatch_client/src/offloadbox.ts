@@ -5,8 +5,12 @@ export interface Offloadbox {
   address: web3.PublicKey;
 };
 
+/**
+ * This function initializes a new offloadbox using the publicKey
+ * associated with the current connection
+ * The offloadbox
+ */
 export function initialize(
-  owner: web3.PublicKey,
   connection: DispatchConnection
 ) {
   // TODO invoke this program
