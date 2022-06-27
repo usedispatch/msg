@@ -26,23 +26,22 @@ describe('offloadbox', () => {
     );
 
     // Load the created account using the given seeds
-    const info = await offloadbox.fetchOffloadbox(
+    let info = await offloadbox.fetchOffloadbox(
       dispatch, identifier
     );
 
     console.log('info', info);
 
-    // const ax = await dispatch.offloadboxProgram.methods
-    //   .makePost([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-    //   .accounts({
-    //     offloadbox: offloadboxAddress
-    //   })
-    //   .transaction()
-    // const receipt2 = await dispatch.sendTransaction(ax);
-    // await conn.confirmTransaction(receipt2);
-    // const info2 = await dispatch.offloadboxProgram.account.offloadbox.fetch(
-    //   offloadboxAddress
-    // );
-    // console.log('info2', info2);
+    await offloadbox.makePost(
+      dispatch,
+      identifier,
+      'MxgIfUxomILxEXIEGXcPjXb8y4Jh-XOGXQ7JMv4QFmE'
+    );
+
+    info = await offloadbox.fetchOffloadbox(
+      dispatch, identifier
+    );
+
+    console.log('info', info);
   });
 });
