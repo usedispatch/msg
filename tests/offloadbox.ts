@@ -19,7 +19,7 @@ describe('offloadbox', () => {
     const dispatch = new DispatchConnection(conn, owner);
     // Issue initialization instruction with some test data
     const ix = await dispatch.offloadboxProgram.methods
-      .initialize(38383123)
+      .initialize()
       .accounts({
         signer: dispatch.wallet.publicKey!,
         treasury: dispatch.addresses.treasuryAddress
@@ -41,13 +41,13 @@ describe('offloadbox', () => {
 
     console.log('info', info);
 
-    const ex = await dispatch.offloadboxProgram.methods
-      .setData(947262)
+    const ax = await dispatch.offloadboxProgram.methods
+      .makePost([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
       .accounts({
         offloadbox: offloadboxAddress
       })
       .transaction()
-    const receipt2 = await dispatch.sendTransaction(ex);
+    const receipt2 = await dispatch.sendTransaction(ax);
     await conn.confirmTransaction(receipt2);
     const info2 = await dispatch.offloadboxProgram.account.offloadbox.fetch(
       offloadboxAddress

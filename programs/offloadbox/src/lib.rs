@@ -32,7 +32,7 @@ pub mod offloadbox {
         Ok(())
     }
 
-    pub fn make_post(ctx: Context<MakePost>, address: ArweaveAddress) -> Result<()> {
+    pub fn make_post(ctx: Context<MakePost>, address: [u8; 32]) -> Result<()> {
         let account = &mut ctx.accounts.offloadbox;
         account.addresses.push(address);
         Ok(())
@@ -44,7 +44,7 @@ pub mod offloadbox {
 pub struct Initialize<'info> {
     #[account(init,
               payer = signer,
-              space = mem::size_of::<ArweaveAddress>() * 100,
+              space = mem::size_of::<[u8; 32]>() * 100,
               seeds = [PROTOCOL_SEED.as_bytes(), OFFLOADBOX_SEED.as_bytes()],
               bump,
              )]
@@ -63,7 +63,9 @@ pub struct MakePost<'info> {
     pub offloadbox: Box<Account<'info, Offloadbox>>
 }
 
-pub type ArweaveAddress = [u8; 32];
+// This should be a type alias but Anchor IDL doesn't support those
+// https://github.com/coral-xyz/anchor/issues/455
+// type ArweaveAddress = [u8; 32];
 
 /// This datastructure is an account referencing data that has been offloaded to the Bundlr/Arweave
 /// network. Essentially, it is a vector of addresses that can be dereferenced using
@@ -72,7 +74,6 @@ pub type ArweaveAddress = [u8; 32];
 #[account]
 #[derive(Default)]
 pub struct Offloadbox {
-    // TODO make this a vector of 32-byte buffers to support the Arweave key format
     // See https://docs.arweave.org/developers/server/http-api#key-format
-    pub addresses: Vec<ArweaveAddress>,
+    pub addresses: Vec<[u8; 32]>,
 }
