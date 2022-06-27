@@ -1,4 +1,5 @@
 import * as anchor from '@project-serum/anchor';
+import * as splToken from '@solana/spl-token';
 import { strict as assert } from 'assert';
 
 import { Postbox, DispatchConnection, Forum, clusterAddresses } from '../usedispatch_client/src';
@@ -153,6 +154,47 @@ describe('postbox', () => {
     assert.equal(posts[0].upVotes, 1);
 
     assert.equal(await conn.getBalance(TREASURY), treasuryBalance + 50_000);
+  });
+
+  it('Restricts posts to token holders', async () => {
+    const owner = new anchor.Wallet(anchor.web3.Keypair.generate());
+    const poster = new anchor.Wallet(anchor.web3.Keypair.generate());
+    await conn.confirmTransaction(await conn.requestAirdrop(owner.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
+    await conn.confirmTransaction(await conn.requestAirdrop(poster.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
+
+    const postboxAsOwner = new Postbox(new DispatchConnection(conn, owner), {key: owner.publicKey});
+    const postboxAsPoster = new Postbox(new DispatchConnection(conn, poster), {key: owner.publicKey});
+    const tx0 = await postboxAsOwner.initialize();
+    await conn.confirmTransaction(tx0);
+
+    const mint = await splToken.createMint(conn, owner.payer, owner.publicKey, owner.publicKey, 9);
+    const ata = await splToken.getOrCreateAssociatedTokenAccount(conn, owner.payer, mint, poster.publicKey);
+    const tx1 = await splToken.mintTo(conn, owner.payer, mint, ata.address, owner.payer, 100);
+    await conn.confirmTransaction(tx1);
+
+    const testPost = {subj: "Test", body: "This is a test post"};
+    const tx2 = await postboxAsOwner.createPost(testPost, undefined, {tokenOwnership: {mint: mint, amount: new anchor.BN(1)}});
+    await conn.confirmTransaction(tx2);
+
+    const topics = await postboxAsOwner.fetchPosts();
+    assert.equal(topics.length, 1);
+    const topic = topics[0];
+
+    const replyPost = {subj: "Interesting", body: "Reply"};
+    const tx3 = await postboxAsPoster.replyToPost(replyPost, topic);
+    await conn.confirmTransaction(tx3);
+
+    const replyPost2 = {subj: "Should fail", body: "Reply"};
+    try {
+      await postboxAsOwner.replyToPost(replyPost2, topic);
+    } catch(e) {
+      const expectedError = "Error processing Instruction 0: custom program error: 0x183f";
+      assert.ok(e instanceof Error);
+      assert.ok(e.message.includes(expectedError));
+    }
+
+    const replies = await postboxAsOwner.fetchReplies(topic);
+    assert.equal(replies.length, 1);
   });
 
   it('Uses the forum.ts wrapper', async () => {

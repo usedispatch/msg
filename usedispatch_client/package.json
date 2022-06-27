@@ -41,10 +41,11 @@
   },
   "dependencies": {
     "@bonfida/spl-name-service": "^0.1.30",
+    "@metaplex-foundation/js": "^0.11.1",
     "@project-serum/anchor": "^0.24.2",
     "@solana/buffer-layout": "^4.0.0",
     "@solana/spl-token": "^0.2.0",
-    "@solana/web3.js": "^1.36.0",
+    "@solana/web3.js": "^1.44.0",
     "crypto-js": "^4.1.1"
   }
 }
