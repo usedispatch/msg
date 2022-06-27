@@ -1,5 +1,6 @@
 {
     "dependencies": {
+        "@bundlr-network/client": "^0.7.14",
         "@project-serum/anchor": "^0.24.2"
     },
     "devDependencies": {
