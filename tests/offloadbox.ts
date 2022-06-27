@@ -30,7 +30,7 @@ describe('offloadbox', () => {
       dispatch, identifier
     );
 
-    console.log('info', info);
+    assert.deepEqual(info.addresses, []);
 
     await offloadbox.makePost(
       dispatch,
@@ -42,6 +42,8 @@ describe('offloadbox', () => {
       dispatch, identifier
     );
 
-    console.log('info', info);
+    assert.deepEqual(info.addresses, [
+      'MxgIfUxomILxEXIEGXcPjXb8y4Jh-XOGXQ7JMv4QFmE'
+    ]);
   });
 });

@@ -1,10 +1,13 @@
 import * as web3 from '@solana/web3.js';
 import { DispatchConnection } from './connection';
 import { seeds } from './constants';
-import * as base64 from 'base64-arraybuffer';
+import base64url from 'base64url';
+
+type ArweaveAddress = string;
 
 export interface Offloadbox {
-  address: web3.PublicKey;
+  /** Arweave addresses */
+  addresses: ArweaveAddress[]
 };
 
 /**
@@ -47,11 +50,11 @@ export async function makePost(
   );
 
   // Get arweave bytes
-  const bytes = Array.from(new Uint8Array(base64.decode(arweaveAddr)));
+  const bytes = base64url.toBuffer(arweaveAddr)
 
   // Create and send transaction
   const tx = await dispatch.offloadboxProgram.methods
-    .makePost(bytes)
+    .makePost(Array.from(bytes))
     .accounts({
       offloadbox: address
     })
@@ -71,7 +74,18 @@ export async function fetchOffloadbox(
     dispatch.offloadboxProgram.programId
   );
 
-  return dispatch.offloadboxProgram.account.offloadbox.fetch(
+  const offloadbox = await dispatch.offloadboxProgram.account.offloadbox.fetch(
     address
   );
+
+  const addresses = offloadbox.addresses as number[][];
+  const addrStrings = addresses.map(addr =>
+    base64url.encode(Buffer.from(addr))
+  );
+  console.log(addrStrings);
+
+
+  return {
+    addresses: addrStrings
+  };
 }
