@@ -15,8 +15,6 @@ describe('offloadbox', () => {
     await conn.confirmTransaction(await conn.requestAirdrop(owner.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
     // Give the treasury SOL
     await conn.confirmTransaction(await conn.requestAirdrop(TREASURY, 1 * anchor.web3.LAMPORTS_PER_SOL));
-    // Initialize the Connection
-    const dispatch = new DispatchConnection(conn, owner);
 
     const identifier = 'spaghetti';
 
@@ -44,5 +42,16 @@ describe('offloadbox', () => {
     assert.deepEqual(info.addresses, [
       'MxgIfUxomILxEXIEGXcPjXb8y4Jh-XOGXQ7JMv4QFmE'
     ]);
+  });
+
+  it('Nonexistent wallet cannot be fetched', async () => {
+    // Generate a new wallet
+    const owner = new anchor.Wallet(anchor.web3.Keypair.generate());
+    // Give the user SOL
+    await conn.confirmTransaction(await conn.requestAirdrop(owner.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
+    // Give the treasury SOL
+    await conn.confirmTransaction(await conn.requestAirdrop(TREASURY, 1 * anchor.web3.LAMPORTS_PER_SOL));
+    const result = await offloadbox.fetchOffloadbox(conn, owner, 'hello');
+    assert.equal(result, undefined);
   });
 });
