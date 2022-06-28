@@ -22,24 +22,23 @@ describe('offloadbox', () => {
 
     // Create the offloadbox
     await offloadbox.createOffloadbox(
-      dispatch, identifier, dispatch.wallet.publicKey
+      conn, owner, identifier
     );
 
     // Load the created account using the given seeds
     let info = await offloadbox.fetchOffloadbox(
-      dispatch, identifier
+      conn, owner, identifier
     );
 
     assert.deepEqual(info.addresses, []);
 
     await offloadbox.makePost(
-      dispatch,
-      identifier,
+      conn, owner, identifier,
       'MxgIfUxomILxEXIEGXcPjXb8y4Jh-XOGXQ7JMv4QFmE'
     );
 
     info = await offloadbox.fetchOffloadbox(
-      dispatch, identifier
+      conn, owner, identifier
     );
 
     assert.deepEqual(info.addresses, [

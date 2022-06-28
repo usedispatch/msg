@@ -1,14 +1,13 @@
 import * as web3 from '@solana/web3.js';
-import { DispatchConnection } from './connection';
-import { seeds } from './constants';
+import { seeds, clusterAddresses } from './constants';
 import base64url from 'base64url';
+import * as anchor from '@project-serum/anchor';
+import { Offloadbox } from '../../target/types/offloadbox';
+import offloadboxProgramIdl from '../../target/idl/offloadbox.json';
+import { DispatchConnection } from './connection';
+import { WalletInterface } from './wallets';
 
 type ArweaveAddress = string;
-
-export interface Offloadbox {
-  /** Arweave addresses */
-  addresses: ArweaveAddress[]
-};
 
 /**
  * This function initializes a new offloadbox using the publicKey
@@ -16,16 +15,17 @@ export interface Offloadbox {
  * The offloadbox
  */
 export async function createOffloadbox(
-  dispatch: DispatchConnection,
-  identifier: string,
-  user: web3.PublicKey
+  conn: web3.Connection,
+  user: WalletInterface,
+  identifier: string
 ): Promise<string> {
+  const dispatch = new DispatchConnection(conn, user);
   const tx = await dispatch.offloadboxProgram.methods
   .initialize(
     identifier
   )
   .accounts({
-    signer: user,
+    signer: user.publicKey!,
     treasury: dispatch.addresses.treasuryAddress
   })
   .transaction()
@@ -37,12 +37,14 @@ export async function createOffloadbox(
 }
 
 export async function makePost(
-  dispatch: DispatchConnection,
+  conn: web3.Connection,
+  user: WalletInterface,
   // TODO make this size-bounded so no one creates an identifier
   // that is way too big
   identifier: string, // identifies the offloadbox
   arweaveAddr: string,
 ) {
+  const dispatch = new DispatchConnection(conn, user);
   // Look up account
   const [address] = await web3.PublicKey.findProgramAddress(
     [seeds.protocolSeed, seeds.offloadboxSeed, Buffer.from(identifier)],
@@ -66,26 +68,32 @@ export async function makePost(
 }
 
 export async function fetchOffloadbox(
-  dispatch: DispatchConnection,
+  conn: web3.Connection,
+  user: WalletInterface,
   identifier: string
 ) {
+  const dispatch = new DispatchConnection(conn, user);
   const [address] = await web3.PublicKey.findProgramAddress(
     [seeds.protocolSeed, seeds.offloadboxSeed, Buffer.from(identifier)],
     dispatch.offloadboxProgram.programId
   );
 
-  const offloadbox = await dispatch.offloadboxProgram.account.offloadbox.fetch(
-    address
-  );
+  try {
+    const offloadbox = await dispatch.offloadboxProgram.account.offloadbox.fetch(
+      address
+    );
 
-  const addresses = offloadbox.addresses as number[][];
-  const addrStrings = addresses.map(addr =>
-    base64url.encode(Buffer.from(addr))
-  );
-  console.log(addrStrings);
+    const addresses = offloadbox.addresses as number[][];
+    const addrStrings = addresses.map(addr =>
+      base64url.encode(Buffer.from(addr))
+    );
 
 
-  return {
-    addresses: addrStrings
-  };
+    return {
+      addresses: addrStrings
+    };
+
+  } catch(e) {
+    return undefined;
+  }
 }
