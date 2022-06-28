@@ -60,6 +60,9 @@ export interface IForum {
   // Update the description of the forum
   setDescription(desc: postbox.Description): Promise<web3.TransactionSignature>;
 
+  // Update the pots restrictions on the forum
+  setPostboxPostRestriction(restriction: postbox.TokenPostRestriction): Promise<web3.TransactionSignature>;
+
   // Delegate the given account as a moderator by giving them a moderator token
   addModerator(newMod: web3.PublicKey): Promise<web3.TransactionSignature>;
 
@@ -173,6 +176,10 @@ export class Forum implements IForum {
 
   async setDescription(desc: postbox.Description): Promise<web3.TransactionSignature> {
     return this._postbox.setDescription(desc);
+  }
+
+  async setPostboxPostRestriction(restriction: postbox.TokenPostRestriction): Promise<web3.TransactionSignature> {
+    return this._postbox.setPostboxPostRestriction(restriction);
   }
 
   async addModerator(newMod: web3.PublicKey): Promise<web3.TransactionSignature> {

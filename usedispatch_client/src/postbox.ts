@@ -72,6 +72,11 @@ export type Description = {
   desc: string;
 };
 
+export type TokenPostRestriction = {
+  mint: web3.PublicKey;
+  amount: number;
+};
+
 type SettingsAccountData = {
   description?: Description;
   ownerInfo?: {
@@ -292,6 +297,10 @@ export class Postbox {
 
   async setDescription(description: Description): Promise<web3.TransactionSignature> {
     return this.innerSetSetting({ description });
+  }
+
+  async setPostboxPostRestriction(postRestriction: TokenPostRestriction): Promise<web3.TransactionSignature> {
+    return this.innerSetSetting({ postRestriction });
   }
 
   async innerGetSetting(settingsType: SettingsType): Promise<SettingsAccountData | undefined> {
