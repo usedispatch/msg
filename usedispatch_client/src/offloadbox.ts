@@ -17,9 +17,10 @@ type ArweaveAddress = string;
 export async function createOffloadbox(
   conn: web3.Connection,
   user: WalletInterface,
-  identifier: string
+  identifier: string,
+  cluster?: web3.Cluster
 ): Promise<string> {
-  const dispatch = new DispatchConnection(conn, user);
+  const dispatch = new DispatchConnection(conn, user, { cluster });
   const tx = await dispatch.offloadboxProgram.methods
   .initialize(
     identifier
@@ -43,8 +44,9 @@ export async function makePost(
   // that is way too big
   identifier: string, // identifies the offloadbox
   arweaveAddr: string,
+  cluster?: web3.Cluster
 ) {
-  const dispatch = new DispatchConnection(conn, user);
+  const dispatch = new DispatchConnection(conn, user, { cluster });
   // Look up account
   const [address] = await web3.PublicKey.findProgramAddress(
     [/*seeds.protocolSeed, */ seeds.offloadboxSeed, Buffer.from(identifier)],
@@ -70,9 +72,10 @@ export async function makePost(
 export async function fetchOffloadbox(
   conn: web3.Connection,
   user: WalletInterface,
-  identifier: string
+  identifier: string,
+  cluster?: web3.Cluster
 ) {
-  const dispatch = new DispatchConnection(conn, user);
+  const dispatch = new DispatchConnection(conn, user, { cluster });
   const [address] = await web3.PublicKey.findProgramAddress(
     [/*seeds.protocolSeed,*/ seeds.offloadboxSeed, Buffer.from(identifier)],
     dispatch.offloadboxProgram.programId
