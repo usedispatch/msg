@@ -46,7 +46,7 @@ pub struct Initialize<'info> {
     #[account(init,
               payer = signer,
               space = mem::size_of::<[u8; 32]>() * 100,
-              seeds = [PROTOCOL_SEED.as_bytes(), OFFLOADBOX_SEED.as_bytes(), identifier.as_bytes()],
+              seeds = [/*PROTOCOL_SEED, */ OFFLOADBOX_SEED.as_bytes(), identifier.as_bytes()],
               bump,
              )]
     pub offloadbox: Box<Account<'info, Offloadbox>>,

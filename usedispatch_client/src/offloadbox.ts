@@ -47,7 +47,7 @@ export async function makePost(
   const dispatch = new DispatchConnection(conn, user);
   // Look up account
   const [address] = await web3.PublicKey.findProgramAddress(
-    [seeds.protocolSeed, seeds.offloadboxSeed, Buffer.from(identifier)],
+    [/*seeds.protocolSeed, */ seeds.offloadboxSeed, Buffer.from(identifier)],
     dispatch.offloadboxProgram.programId
   );
 
@@ -74,7 +74,7 @@ export async function fetchOffloadbox(
 ) {
   const dispatch = new DispatchConnection(conn, user);
   const [address] = await web3.PublicKey.findProgramAddress(
-    [seeds.protocolSeed, seeds.offloadboxSeed, Buffer.from(identifier)],
+    [/*seeds.protocolSeed,*/ seeds.offloadboxSeed, Buffer.from(identifier)],
     dispatch.offloadboxProgram.programId
   );
 
