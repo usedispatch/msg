@@ -25,14 +25,14 @@ clusterAddresses.set('devnet', {
   programAddress: new web3.PublicKey('BHJ4tRcogS88tUhYotPfYWDjR4q7MGdizdiguY3N54rb'),
   treasuryAddress: new web3.PublicKey('G2GGDc89qpuk21WgRUVPDY517uc6qR5yT4KX7AakyVR1'),
   postboxAddress: new web3.PublicKey('Fs5wSa7GYtTqivXGqHyx673v5oPuD5Cb7ij9utsFKdLb'),
-  offloadboxAddress: new web3.PublicKey('Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS'),
+  offloadboxAddress: new web3.PublicKey('BnQpgE5tiD4t7a6TqZiH3yoSRW2eaDZ9av65hXCR7qoQ')
 });
 
 clusterAddresses.set('mainnet-beta', {
   programAddress: new web3.PublicKey('BHJ4tRcogS88tUhYotPfYWDjR4q7MGdizdiguY3N54rb'),
   treasuryAddress: new web3.PublicKey('5MNBoBJDHHG4pB6qtWgYPzGEncoYTLAaANovvoaxu28p'),
   postboxAddress: new web3.PublicKey('Fs5wSa7GYtTqivXGqHyx673v5oPuD5Cb7ij9utsFKdLb'),
-  offloadboxAddress: new web3.PublicKey('Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS'),
+  offloadboxAddress: new web3.PublicKey('BnQpgE5tiD4t7a6TqZiH3yoSRW2eaDZ9av65hXCR7qoQ')
 });
 
 export const defaultCluster: web3.Cluster = 'devnet';

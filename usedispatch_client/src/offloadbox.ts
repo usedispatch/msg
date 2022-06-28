@@ -71,22 +71,22 @@ export async function makePost(
 
 export async function fetchOffloadbox(
   conn: web3.Connection,
-  user: WalletInterface,
+  wallet: WalletInterface,
   identifier: string,
   cluster?: web3.Cluster
 ) {
-  const dispatch = new DispatchConnection(conn, user, { cluster });
+  const dispatch = new DispatchConnection(conn, wallet, { cluster });
   const [address] = await web3.PublicKey.findProgramAddress(
     [/*seeds.protocolSeed,*/ seeds.offloadboxSeed, Buffer.from(identifier)],
     dispatch.offloadboxProgram.programId
   );
 
   try {
-    const offloadbox = await dispatch.offloadboxProgram.account.offloadbox.fetch(
+    const box = await dispatch.offloadboxProgram.account.offloadbox.fetch(
       address
     );
 
-    const addresses = offloadbox.addresses as number[][];
+    const addresses = box.addresses as number[][];
     const addrStrings = addresses.map(addr =>
       base64url.encode(Buffer.from(addr))
     );

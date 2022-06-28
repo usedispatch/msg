@@ -3,9 +3,9 @@ use std::mem;
 mod treasury;
 
 #[cfg(feature = "mainnet")]
-declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
+declare_id!("BnQpgE5tiD4t7a6TqZiH3yoSRW2eaDZ9av65hXCR7qoQ");
 #[cfg(not(feature = "mainnet"))]
-declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
+declare_id!("BnQpgE5tiD4t7a6TqZiH3yoSRW2eaDZ9av65hXCR7qoQ");
 
 const PROTOCOL_SEED: & str = "dispatch";
 const OFFLOADBOX_SEED: & str = "offloadbox";
