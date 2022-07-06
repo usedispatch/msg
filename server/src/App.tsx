@@ -9,14 +9,20 @@ import {
     Header,
     Content
 } from './components';
+import { Wallet } from './Wallet';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
 function App() {
   return (
-      <Container>
-	  <Header />
-	  <hr />
-	  <Content />
-      </Container>
+    <Wallet>
+      <BrowserRouter>
+          <Header />
+          <hr />
+        <Routes>
+          <Route path="/" element={<Content />} />
+        </Routes>
+      </BrowserRouter>
+    </Wallet>
   );
 }
 
