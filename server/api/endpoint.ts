@@ -27,7 +27,7 @@ export default async function handler(
   response: NextApiResponse
 ) {
   // Initialize connection
-  const conn = new Connection(clusterApiUrl('devnet'));
+  const connection = new Connection(clusterApiUrl('devnet'));
 
   try {
     // TODO check all these fields
@@ -37,12 +37,13 @@ export default async function handler(
 
     if (parsed.kind === ActionKind.CreateForum) {
       const { userPubkeyBase58 } = parsed;
+      const userPubkey = new PublicKey(userPubkeyBase58);
 
-      result = await confirmPayment(
-        conn,
-        '3Gi1rsg89hgtNQMPCZLQVoYw6jREw8Cg4VWXaQeU4397mGnuvYqdkmDsoaj98WiZLT4ZeTGb9JdYwBRxMPPD8CVE',
-        userPubkeyBase58,
-      );
+      result = await confirmPayment({
+        connection,
+        txid: '3Gi1rsg89hgtNQMPCZLQVoYw6jREw8Cg4VWXaQeU4397mGnuvYqdkmDsoaj98WiZLT4ZeTGb9JdYwBRxMPPD8CVE',
+        senderPubkey: userPubkey
+      });
 
       // TODO create forum here
     } else if (parsed.kind === ActionKind.GetServerPubkey) {
@@ -55,16 +56,23 @@ export default async function handler(
   }
 }
 
+interface ConfirmPaymentParameters {
+  connection: Connection;
+  txid: string;
+  senderPubkey: PublicKey;
+  receiverPubkey?: PublicKey;
+  n?: number;
+}
 /*
  * Confirm that a user paid at least n lamports
  */
-async function confirmPayment(
-  connection: Connection,
-  txid: string,
-  userPubkeyBase58: string,
-  recipientPubkeyBase58: string = getEndpointKeypair().publicKey.toBase58(),
-  n: Number = 50000
-): Promise<boolean> {
+async function confirmPayment({
+  connection,
+  txid,
+  senderPubkey,
+  receiverPubkey = getEndpointKeypair().publicKey,
+  n = 50000
+}: ConfirmPaymentParameters): Promise<boolean> {
   const tx = await connection.getParsedTransaction(txid);
   const instructions =  tx!.transaction.message.instructions;
 
@@ -74,14 +82,14 @@ async function confirmPayment(
   // TODO confirm that this payment happened recently
   return instructions.some(inst =>
     // Instruction is well-formed
-    'parsed' in inst                                       &&
-    'info' in inst.parsed                                  &&
+    'parsed' in inst                                           &&
+    'info' in inst.parsed                                      &&
     // Instruction is a transfer
-    inst.parsed.type             === 'transfer'            &&
+    inst.parsed.type             === 'transfer'                &&
     // Instruction is from the correct user and to the correct
     // recipient
-    inst.parsed.info.source      === userPubkeyBase58      &&
-    inst.parsed.info.destination === recipientPubkeyBase58 &&
+    inst.parsed.info.source      === senderPubkey.toBase58()   &&
+    inst.parsed.info.destination === receiverPubkey.toBase58() &&
     // Instruction pays enough
     inst.parsed.info.lamports    >=  n
   );
