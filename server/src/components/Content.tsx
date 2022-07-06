@@ -6,6 +6,8 @@ import {
   Col
 } from 'react-bootstrap';
 import { useState } from 'react';
+import { ActionKind } from '../types';
+import { postEndpoint } from '../utils';
 
 export function Content() {
   return (
@@ -27,7 +29,11 @@ function CreateForm() {
         />
       </Row>
       <Row>
-        <Button>Create forum</Button>
+        <Button
+          onClick={() => {
+            postEndpoint({ kind: ActionKind.CreateForum });
+          }}
+        >Create forum</Button>
       </Row>
     </Col>
   );

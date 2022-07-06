@@ -1,6 +1,3 @@
-/*
- *
- */
 import { offloadbox } from '../../usedispatch_client';
 import {
   NextApiRequest,
@@ -11,7 +8,8 @@ import {
   clusterApiUrl
 } from '@solana/web3.js';
 import {
-  ActionKind
+  ActionKind,
+  EndpointParameters
 } from '../src/types';
 
 export default async function handler(
@@ -27,6 +25,7 @@ export default async function handler(
 
     if (parsed.kind === ActionKind.CreateForum) {
       response.end('received CreateForum');
+      // TODO create forum here
     }
 
   } catch(e) {
