@@ -1,3 +1,5 @@
+import { PublicKey } from '@solana/web3.js';
+
 export enum ActionKind {
   CreateForum,
   GetServerPubkey
@@ -5,6 +7,8 @@ export enum ActionKind {
 
 export interface CreateForumAction {
   kind: ActionKind.CreateForum;
+  // base58 encoded
+  userPubkeyBase58: string;
 }
 
 export interface GetServerPubkeyAction {

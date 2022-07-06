@@ -8,6 +8,7 @@ import {
 import { useState } from 'react';
 import { ActionKind } from '../types';
 import { postEndpoint } from '../utils';
+import { useWallet } from '@solana/wallet-adapter-react';
 
 export function Content() {
   return (
@@ -19,6 +20,8 @@ export function Content() {
 
 function CreateForm() {
   const [identifier, setIdentifier] = useState('');
+  const wallet = useWallet();
+
   return (
     <Col>
       <Row>
@@ -31,7 +34,10 @@ function CreateForm() {
       <Row>
         <Button
           onClick={() => {
-            postEndpoint({ kind: ActionKind.GetServerPubkey });
+            postEndpoint({
+              kind: ActionKind.CreateForum,
+              userPubkeyBase58: wallet.publicKey!.toBase58()
+            });
           }}
         >Create forum</Button>
       </Row>

@@ -7,6 +7,7 @@ import {
   Connection,
   clusterApiUrl,
   Keypair,
+  PublicKey
 } from '@solana/web3.js';
 import {
   ActionKind,
@@ -27,7 +28,14 @@ export default async function handler(
     let result: any
 
     if (parsed.kind === ActionKind.CreateForum) {
-      result = 'Create forum';
+      const { userPubkeyBase58 } = parsed;
+      const userPubkey = new PublicKey(userPubkeyBase58);
+
+      result = await confirmPayment(
+        conn,
+        '2jaX9RvCdY4Xishuy5LTJr7gT3VfVKEztxCzK4af1qFnQoZ9X6tNR5L2b5YPBeUHCu71u5BaV4MAwne7hDeKb4za',
+        'hello'
+      );
       // TODO create forum here
     } else if (parsed.kind === ActionKind.GetServerPubkey) {
       const seed = JSON.parse(process.env['ENDPOINT_SECRET_KEY']!);
@@ -45,12 +53,13 @@ export default async function handler(
 /*
  * Confirm that a user paid at least n lamports
  */
-async function confirmTransaction(
+async function confirmPayment(
   connection: Connection,
   txid: string,
   text: string,
   n: Number = 50000
 ) {
   const tx = await connection.getParsedTransaction(txid);
-  return tx.transaction.message.instructions
+  const instructions=  tx.transaction.message.instructions;
+  return instructions;
 }
