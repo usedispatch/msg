@@ -15,13 +15,24 @@ export default async function handler(
   request: NextApiRequest,
   response: NextApiResponse
 ) {
-  // TODO check all these fields
-  const parsed = JSON.parse(request.body);
-  // Text should be no more than 256 chars long
-  const text = parsed.text as string;
-  // txid should be from a transaction that ran recently
-  const txid = parsed.txid as string;
+  try {
+    // TODO check all these fields
+    const parsed: ConfirmTransaction = JSON.parse(request.body);
 
+    // TODO confirm that result is properly structured
+    const result = await confirmTransaction(parsed);
+
+    response.end(JSON.stringify(result));
+  } catch(e) {
+    response.end(e.toString());
+  }
+}
+
+interface ConfirmTransaction {
+  txid: string;
+  text: string;
+}
+async function confirmTransaction({ txid, text }: ConfirmTransaction) {
   // Initialize connection
   const connection = new Connection(clusterApiUrl('devnet'));
   const tx = await connection.getTransaction(txid);
@@ -29,5 +40,5 @@ export default async function handler(
   const result = {
     tx
   };
-  response.end(JSON.stringify(result));
+  return result;
 }

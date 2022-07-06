@@ -17,7 +17,11 @@
         "crypto-js": "^4.1.1",
         "mocha": "^9.0.3",
         "ts-mocha": "^9.0.2",
-        "typescript": "^4.3.5"
+        "typescript": "^4.3.5",
+        "vercel": "^26.0.0"
     },
-    "version": "0.2.1"
+    "version": "0.2.1",
+    "scripts": {
+      "vercel-dev": "vercel dev"
+    }
 }
