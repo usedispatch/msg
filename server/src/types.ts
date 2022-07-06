@@ -3,6 +3,14 @@ export enum ActionKind {
   GetServerPubkey
 }
 
-export interface EndpointParameters {
-  kind: ActionKind;
+export interface CreateForumAction {
+  kind: ActionKind.CreateForum;
 }
+
+export interface GetServerPubkeyAction {
+  kind: ActionKind.GetServerPubkey
+}
+
+export type EndpointParameters
+  = CreateForumAction
+  | GetServerPubkeyAction;

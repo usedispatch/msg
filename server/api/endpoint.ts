@@ -43,17 +43,14 @@ export default async function handler(
 }
 
 /*
- * Confirm that a user paid at least X lamports
+ * Confirm that a user paid at least n lamports
  */
 async function confirmTransaction(
   connection: Connection,
   txid: string,
-  text: string
+  text: string,
+  n: Number = 50000
 ) {
-  const tx = await connection.getTransaction(txid);
-
-  const result = {
-    tx
-  };
-  return result;
+  const tx = await connection.getParsedTransaction(txid);
+  return tx.transaction.message.instructions
 }
