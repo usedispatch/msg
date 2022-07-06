@@ -5,3 +5,6 @@ target
 **/*.rs.bk
 node_modules
 .vscode
+.vercel
+**/#*#
+*~
