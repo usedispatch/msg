@@ -10,31 +10,41 @@ import {
   Connection,
   clusterApiUrl
 } from '@solana/web3.js';
+import {
+  ActionKind
+} from './types';
 
+interface EndpointParameters {
+  kind: ActionKind;
+}
 export default async function handler(
   request: NextApiRequest,
   response: NextApiResponse
 ) {
+  // Initialize connection
+  const conn = new Connection(clusterApiUrl('devnet'));
+
   try {
     // TODO check all these fields
-    const parsed: ConfirmTransaction = JSON.parse(request.body);
+    const parsed: EndpointParameters = JSON.parse(request.body);
 
-    // TODO confirm that result is properly structured
-    const result = await confirmTransaction(parsed);
+    if (parsed.kind === ActionKind.CreateForum) {
+      response.end('received CreateForum');
+    }
 
-    response.end(JSON.stringify(result));
   } catch(e) {
     response.end(e.toString());
   }
 }
 
-interface ConfirmTransaction {
-  txid: string;
-  text: string;
-}
-async function confirmTransaction({ txid, text }: ConfirmTransaction) {
-  // Initialize connection
-  const connection = new Connection(clusterApiUrl('devnet'));
+/*
+ * Confirm that a user paid at least X lamports
+ */
+async function confirmTransaction(
+  connection: Connection,
+  txid: string,
+  text: string
+) {
   const tx = await connection.getTransaction(txid);
 
   const result = {
