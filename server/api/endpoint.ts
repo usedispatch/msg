@@ -12,11 +12,8 @@ import {
 } from '@solana/web3.js';
 import {
   ActionKind
-} from './types';
+} from '../src/types';
 
-interface EndpointParameters {
-  kind: ActionKind;
-}
 export default async function handler(
   request: NextApiRequest,
   response: NextApiResponse
