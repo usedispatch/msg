@@ -14,6 +14,14 @@ import {
   EndpointParameters
 } from '../src/types';
 
+export function getEndpointKeypair(): Keypair {
+  // TODO handle exceptions here
+  const seed = JSON.parse(process.env['ENDPOINT_SECRET_KEY']!);
+  const bytes = new Uint8Array(seed);
+  const keypair = Keypair.fromSecretKey(bytes);
+  return keypair;
+}
+
 export default async function handler(
   request: NextApiRequest,
   response: NextApiResponse
@@ -29,19 +37,16 @@ export default async function handler(
 
     if (parsed.kind === ActionKind.CreateForum) {
       const { userPubkeyBase58 } = parsed;
-      const userPubkey = new PublicKey(userPubkeyBase58);
 
       result = await confirmPayment(
         conn,
-        '2jaX9RvCdY4Xishuy5LTJr7gT3VfVKEztxCzK4af1qFnQoZ9X6tNR5L2b5YPBeUHCu71u5BaV4MAwne7hDeKb4za',
-        'hello'
+        '3Gi1rsg89hgtNQMPCZLQVoYw6jREw8Cg4VWXaQeU4397mGnuvYqdkmDsoaj98WiZLT4ZeTGb9JdYwBRxMPPD8CVE',
+        userPubkeyBase58,
       );
+
       // TODO create forum here
     } else if (parsed.kind === ActionKind.GetServerPubkey) {
-      const seed = JSON.parse(process.env['ENDPOINT_SECRET_KEY']!);
-      const bytes = new Uint8Array(seed);
-      const keypair = Keypair.fromSecretKey(bytes);
-      result = keypair.publicKey.toBase58();
+      result = getEndpointKeypair().publicKey.toBase58();
     }
 
     response.end(JSON.stringify({result}));
@@ -56,10 +61,28 @@ export default async function handler(
 async function confirmPayment(
   connection: Connection,
   txid: string,
-  text: string,
+  userPubkeyBase58: string,
+  recipientPubkeyBase58: string = getEndpointKeypair().publicKey.toBase58(),
   n: Number = 50000
-) {
+): Promise<boolean> {
   const tx = await connection.getParsedTransaction(txid);
-  const instructions=  tx.transaction.message.instructions;
-  return instructions;
+  const instructions =  tx!.transaction.message.instructions;
+
+  // There must be some instruction that pays enough from user to
+  // recipient
+  // TODO handle partially-decoded data
+  // TODO confirm that this payment happened recently
+  return instructions.some(inst =>
+    // Instruction is well-formed
+    'parsed' in inst                                       &&
+    'info' in inst.parsed                                  &&
+    // Instruction is a transfer
+    inst.parsed.type             === 'transfer'            &&
+    // Instruction is from the correct user and to the correct
+    // recipient
+    inst.parsed.info.source      === userPubkeyBase58      &&
+    inst.parsed.info.destination === recipientPubkeyBase58 &&
+    // Instruction pays enough
+    inst.parsed.info.lamports    >=  n
+  );
 }
