@@ -13,5 +13,6 @@ export async function postEndpoint(params: EndpointParameters) {
   // TODO do something with the response here?
   const response = await fetch(req);
   const text = await response.text();
-  console.log(text);
+  const { result } = JSON.parse(text);
+  console.log(result);
 };

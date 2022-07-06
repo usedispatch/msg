@@ -31,7 +31,7 @@ function CreateForm() {
       <Row>
         <Button
           onClick={() => {
-            postEndpoint({ kind: ActionKind.CreateForum });
+            postEndpoint({ kind: ActionKind.GetServerPubkey });
           }}
         >Create forum</Button>
       </Row>

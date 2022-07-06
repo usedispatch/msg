@@ -5,7 +5,8 @@ import {
 } from 'next';
 import {
   Connection,
-  clusterApiUrl
+  clusterApiUrl,
+  Keypair,
 } from '@solana/web3.js';
 import {
   ActionKind,
@@ -23,11 +24,19 @@ export default async function handler(
     // TODO check all these fields
     const parsed: EndpointParameters = JSON.parse(request.body);
 
+    let result: any
+
     if (parsed.kind === ActionKind.CreateForum) {
-      response.end('received CreateForum');
+      result = 'Create forum';
       // TODO create forum here
+    } else if (parsed.kind === ActionKind.GetServerPubkey) {
+      const seed = JSON.parse(process.env['ENDPOINT_SECRET_KEY']!);
+      const bytes = new Uint8Array(seed);
+      const keypair = Keypair.fromSecretKey(bytes);
+      result = keypair.publicKey.toBase58();
     }
 
+    response.end(JSON.stringify({result}));
   } catch(e) {
     response.end(e.toString());
   }
