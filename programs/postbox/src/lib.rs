@@ -1,11 +1,13 @@
 use anchor_lang::prelude::*;
 use anchor_spl::{token, associated_token};
 use errors::PostboxErrorCode;
-use post_restrictions::{PostRestrictionRule, PostRestrictionAccountIndices};
+use post_restrictions::AdditionalAccountIndices;
+use settings::{SettingsData, SettingsType};
 
 mod errors;
 mod nft_metadata;
 mod post_restrictions;
+mod settings;
 mod treasury;
 
 #[cfg(feature = "mainnet")]
@@ -69,9 +71,9 @@ pub mod postbox {
         Ok(())
     }
 
-    pub fn create_post(ctx: Context<CreatePost>, data: Vec<u8>, post_id: u32,
-        post_restriction: Option<PostRestrictionRule>,
-        restriction_account_offsets: Option<PostRestrictionAccountIndices>,
+    pub fn create_post (ctx: Context<CreatePost>, data: Vec<u8>, post_id: u32,
+        settings: Vec<SettingsData>,
+        additional_account_offsets: Vec<AdditionalAccountIndices>,
     ) -> Result<()> {
         let postbox_account = &mut ctx.accounts.postbox;
         if post_id > postbox_account.max_child_id + POSTBOX_GROW_CHILDREN_BY {
@@ -84,37 +86,40 @@ pub mod postbox {
         let post_account = &mut ctx.accounts.post;
         post_account.poster = ctx.accounts.poster.key();
         post_account.data = data;
+        for setting in settings {
+            post_account.set_setting(&setting)?;
+        }
 
+        let mut post_restriction_to_use: Option<&SettingsData> = None;
         let reply_to_key = ctx.accounts.reply_to.key();
+        let reply_to: Account<Post>;
         if reply_to_key == Pubkey::default() {
-            // Postbox setting specifies the default, which can be overriden in a post
-            if let Some(forum_post_restriction) = postbox_account.get_setting(SettingsType::PostRestriction) {
-                require!(restriction_account_offsets.is_some(), PostboxErrorCode::MissingRequiredOffsets);
-                match forum_post_restriction {
-                    SettingsData::PostRestriction{ post_restriction } => post_restriction.validate_reply_allowed(
-                        &ctx.accounts.poster.key(),
-                        ctx.remaining_accounts,
-                        &restriction_account_offsets.unwrap(),
-                    )?,
-                    _ => {return Err(Error::from(PostboxErrorCode::MalformedSetting).with_source(source!()))},
-                };
-            }
             post_account.reply_to = None;
-            post_account.post_restrictions = post_restriction;
         } else {
-            let reply_to = Account::<Post>::try_from(&ctx.accounts.reply_to)?;
-            if let Some(parent_post_restriction) = &reply_to.post_restrictions {
-                require!(restriction_account_offsets.is_some(), PostboxErrorCode::MissingRequiredOffsets);
-                parent_post_restriction.validate_reply_allowed(
+            // Check that we are actually replying to a post
+            reply_to = Account::<Post>::try_from(&ctx.accounts.reply_to)?;
+            post_account.reply_to = Some(reply_to_key);
+            post_restriction_to_use = reply_to.get_setting(SettingsType::PostRestriction);
+            // Inherit our parent post restriction rather than allowing a new one on replies
+            if let Some(restriction) = post_restriction_to_use {
+                // require!(false, PostboxErrorCode::TestError);
+                require!(post_account.get_setting(SettingsType::PostRestriction).is_none(), PostboxErrorCode::ReplyCannotRestrictReplies);
+                post_account.set_setting(restriction)?;
+            }
+        }
+        if post_restriction_to_use.is_none() {
+            // Postbox setting specifies the default, which can be overriden in a post
+            post_restriction_to_use = ctx.accounts.postbox.get_setting(SettingsType::PostRestriction);
+        }
+        if let Some(restriction) = post_restriction_to_use {
+            match restriction {
+                SettingsData::PostRestriction{ post_restriction } => post_restriction.validate_reply_allowed(
                     &ctx.accounts.poster.key(),
                     ctx.remaining_accounts,
-                    &restriction_account_offsets.unwrap(),
-                )?;
-            }
-            post_account.reply_to = Some(reply_to_key);
-            // Inherit our parent post restriction rather than allowing a new one on replies
-            require!(post_restriction.is_none(), PostboxErrorCode::ReplyCannotRestrictReplies);
-            post_account.post_restrictions = reply_to.post_restrictions.clone();
+                    &additional_account_offsets,
+                )?,
+                _ => {return Err(Error::from(PostboxErrorCode::MalformedSetting).with_source(source!()))},
+            };
         }
 
         emit!(PostEvent {
@@ -222,13 +227,13 @@ pub struct Initialize<'info> {
 
 #[derive(Accounts)]
 // TODO: pass in the new message as a full account, then validate it
-#[instruction(data: Vec<u8>, post_id: u32, post_restriction: Option<PostRestrictionRule>)]
+#[instruction(data: Vec<u8>, post_id: u32, settings: Vec<SettingsData>)]
 pub struct CreatePost<'info> {
     #[account(init,
         payer = poster,
-        space = 8 + 32 + 4 + data.len() + 2 + 2 + 1 + (if reply_to.key() != Pubkey::default() {32} else {0}) + 1 + (
-            if post_restriction.is_some() {post_restriction.unwrap().get_size()} else {0}
-        ) + post_restrictions::get_reply_restriction_size(&reply_to),
+        space = 8 + 32 + 4 + data.len() + 2 + 2 + 1 + (if reply_to.key() != Pubkey::default() {32} else {0}) + 4 + (
+            get_post_projected_settings_size(&settings, &reply_to)
+        ),
         seeds = [PROTOCOL_SEED.as_bytes(), POST_SEED.as_bytes(), postbox.key().as_ref(), &post_id.to_le_bytes()],
         bump,
     )]
@@ -341,34 +346,6 @@ pub struct AddOrUpdateSetting<'info> {
     pub system_program: Program<'info, System>,
 }
 
-#[derive(
-    AnchorSerialize,
-    AnchorDeserialize,
-    Clone,
-    PartialEq,
-    Eq
-)]
-pub enum SettingsType {
-    Description,
-    OwnerInfo,
-    PostRestriction,
-    Null,
-}
-
-#[derive(
-    AnchorSerialize,
-    AnchorDeserialize,
-    Clone,
-    PartialEq,
-    Eq
-)]
-pub enum SettingsData {
-    Description { title: String, desc: String },
-    OwnerInfo { owners: Vec<Pubkey> },
-    PostRestriction { post_restriction: PostRestrictionRule },
-    Null,
-}
-
 impl Postbox {
     pub fn has_owner(&self, potential_owner: & Pubkey) -> bool {
         match self.get_setting(SettingsType::OwnerInfo) {
@@ -396,22 +373,43 @@ impl Postbox {
     }
 }
 
-impl SettingsData {
-    pub fn get_size(&self) -> usize {
-        return match self.try_to_vec() {
-            Ok(v) => v.len(),
-            Err(_) => 0,
-        };
+impl Post {
+    pub fn get_setting(&self, settings_type: SettingsType) -> Option<& SettingsData> {
+        for setting in &self.settings {
+            if setting.get_type() == settings_type {
+                return Some(& setting);
+            }
+        }
+        return None;
     }
 
-    pub fn get_type(&self) -> SettingsType {
-        return match self {
-            SettingsData::Description { title: _, desc: _ } => SettingsType::Description,
-            SettingsData::OwnerInfo { owners: _ } => SettingsType::OwnerInfo,
-            SettingsData::PostRestriction { post_restriction: _ } => SettingsType::PostRestriction,
-            SettingsData::Null => SettingsType::Null,
-        };
+    pub fn set_setting(&mut self, new_setting: &SettingsData) -> Result<()> {
+        // Some settings types don't make sense on a post
+        require!(new_setting.get_type() == SettingsType::PostRestriction, PostboxErrorCode::PostInvalidSettingsType);
+        self.settings.retain(|s| s.get_type() != new_setting.get_type());
+        self.settings.push(new_setting.clone());
+        Ok(())
     }
+}
+
+pub fn get_post_projected_settings_size(passed_settings: &Vec<SettingsData>, reply_to: &AccountInfo) -> usize {
+    let mut size = 0;
+    let mut allow_restriction = true;
+    // For post restriction, we inherit rather than allowing you to set it
+    let maybe_reply_to_post = Account::<crate::Post>::try_from(reply_to);
+    if maybe_reply_to_post.is_ok() {
+        if let Some(restriction) = & maybe_reply_to_post.unwrap().get_setting(SettingsType::PostRestriction) {
+            size += restriction.get_size();
+            allow_restriction = false;
+        }
+    }
+    for setting in passed_settings {
+        if !allow_restriction && setting.get_type() == SettingsType::PostRestriction {
+            continue;
+        }
+        size += setting.get_size();
+    }
+    return size;
 }
 
 pub fn resize_account<'info>(data_account: &dyn ToAccountInfo<'info>, funding_account: &dyn ToAccountInfo<'info>, new_size: usize) -> Result<()> {
@@ -443,7 +441,7 @@ pub struct Post {
     up_votes: u16,
     down_votes: u16,
     reply_to: Option<Pubkey>,
-    post_restrictions: Option<PostRestrictionRule>,
+    settings: Vec<SettingsData>,
 }
 
 #[event]

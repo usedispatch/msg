@@ -60,6 +60,9 @@ export interface IForum {
   // Update the description of the forum
   setDescription(desc: postbox.Description): Promise<web3.TransactionSignature>;
 
+  // Update the pots restrictions on the forum
+  setPostboxPostRestriction(restriction: postbox.TokenPostRestriction): Promise<web3.TransactionSignature>;
+
   // Delegate the given account as a moderator by giving them a moderator token
   addModerator(newMod: web3.PublicKey): Promise<web3.TransactionSignature>;
 
@@ -175,6 +178,10 @@ export class Forum implements IForum {
     return this._postbox.setDescription(desc);
   }
 
+  async setPostboxPostRestriction(restriction: postbox.TokenPostRestriction): Promise<web3.TransactionSignature> {
+    return this._postbox.setPostboxPostRestriction(restriction);
+  }
+
   async addModerator(newMod: web3.PublicKey): Promise<web3.TransactionSignature> {
     return this._postbox.addModerator(newMod);
   }
@@ -193,6 +200,14 @@ export class Forum implements IForum {
     return this._postbox.isModerator();
   }
 
+  async canPost(): Promise<boolean> {
+    return this._postbox.canPost();
+  }
+
+  async canReply(replyTo: ForumPost): Promise<boolean> {
+    return this._postbox.canPost(replyTo);
+  }
+
   // Helper functions
 
   protected convertPostboxToForum(p: postbox.Post): ForumPost {
@@ -208,6 +223,7 @@ export class Forum implements IForum {
       postId: p.postId,
       address: p.address,
       poster: p.poster,
+      settings: p.settings,
     };
   }
 }
