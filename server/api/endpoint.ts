@@ -42,7 +42,8 @@ export default async function handler(
     if (parsed.kind === ActionKind.CreateForum) {
       const {
         userPubkeyBase58,
-        txid
+        txid,
+        identifier
       } = parsed;
       const userPubkey = new PublicKey(userPubkeyBase58);
       const endpointKey = getEndpointKeypair();
@@ -51,24 +52,29 @@ export default async function handler(
         connection,
         txid,
         senderPubkey: userPubkey,
-        // TODO replace with FEE
-        lamports: 1
+        lamports: CREATE_OFFLOADBOX_FEE
       });
 
       // TODO create forum here
-      // const endpointWallet = new KeyPairWallet(endpointKey);
-      // offloadbox.createOffloadbox(
-      //   connection,
-      //   endpointWallet,
-      //   Math.random().toString() // random identifier
-      // );
+      const endpointWallet = new KeyPairWallet(endpointKey);
+      await offloadbox.createOffloadbox(
+        connection,
+        endpointWallet,
+        identifier
+      );
 
+      result = await offloadbox.fetchOffloadbox(
+        connection,
+        endpointWallet,
+        identifier
+      );
     } else if (parsed.kind === ActionKind.GetServerPubkey) {
       result = getEndpointKeypair().publicKey.toBase58();
     }
 
     response.end(JSON.stringify({result}));
   } catch(e) {
+    console.error(e);
     response.end(JSON.stringify({
       error: e.toString()
     }));

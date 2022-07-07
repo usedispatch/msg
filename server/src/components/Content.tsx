@@ -39,7 +39,7 @@ function CreateForm() {
       fromPubkey: wallet.publicKey!,
       // TODO don't hardcode this
       toPubkey: new PublicKey('8NSUiHk3tPk7bbgxfDU1ZvAG8AdQHf7fjsu43DvQLrRD'),
-      lamports: 100 //CREATE_OFFLOADBOX_FEE;
+      lamports: 20
     }));
 
     const signature = await wallet.sendTransaction(tx, connection);
@@ -49,7 +49,8 @@ function CreateForm() {
     postEndpoint({
       kind: ActionKind.CreateForum,
       userPubkeyBase58: wallet.publicKey!.toBase58(),
-      txid: signature
+      txid: signature,
+      identifier
     });
   }
 

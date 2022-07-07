@@ -11,6 +11,8 @@ export interface CreateForumAction {
   userPubkeyBase58: string;
   // the transaction that funded this forum creation
   txid: string;
+  // the identifier for the new postbox
+  identifier: string
 }
 
 export interface GetServerPubkeyAction {
