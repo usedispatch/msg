@@ -11,15 +11,13 @@ import { postEndpoint } from '../utils';
 import {
   Transaction,
   SystemProgram,
-  sendAndConfirmTransaction
+  sendAndConfirmTransaction,
+  PublicKey
 } from '@solana/web3.js';
 import {
   useWallet,
   useConnection
 } from '@solana/wallet-adapter-react';
-import {
-  ENDPOINT_PUBLIC_KEY
-} from '@usedispatch/client';
 
 export function Content() {
   return (
@@ -32,24 +30,26 @@ export function Content() {
 function CreateForm() {
   const [identifier, setIdentifier] = useState('');
   const wallet = useWallet();
-  const connection = useConnection();
+  const { connection } = useConnection();
 
   async function createForum() {
     const tx = new Transaction();
 
     tx.add(SystemProgram.transfer({
       fromPubkey: wallet.publicKey!,
-      toPubkey: ENDPOINT_PUBLIC_KEY,
+      // TODO don't hardcode this
+      toPubkey: new PublicKey('8NSUiHk3tPk7bbgxfDU1ZvAG8AdQHf7fjsu43DvQLrRD'),
       lamports: 100 //CREATE_OFFLOADBOX_FEE;
     }));
 
-    const signed = await wallet.signTransaction!(tx);
-    await wallet.sendTransaction(signed, connection.connection);
+    const signature = await wallet.sendTransaction(tx, connection);
+    await connection.confirmTransaction(signature, 'processed')
+    console.log(signature);
 
     postEndpoint({
       kind: ActionKind.CreateForum,
       userPubkeyBase58: wallet.publicKey!.toBase58(),
-      txid: 'TODO here'
+      txid: signature
     });
   }
 
