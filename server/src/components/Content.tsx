@@ -19,7 +19,7 @@ import {
 } from '@solana/wallet-adapter-react';
 import {
   ENDPOINT_PUBLIC_KEY
-} from '../../../usedispatch_client';
+} from '@usedispatch/client';
 
 export function Content() {
   return (
