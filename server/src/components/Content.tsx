@@ -11,13 +11,13 @@ import { postEndpoint } from '../utils';
 import {
   Transaction,
   SystemProgram,
-  sendAndConfirmTransaction,
   PublicKey
 } from '@solana/web3.js';
 import {
   useWallet,
   useConnection
 } from '@solana/wallet-adapter-react';
+import { } from '@usedispatch/client';
 
 export function Content() {
   return (

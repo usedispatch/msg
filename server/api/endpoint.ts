@@ -2,7 +2,7 @@ import {
   offloadbox,
   KeyPairWallet,
   CREATE_OFFLOADBOX_FEE
-} from '../../usedispatch_client';
+} from '@usedispatch/client';
 import {
   NextApiRequest,
   NextApiResponse
@@ -48,26 +48,32 @@ export default async function handler(
       const userPubkey = new PublicKey(userPubkeyBase58);
       const endpointKey = getEndpointKeypair();
 
-      result = await confirmPayment({
+      // Did the user pay enough?
+      const transactionValid = await confirmPayment({
         connection,
         txid,
         senderPubkey: userPubkey,
         lamports: CREATE_OFFLOADBOX_FEE
       });
 
-      // TODO create forum here
-      const endpointWallet = new KeyPairWallet(endpointKey);
-      await offloadbox.createOffloadbox(
-        connection,
-        endpointWallet,
-        identifier
-      );
+      if (transactionValid) {
+        // TODO create forum here
+        const endpointWallet = new KeyPairWallet(endpointKey);
+        await offloadbox.createOffloadbox(
+          connection,
+          endpointWallet,
+          identifier
+        );
 
-      result = await offloadbox.fetchOffloadbox(
-        connection,
-        endpointWallet,
-        identifier
-      );
+        result = await offloadbox.fetchOffloadbox(
+          connection,
+          endpointWallet,
+          identifier
+        );
+      } else {
+        result = false;
+      }
+
     } else if (parsed.kind === ActionKind.GetServerPubkey) {
       result = getEndpointKeypair().publicKey.toBase58();
     }
@@ -103,6 +109,8 @@ async function confirmPayment({
     'confirmed'
   );
   const instructions =  tx!.transaction.message.instructions;
+  // @ts-ignore
+  console.log(instructions[0].parsed.info.lamports, lamports);
 
   // There must be some instruction that pays enough from user to
   // recipient
