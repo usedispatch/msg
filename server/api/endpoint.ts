@@ -52,7 +52,7 @@ export default async function handler(
         txid,
         senderPubkey: userPubkey,
         // TODO replace with FEE
-        lamports: 2000
+        lamports: 1
       });
 
       // TODO create forum here
@@ -69,7 +69,9 @@ export default async function handler(
 
     response.end(JSON.stringify({result}));
   } catch(e) {
-    response.end(e.toString());
+    response.end(JSON.stringify({
+      error: e.toString()
+    }));
   }
 }
 
@@ -90,7 +92,10 @@ async function confirmPayment({
   receiverPubkey = getEndpointKeypair().publicKey,
   lamports = 50000
 }: ConfirmPaymentParameters): Promise<boolean> {
-  const tx = await connection.getParsedTransaction(txid);
+  const tx = await connection.getParsedTransaction(
+    txid,
+    'confirmed'
+  );
   const instructions =  tx!.transaction.message.instructions;
 
   // There must be some instruction that pays enough from user to

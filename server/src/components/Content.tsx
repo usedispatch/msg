@@ -43,7 +43,7 @@ function CreateForm() {
     }));
 
     const signature = await wallet.sendTransaction(tx, connection);
-    await connection.confirmTransaction(signature, 'processed')
+    await connection.confirmTransaction(signature, 'confirmed')
     console.log(signature);
 
     postEndpoint({
