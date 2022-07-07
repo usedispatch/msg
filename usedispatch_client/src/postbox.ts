@@ -40,14 +40,14 @@ export type Post = {
   upVotes: number;
   downVotes: number;
   replyTo?: web3.PublicKey;
-  postRestrictions?: PostRestrictions;
+  settings: SettingsAccountData[];
 };
 
 export type InteractablePost = {
   postId: number;
   address: web3.PublicKey;
   poster: web3.PublicKey;
-  postRestrictions?: PostRestrictions;
+  settings: SettingsAccountData[];
 };
 
 type ChainPost = {
@@ -56,7 +56,7 @@ type ChainPost = {
   upVotes: number;
   downVotes: number;
   replyTo: web3.PublicKey | null;
-  postRestrictions: PostRestrictions | null;
+  settings: SettingsAccountData[];
 };
 
 type NullableChainPost = null | ChainPost;
@@ -81,6 +81,9 @@ type SettingsAccountData = {
   description?: Description;
   ownerInfo?: {
     owners: web3.PublicKey[];
+  };
+  postRestriction?: {
+    postRestriction: PostRestrictions;
   };
 };
 
@@ -126,35 +129,37 @@ export class Postbox {
   }
 
   async getPostRestrictionAccounts(replyTo?: InteractablePost) {
-    if (replyTo?.postRestrictions) {
-      if (replyTo.postRestrictions.tokenOwnership) {
-        const ata = await splToken.getAssociatedTokenAddress(
-          replyTo.postRestrictions.tokenOwnership.mint,
-          this.dispatch.wallet.publicKey!,
-        );
-        return {
-          pra: [{pubkey: ata, isWritable: false, isSigner: false}],
-          praIdxs: {tokenOwnership: {tokenIdx: 0}},
-        };
-      }
-      if (replyTo.postRestrictions.nftOwnership) {
-        const collectionId = replyTo.postRestrictions.nftOwnership.collectionId;
-        const nftsOwned = await this.metaplex.nfts().findAllByOwner(this.dispatch.wallet.publicKey!);
-        const relevantNfts = nftsOwned.filter((nft) => nft.collection?.key.equals(collectionId))
-        if (relevantNfts.length) {
-          const nft = relevantNfts[0];
+    for (const setting of replyTo?.settings ?? []) {
+      if (setting.postRestriction) {
+        if (setting.postRestriction.postRestriction.tokenOwnership) {
           const ata = await splToken.getAssociatedTokenAddress(
-            nft.mint,
+            setting.postRestriction.postRestriction.tokenOwnership.mint,
             this.dispatch.wallet.publicKey!,
           );
           return {
-            pra: [
-              {pubkey: ata, isWritable: false, isSigner: false},
-              {pubkey: nft.metadataAccount.publicKey, isWritable: false, isSigner: false},
-              {pubkey: collectionId, isWritable: false, isSigner: false},
-            ],
-            praIdxs: {nftOwnership: {tokenIdx: 0, meta_idx: 1, collection_idx: 2}},
+            pra: [{pubkey: ata, isWritable: false, isSigner: false}],
+            praIdxs: {tokenOwnership: {tokenIdx: 0}},
           };
+        }
+        if (setting.postRestriction.postRestriction.nftOwnership) {
+          const collectionId = setting.postRestriction.postRestriction.nftOwnership.collectionId;
+          const nftsOwned = await this.metaplex.nfts().findAllByOwner(this.dispatch.wallet.publicKey!);
+          const relevantNfts = nftsOwned.filter((nft) => nft.collection?.key.equals(collectionId))
+          if (relevantNfts.length) {
+            const nft = relevantNfts[0];
+            const ata = await splToken.getAssociatedTokenAddress(
+              nft.mint,
+              this.dispatch.wallet.publicKey!,
+            );
+            return {
+              pra: [
+                {pubkey: ata, isWritable: false, isSigner: false},
+                {pubkey: nft.metadataAccount.publicKey, isWritable: false, isSigner: false},
+                {pubkey: collectionId, isWritable: false, isSigner: false},
+              ],
+              praIdxs: {nftOwnership: {tokenIdx: 0, meta_idx: 1, collection_idx: 2}},
+            };
+          }
         }
       }
     }
@@ -181,8 +186,8 @@ export class Postbox {
       .createPost(
         data,
         maxId,
-        postRestriction ? postRestriction : null,
-        postRestrictions.praIdxs,
+        postRestriction ? [{postRestriction: {postRestriction}}] : [],
+        postRestrictions.praIdxs ? [postRestrictions.praIdxs] : [],
       )
       .accounts({
         postbox: await this.getAddress(),
@@ -410,7 +415,7 @@ export class Postbox {
       upVotes: chainPost.upVotes,
       downVotes: chainPost.downVotes,
       replyTo: chainPost.replyTo || undefined,
-      postRestrictions: chainPost.postRestrictions || undefined,
+      settings: chainPost.settings,
     };
   }
 

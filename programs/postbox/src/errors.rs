@@ -15,6 +15,8 @@ pub enum PostboxErrorCode {
     ReplyToNotPost,
     #[msg("Replies cannot have a further reply restriction")]
     ReplyCannotRestrictReplies,
+    #[msg("Invalid setting type for post")]
+    PostInvalidSettingsType,
 
     // Post restriction errors
     #[msg("The provided token account is not a token account")]
@@ -35,4 +37,6 @@ pub enum PostboxErrorCode {
     InvalidRestrictionExtraAccounts,
     #[msg("Must supply offsets when a post restriction applies")]
     MissingRequiredOffsets,
+    #[msg("We hit the test error")]
+    TestError,
 }

@@ -215,6 +215,7 @@ export class Forum implements IForum {
       postId: p.postId,
       address: p.address,
       poster: p.poster,
+      settings: p.settings,
     };
   }
 }
