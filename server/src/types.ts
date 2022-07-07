@@ -9,6 +9,8 @@ export interface CreateForumAction {
   kind: ActionKind.CreateForum;
   // base58 encoded
   userPubkeyBase58: string;
+  // the transaction that funded this forum creation
+  txid: string;
 }
 
 export interface GetServerPubkeyAction {

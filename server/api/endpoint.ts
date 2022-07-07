@@ -1,4 +1,8 @@
-import { offloadbox } from '../../usedispatch_client';
+import {
+  offloadbox,
+  KeyPairWallet,
+  CREATE_OFFLOADBOX_FEE
+} from '../../usedispatch_client';
 import {
   NextApiRequest,
   NextApiResponse
@@ -36,16 +40,29 @@ export default async function handler(
     let result: any
 
     if (parsed.kind === ActionKind.CreateForum) {
-      const { userPubkeyBase58 } = parsed;
+      const {
+        userPubkeyBase58,
+        txid
+      } = parsed;
       const userPubkey = new PublicKey(userPubkeyBase58);
+      const endpointKey = getEndpointKeypair();
 
       result = await confirmPayment({
         connection,
-        txid: '3Gi1rsg89hgtNQMPCZLQVoYw6jREw8Cg4VWXaQeU4397mGnuvYqdkmDsoaj98WiZLT4ZeTGb9JdYwBRxMPPD8CVE',
-        senderPubkey: userPubkey
+        txid,
+        senderPubkey: userPubkey,
+        // TODO replace with FEE
+        lamports: 2000
       });
 
       // TODO create forum here
+      // const endpointWallet = new KeyPairWallet(endpointKey);
+      // offloadbox.createOffloadbox(
+      //   connection,
+      //   endpointWallet,
+      //   Math.random().toString() // random identifier
+      // );
+
     } else if (parsed.kind === ActionKind.GetServerPubkey) {
       result = getEndpointKeypair().publicKey.toBase58();
     }
@@ -61,7 +78,7 @@ interface ConfirmPaymentParameters {
   txid: string;
   senderPubkey: PublicKey;
   receiverPubkey?: PublicKey;
-  n?: number;
+  lamports?: number;
 }
 /*
  * Confirm that a user paid at least n lamports
@@ -71,7 +88,7 @@ async function confirmPayment({
   txid,
   senderPubkey,
   receiverPubkey = getEndpointKeypair().publicKey,
-  n = 50000
+  lamports = 50000
 }: ConfirmPaymentParameters): Promise<boolean> {
   const tx = await connection.getParsedTransaction(txid);
   const instructions =  tx!.transaction.message.instructions;
@@ -91,6 +108,6 @@ async function confirmPayment({
     inst.parsed.info.source      === senderPubkey.toBase58()   &&
     inst.parsed.info.destination === receiverPubkey.toBase58() &&
     // Instruction pays enough
-    inst.parsed.info.lamports    >=  n
+    inst.parsed.info.lamports    >=  lamports
   );
 }
