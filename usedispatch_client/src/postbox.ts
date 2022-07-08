@@ -137,27 +137,24 @@ export class Postbox {
             this.dispatch.wallet.publicKey!,
           );
           return {
-            pra: [{pubkey: ata, isWritable: false, isSigner: false}],
-            praIdxs: {tokenOwnership: {tokenIdx: 0}},
+            pra: [{ pubkey: ata, isWritable: false, isSigner: false }],
+            praIdxs: { tokenOwnership: { tokenIdx: 0 } },
           };
         }
         if (setting.postRestriction.postRestriction.nftOwnership) {
           const collectionId = setting.postRestriction.postRestriction.nftOwnership.collectionId;
           const nftsOwned = await this.metaplex.nfts().findAllByOwner(this.dispatch.wallet.publicKey!);
-          const relevantNfts = nftsOwned.filter((nft) => nft.collection?.key.equals(collectionId))
+          const relevantNfts = nftsOwned.filter((nft) => nft.collection?.key.equals(collectionId));
           if (relevantNfts.length) {
             const nft = relevantNfts[0];
-            const ata = await splToken.getAssociatedTokenAddress(
-              nft.mint,
-              this.dispatch.wallet.publicKey!,
-            );
+            const ata = await splToken.getAssociatedTokenAddress(nft.mint, this.dispatch.wallet.publicKey!);
             return {
               pra: [
-                {pubkey: ata, isWritable: false, isSigner: false},
-                {pubkey: nft.metadataAccount.publicKey, isWritable: false, isSigner: false},
-                {pubkey: collectionId, isWritable: false, isSigner: false},
+                { pubkey: ata, isWritable: false, isSigner: false },
+                { pubkey: nft.metadataAccount.publicKey, isWritable: false, isSigner: false },
+                { pubkey: collectionId, isWritable: false, isSigner: false },
               ],
-              praIdxs: {nftOwnership: {tokenIdx: 0, meta_idx: 1, collection_idx: 2}},
+              praIdxs: { nftOwnership: { tokenIdx: 0, meta_idx: 1, collection_idx: 2 } },
             };
           }
         }
@@ -186,7 +183,7 @@ export class Postbox {
       .createPost(
         data,
         maxId,
-        postRestriction ? [{postRestriction: {postRestriction}}] : [],
+        postRestriction ? [{ postRestriction: { postRestriction } }] : [],
         postRestrictions.praIdxs ? [postRestrictions.praIdxs] : [],
       )
       .accounts({
@@ -309,7 +306,7 @@ export class Postbox {
   }
 
   async setPostboxPostRestriction(postRestriction: TokenPostRestriction): Promise<web3.TransactionSignature> {
-    return this.innerSetSetting({ postRestriction: {postRestriction} });
+    return this.innerSetSetting({ postRestriction: { postRestriction } });
   }
 
   async innerGetSetting(settingsType: SettingsType): Promise<SettingsAccountData | undefined> {
@@ -382,7 +379,7 @@ export class Postbox {
     if (restriction.nftOwnership) {
       const collectionId = restriction.nftOwnership.collectionId;
       const nftsOwned = await this.metaplex.nfts().findAllByOwner(this.dispatch.wallet.publicKey!);
-      const relevantNfts = nftsOwned.filter((nft) => nft.collection?.key.equals(collectionId))
+      const relevantNfts = nftsOwned.filter((nft) => nft.collection?.key.equals(collectionId));
       return relevantNfts.length > 0;
     }
 
