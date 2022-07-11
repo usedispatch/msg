@@ -213,11 +213,11 @@ pub struct Initialize<'info> {
         mint::authority = postbox,
     )]
     pub moderator_mint: Box<Account<'info, token::Mint>>,
-    /// CHECK: we use this account's address only for generating the PDA
+    /// CHECK: we use this account's address only for generating the PDA, but it's useful for anchor's auto PDA to have here
     pub target_account: UncheckedAccount<'info>,
     #[account(mut, constraint = owners.contains(signer.key))]
     pub signer: Signer<'info>,
-    /// CHECK: we do not access the data in the fee_receiver other than to transfer lamports to it
+    /// CHECK: we do not access the data in the treasury other than to transfer lamports to it
     #[account(mut, address = treasury::TREASURY_ADDRESS)]
     pub treasury: UncheckedAccount<'info>,
     pub system_program: Program<'info, System>,
@@ -226,14 +226,11 @@ pub struct Initialize<'info> {
 }
 
 #[derive(Accounts)]
-// TODO: pass in the new message as a full account, then validate it
 #[instruction(data: Vec<u8>, post_id: u32, settings: Vec<SettingsData>)]
 pub struct CreatePost<'info> {
     #[account(init,
         payer = poster,
-        space = 8 + 32 + 4 + data.len() + 2 + 2 + 1 + (if reply_to.key() != Pubkey::default() {32} else {0}) + 4 + (
-            get_post_projected_settings_size(&settings, &reply_to)
-        ),
+        space = get_post_projected_size(&settings, &reply_to, &data),
         seeds = [PROTOCOL_SEED.as_bytes(), POST_SEED.as_bytes(), postbox.key().as_ref(), &post_id.to_le_bytes()],
         bump,
     )]
@@ -272,7 +269,7 @@ pub struct DeletePostByModerator<'info> {
     )]
     pub post: Box<Account<'info, Post>>,
     pub postbox: Box<Account<'info, Postbox>>,
-    /// CHECK: we do not access the data in the fee_receiver other than to transfer lamports to it
+    /// CHECK: we do not access the data in the poster other than to transfer lamports to it
     #[account(mut)]
     pub poster: UncheckedAccount<'info>,
     pub moderator: Signer<'info>,
@@ -297,7 +294,7 @@ pub struct Vote<'info> {
     pub postbox: Box<Account<'info, Postbox>>,
     #[account(mut)]
     pub voter: Signer<'info>,
-    /// CHECK: we do not access the data in the fee_receiver other than to transfer lamports to it
+    /// CHECK: we do not access the data in the treasury other than to transfer lamports to it
     #[account(mut, address = treasury::TREASURY_ADDRESS)]
     pub treasury: UncheckedAccount<'info>,
     pub system_program: Program<'info, System>,
@@ -312,7 +309,7 @@ pub struct DesignateModerator<'info> {
         has_one = moderator_mint,
     )]
     pub postbox: Box<Account<'info, Postbox>>,
-    /// CHECK: we use this account's address only for generating the PDA signature
+    /// CHECK: we use this account's address only for generating the auto PDA + signature
     pub target_account: UncheckedAccount<'info>,
     #[account(
         mut,
@@ -392,8 +389,9 @@ impl Post {
     }
 }
 
-pub fn get_post_projected_settings_size(passed_settings: &Vec<SettingsData>, reply_to: &AccountInfo) -> usize {
-    let mut size = 0;
+pub fn get_post_projected_size(passed_settings: &Vec<SettingsData>, reply_to: &AccountInfo, data: &Vec<u8>) -> usize {
+    // disc + poster + data.len + data + up_votes + down_votes + option + (reply_to) + settings.len
+    let mut size = 8 + 32 + 4 + data.len() + 2 + 2 + 1 + (if reply_to.key() != Pubkey::default() {32} else {0}) + 4;
     let mut allow_restriction = true;
     // For post restriction, we inherit rather than allowing you to set it
     let maybe_reply_to_post = Account::<crate::Post>::try_from(reply_to);
