@@ -180,10 +180,14 @@ describe('postbox', () => {
     assert.equal(topics.length, 1);
     const topic = topics[0];
 
+    assert.ok(await postboxAsPoster.canPost());
+    assert.ok(await postboxAsPoster.canPost(topic));
     const replyPost = {subj: "Interesting", body: "Reply"};
     const tx3 = await postboxAsPoster.replyToPost(replyPost, topic);
     await conn.confirmTransaction(tx3);
 
+    assert.ok(await postboxAsOwner.canPost());
+    assert.ok(!await postboxAsOwner.canPost(topic));
     const replyPost2 = {subj: "Should fail", body: "Reply"};
     try {
       await postboxAsOwner.replyToPost(replyPost2, topic);
