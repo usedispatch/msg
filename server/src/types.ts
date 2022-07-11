@@ -1,24 +1,26 @@
 import { PublicKey } from '@solana/web3.js';
 
 export enum ActionKind {
-  CreateForum,
-  GetServerPubkey
-}
-
-export interface CreateForumAction {
-  kind: ActionKind.CreateForum;
-  // base58 encoded
-  userPubkeyBase58: string;
-  // the transaction that funded this forum creation
-  txid: string;
-  // the identifier for the new postbox
-  identifier: string
+  GetServerPubkey,
+    ValidateTransaction,
+    SignTransaction,
 }
 
 export interface GetServerPubkeyAction {
-  kind: ActionKind.GetServerPubkey
+  kind: ActionKind.GetServerPubkey;
+}
+
+export interface ValidateTransactionAction {
+  kind: ActionKind.ValidateTransaction;
+}
+
+// TODO
+export interface SignTransactionAction {
+  kind: ActionKind.SignTransaction;
 }
 
 export type EndpointParameters
-  = CreateForumAction
-  | GetServerPubkeyAction;
+  = GetServerPubkeyAction
+  | ValidateTransactionAction
+  // TODO
+  | SignTransactionAction

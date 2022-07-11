@@ -77,4 +77,5 @@ pub struct MakePost<'info> {
 pub struct Offloadbox {
     // See https://docs.arweave.org/developers/server/http-api#key-format
     pub addresses: Vec<[u8; 32]>,
+    // TODO just encode permissions here
 }
