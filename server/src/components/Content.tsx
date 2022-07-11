@@ -20,54 +20,20 @@ import {
 import { } from '@usedispatch/client';
 
 export function Content() {
+  const wallet = useWallet();
   return (
     <Container>
-      <CreateForm />
+      <Button
+        onClick={() => {
+          postEndpoint({
+            kind: ActionKind.ValidateTransaction,
+            userKey: wallet.publicKey!,
+            collectionKey: wallet.publicKey!
+          });
+        }}
+      >
+        yo
+      </Button>
     </Container>
-  );
-}
-
-function CreateForm() {
-  const [identifier, setIdentifier] = useState('');
-  const wallet = useWallet();
-  const { connection } = useConnection();
-
-  async function createForum() {
-    const tx = new Transaction();
-
-    tx.add(SystemProgram.transfer({
-      fromPubkey: wallet.publicKey!,
-      // TODO don't hardcode this
-      toPubkey: new PublicKey('8NSUiHk3tPk7bbgxfDU1ZvAG8AdQHf7fjsu43DvQLrRD'),
-      lamports: 20
-    }));
-
-    const signature = await wallet.sendTransaction(tx, connection);
-    await connection.confirmTransaction(signature, 'confirmed')
-    console.log(signature);
-
-    postEndpoint({
-      kind: ActionKind.CreateForum,
-      userPubkeyBase58: wallet.publicKey!.toBase58(),
-      txid: signature,
-      identifier
-    });
-  }
-
-  return (
-    <Col>
-      <Row>
-        <Form.Control
-          type='text'
-          onChange={e => setIdentifier(e.target.value)}
-          value={identifier}
-        />
-      </Row>
-      <Row>
-        <Button
-          onClick={() => { createForum(); }}
-        >Create forum</Button>
-      </Row>
-    </Col>
   );
 }

@@ -17,14 +17,10 @@ import {
   ActionKind,
   EndpointParameters
 } from '../src/types';
+import {
+  Metaplex
+} from '@metaplex-foundation/js';
 
-export function getEndpointKeypair(): Keypair {
-  // TODO handle exceptions here
-  const seed = JSON.parse(process.env['ENDPOINT_SECRET_KEY']!);
-  const bytes = new Uint8Array(seed);
-  const keypair = Keypair.fromSecretKey(bytes);
-  return keypair;
-}
 
 export default async function handler(
   request: NextApiRequest,
@@ -39,6 +35,21 @@ export default async function handler(
 
     let result: any
 
+    switch(parsed.kind) {
+      case ActionKind.ValidateTransaction:
+        const {
+          userKey,
+          collectionKey
+        } = parsed;
+        const metaplex = Metaplex.make(connection);
+        const nfts = metaplex
+          .nfts()
+          .findAllByOwner(userKey);
+        result = nfts
+      default:
+        result = `Error: unhandled action type: ${parsed.kind}`
+    }
+
     response.end(JSON.stringify({result}));
   } catch(e) {
     console.error(e);
@@ -46,4 +57,12 @@ export default async function handler(
       error: e.toString()
     }));
   }
+}
+
+export function getEndpointKeypair(): Keypair {
+  // TODO handle exceptions here
+  const seed = JSON.parse(process.env['ENDPOINT_SECRET_KEY']!);
+  const bytes = new Uint8Array(seed);
+  const keypair = Keypair.fromSecretKey(bytes);
+  return keypair;
 }

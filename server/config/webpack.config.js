@@ -297,7 +297,8 @@ module.exports = function (webpackEnv) {
         stream: require.resolve('stream-browserify'),
         crypto: require.resolve('crypto-browserify'),
         zlib: require.resolve('browserify-zlib'),
-        path: require.resolve('path-browserify')
+        path: require.resolve('path-browserify'),
+        buffer: require.resolve('buffer/')
       },
       // This allows you to set a fallback for where webpack should look for modules.
       // We placed these paths second because we want `node_modules` to "win"
@@ -753,6 +754,9 @@ module.exports = function (webpackEnv) {
             },
           },
         }),
+      new webpack.ProvidePlugin({
+        Buffer: ['buffer', 'Buffer'],
+      }),
     ].filter(Boolean),
     // Turn off performance processing because we utilize
     // our own hints via the FileSizeReporter
