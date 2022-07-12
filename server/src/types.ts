@@ -5,7 +5,7 @@ export type PublicKeyBase58 = string;
 export enum ActionKind {
   GetServerPubkey,
     ValidateTransaction,
-    SignTransaction,
+    SignData,
 }
 
 export interface GetServerPubkeyAction {
@@ -18,12 +18,14 @@ export interface ValidateTransactionAction {
 }
 
 // TODO
-export interface SignTransactionAction {
-  kind: ActionKind.SignTransaction;
+export interface SignDataAction {
+  kind: ActionKind.SignData;
+  accessToken: string;
+  data: string;
 }
 
 export type EndpointParameters
   = GetServerPubkeyAction
   | ValidateTransactionAction
   // TODO
-  | SignTransactionAction
+  | SignDataAction

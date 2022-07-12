@@ -17,26 +17,34 @@ import Picket from '@picketapi/picket-js';
 import { config } from 'dotenv';
 config()
 
-// TODO move logic into here
-export async function validateTransaction() {
+async function validateKey(accessToken: string): Promise<boolean> {
+  const picketKey = process.env['PICKET_SECRET_KEY']!;
+  const picket = new Picket(picketKey);
+  try {
+    await picket.validate(accessToken);
+    // TODO verify token ownership requirements
+    // https://docs.picketapi.com/picket-docs/reference/concepts/access-tokens#3.-optional-verify-token-ownership-requirements
+    return true;
+  } catch (e) {
+    console.error(e);
+    return false;
+  }
 }
 
-export async function action(
+async function action(
   params: EndpointParameters
 ) {
   if (params.kind === ActionKind.GetServerPubkey) {
     return getEndpointKeypair().publicKey.toBase58();
   } else if (params.kind === ActionKind.ValidateTransaction) {
-    const picketKey = process.env['PICKET_SECRET_KEY']!;
-    const picket = new Picket(picketKey);
-
-    try {
-      await picket.validate(params.accessToken);
-      // TODO verify token ownership requirements
-      // https://docs.picketapi.com/picket-docs/reference/concepts/access-tokens#3.-optional-verify-token-ownership-requirements
-      return true;
-    } catch (e) {
-      console.error(e);
+    return validateKey(params.accessToken);
+  }
+  else if (params.kind === ActionKind.SignData) {
+    const valid = await validateKey(params.accessToken);
+    if (valid) {
+      // TODO sign here
+      return 'signature';
+    } else {
       return false;
     }
   } else {
