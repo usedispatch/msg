@@ -17,11 +17,21 @@ import {
   useWallet,
   useConnection
 } from '@solana/wallet-adapter-react';
+import Picket from '@picketapi/picket-js';
 
-function handler() {
+async function handler() {
+  const picket = new Picket('pk_f0bb0552641c86e8ca1b2ec9b97c3b19');
+  const { accessToken, user } = await picket.login({
+    chain: 'solana'
+  })
+  console.log(
+    'hello',
+    accessToken,
+    user
+  );
   postEndpoint({
     kind: ActionKind.ValidateTransaction,
-    accessToken: 'not a valid token'
+    accessToken
   });
 }
 

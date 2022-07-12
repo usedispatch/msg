@@ -27,7 +27,7 @@ export async function action(
   if (params.kind === ActionKind.GetServerPubkey) {
     return getEndpointKeypair().publicKey.toBase58();
   } else if (params.kind === ActionKind.ValidateTransaction) {
-    const picketKey = process.env['PICKET_SECRET_KEY'];
+    const picketKey = process.env['PICKET_SECRET_KEY']!;
     const picket = new Picket(picketKey);
 
     try {
