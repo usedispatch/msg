@@ -13,6 +13,7 @@ import {
   Keypair,
   PublicKey
 } from '@solana/web3.js';
+import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import {
   ActionKind,
   EndpointParameters
@@ -27,7 +28,14 @@ export default async function handler(
   response: NextApiResponse
 ) {
   // Initialize connection
-  const connection = new Connection(clusterApiUrl('devnet'));
+  const connection = new Connection(clusterApiUrl('mainnet-beta'));
+
+  const pkey = new PublicKey(
+    'BJ5je1jGK6Rx3QgwURxoMRMgXoEwhHAM8dEm6ZNgtXdM'
+    // '9LGbdHLxcownBcNCojCfCzQc7zjW8tioXWTBMHmJaxsn'
+    // 'EA8XRNbRB7Y228fJSEh2XRy14ZNE3m68DrQHnkGPThnu'
+  );
+  console.log(pkey);
 
   try {
     // TODO check all these fields
@@ -41,11 +49,19 @@ export default async function handler(
           userKey,
           collectionKey
         } = parsed;
-        const metaplex = Metaplex.make(connection);
-        const nfts = metaplex
-          .nfts()
-          .findAllByOwner(userKey);
-        result = nfts
+
+        const pkey = new PublicKey(
+          'BJ5je1jGK6Rx3QgwURxoMRMgXoEwhHAM8dEm6ZNgtXdM'
+        );
+
+
+        //TODO use metaplex api here
+        result = await connection.getTokenAccountsByOwner(
+          pkey,
+          { programId: TOKEN_PROGRAM_ID }
+        );
+
+        break;
       default:
         result = `Error: unhandled action type: ${parsed.kind}`
     }
