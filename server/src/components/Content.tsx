@@ -17,20 +17,20 @@ import {
   useWallet,
   useConnection
 } from '@solana/wallet-adapter-react';
-import { } from '@usedispatch/client';
+
+function handler() {
+  postEndpoint({
+    kind: ActionKind.ValidateTransaction,
+    accessToken: 'not a valid token'
+  });
+}
 
 export function Content() {
   const wallet = useWallet();
   return (
     <Container>
       <Button
-        onClick={() => {
-          postEndpoint({
-            kind: ActionKind.ValidateTransaction,
-            userKey: 'BJ5je1jGK6Rx3QgwURxoMRMgXoEwhHAM8dEm6ZNgtXdM',
-            collectionKey: wallet.publicKey!.toBase58()
-          });
-        }}
+        onClick={handler}
       >
         yo
       </Button>

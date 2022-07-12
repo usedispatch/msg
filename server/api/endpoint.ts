@@ -13,6 +13,13 @@ import {
   ActionKind,
   EndpointParameters
 } from '../src/types';
+import Picket from '@picketapi/picket-js';
+import { config } from 'dotenv';
+config()
+
+// TODO move logic into here
+export async function validateTransaction() {
+}
 
 export async function action(
   params: EndpointParameters
@@ -20,9 +27,20 @@ export async function action(
   if (params.kind === ActionKind.GetServerPubkey) {
     return getEndpointKeypair().publicKey.toBase58();
   } else if (params.kind === ActionKind.ValidateTransaction) {
-    // Return true here if the authentication token is good,
-    // false otherwise
-    return false;
+    const picketKey = process.env['PICKET_SECRET_KEY'];
+    const picket = new Picket(picketKey);
+
+    try {
+      await picket.validate(params.accessToken);
+      // TODO verify token ownership requirements
+      // https://docs.picketapi.com/picket-docs/reference/concepts/access-tokens#3.-optional-verify-token-ownership-requirements
+      return true;
+    } catch (e) {
+      console.error(e);
+      return false;
+    }
+  } else {
+    throw 'unhandled';
   }
 };
 
@@ -35,7 +53,7 @@ export default async function handler(
     // TODO make sure there's no injection here?
     const params: EndpointParameters = JSON.parse(request.body);
 
-    const result = action(params);
+    const result = await action(params);
 
     response.end(JSON.stringify({result}));
   } catch(e) {

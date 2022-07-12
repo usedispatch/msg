@@ -13,7 +13,8 @@ export interface GetServerPubkeyAction {
 }
 
 export interface ValidateTransactionAction {
-  kind: ValidateTransaction;
+  kind: ActionKind.ValidateTransaction;
+  accessToken: string;
 }
 
 // TODO
