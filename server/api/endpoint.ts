@@ -1,9 +1,4 @@
 import {
-  offloadbox,
-  KeyPairWallet,
-  CREATE_OFFLOADBOX_FEE
-} from '@usedispatch/client';
-import {
   NextApiRequest,
   NextApiResponse
 } from 'next';
@@ -19,24 +14,28 @@ import {
   EndpointParameters
 } from '../src/types';
 
+export async function action(
+  params: EndpointParameters
+) {
+  if (params.kind === ActionKind.GetServerPubkey) {
+    return getEndpointKeypair().publicKey.toBase58();
+  } else if (params.kind === ActionKind.ValidateTransaction) {
+    // Return true here if the authentication token is good,
+    // false otherwise
+    return false;
+  }
+};
+
 export default async function handler(
   request: NextApiRequest,
   response: NextApiResponse
 ) {
-  // Initialize connection
-  const connection = new Connection(clusterApiUrl('mainnet-beta'));
-
   try {
     // TODO validate all these fields
     // TODO make sure there's no injection here?
-    const parsed: EndpointParameters = JSON.parse(request.body);
+    const params: EndpointParameters = JSON.parse(request.body);
 
-    let result: any
-
-    switch(parsed.kind) {
-      default:
-        result = `Error: unhandled action type: ${parsed.kind}`
-    }
+    const result = action(params);
 
     response.end(JSON.stringify({result}));
   } catch(e) {
@@ -47,6 +46,9 @@ export default async function handler(
   }
 }
 
+/**
+ * TODO use this for signing
+ */
 export function getEndpointKeypair(): Keypair {
   // TODO handle exceptions here
   const seed = JSON.parse(process.env['ENDPOINT_SECRET_KEY']!);
