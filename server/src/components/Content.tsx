@@ -27,8 +27,8 @@ export function Content() {
         onClick={() => {
           postEndpoint({
             kind: ActionKind.ValidateTransaction,
-            userKey: wallet.publicKey!,
-            collectionKey: wallet.publicKey!
+            userKey: 'BJ5je1jGK6Rx3QgwURxoMRMgXoEwhHAM8dEm6ZNgtXdM',
+            collectionKey: wallet.publicKey!.toBase58()
           });
         }}
       >

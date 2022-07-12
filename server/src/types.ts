@@ -1,5 +1,7 @@
 import { PublicKey } from '@solana/web3.js';
 
+export type PublicKeyBase58 = string;
+
 export enum ActionKind {
   GetServerPubkey,
     ValidateTransaction,
@@ -11,11 +13,7 @@ export interface GetServerPubkeyAction {
 }
 
 export interface ValidateTransactionAction {
-  kind: ActionKind.ValidateTransaction;
-  // The user's primary wallet public key
-  userKey: PublicKey;
-  // The public key of the collection that is to be checked
-  collectionKey: PublicKey;
+  kind: ValidateTransaction;
 }
 
 // TODO
