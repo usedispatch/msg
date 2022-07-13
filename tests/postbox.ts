@@ -2,7 +2,7 @@ import * as anchor from '@project-serum/anchor';
 import * as splToken from '@solana/spl-token';
 import { strict as assert } from 'assert';
 
-import { Postbox, DispatchConnection, Forum, clusterAddresses } from '../usedispatch_client/src';
+import { Postbox, DispatchConnection, Forum, clusterAddresses, PostRestriction } from '../usedispatch_client/src';
 
 describe('postbox', () => {
 
@@ -173,7 +173,7 @@ describe('postbox', () => {
     await conn.confirmTransaction(tx1);
 
     const testPost = {subj: "Test", body: "This is a test post"};
-    const tx2 = await postboxAsOwner.createPost(testPost, undefined, {tokenOwnership: {mint: mint, amount: new anchor.BN(1)}});
+    const tx2 = await postboxAsOwner.createPost(testPost, undefined, {tokenOwnership: {mint: mint, amount: 1}});
     await conn.confirmTransaction(tx2);
 
     const topics = await postboxAsOwner.fetchPosts();
@@ -300,5 +300,50 @@ describe('postbox', () => {
     const replies = await forumAsModerator.getReplies(postsAgain[0]);
     assert.equal(replies.length, 1);
     assert.equal(replies[0].data.subj, "Reply");
+  });
+
+  it('Sets token post restrictions on a forum', async () => {
+    const collectionId = anchor.web3.Keypair.generate().publicKey;
+
+    const owner = new anchor.Wallet(anchor.web3.Keypair.generate());
+    const poster = new anchor.Wallet(anchor.web3.Keypair.generate());
+    await conn.confirmTransaction(await conn.requestAirdrop(owner.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
+    await conn.confirmTransaction(await conn.requestAirdrop(poster.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
+
+    const forumAsOwner = new Forum(new DispatchConnection(conn, owner), collectionId);
+    const forumAsPoster = new Forum(new DispatchConnection(conn, poster), collectionId);
+
+    const txs = await forumAsOwner.createForum({
+      collectionId,
+      owners: [owner.publicKey],
+      moderators: [owner.publicKey],
+      title: "Test Forum",
+      description: "A forum for the test suite",
+    });
+    await Promise.all(txs.map((t) => conn.confirmTransaction(t)));
+
+    const restrictionMint = await splToken.createMint(conn, owner.payer, owner.publicKey, owner.publicKey, 9);
+    const restrictionAmount = 50000;
+    const restriction: PostRestriction = {tokenOwnership: {
+      mint: restrictionMint,
+      amount: restrictionAmount,
+    }};
+
+    const topic0 = {subj: "Test Topic", body: "This is a test topic."};
+    const tx0 = await forumAsOwner.createTopic(topic0, restriction);
+    await conn.confirmTransaction(tx0);
+
+    assert.ok(await forumAsPoster.canCreateTopic());
+    const topics = await forumAsPoster.getTopicsForForum();
+    assert.ok(!await forumAsPoster.canPost(topics[0]));
+
+    const tx1 = await forumAsOwner.setForumPostRestriction(restriction);    
+    await conn.confirmTransaction(tx1);
+
+    const forumRestriction = await forumAsPoster.getForumPostRestriction();
+    assert.ok(restrictionMint.equals(forumRestriction?.tokenOwnership?.mint));
+    assert.equal(forumRestriction?.tokenOwnership?.amount, restrictionAmount);
+
+    assert.ok(!await forumAsPoster.canCreateTopic());
   });
 });
