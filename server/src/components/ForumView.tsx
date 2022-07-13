@@ -10,8 +10,9 @@ import {
   useParams
 } from 'react-router-dom';
 import axios from 'axios'; 
+import Arweave from 'arweave';
 
-async function handler() {
+async function fetchAddresses() {
   const resp = await axios({
     url: 'https://arweave.dev/graphql',
     method: 'post',
@@ -54,12 +55,30 @@ async function handler() {
 export function ForumView() {
   const { identifier } = useParams();
 
+  const [addresses, setAddresses] = useState<string[]>([]);
+  const [posts, setPosts] = useState<string[]>([]);
+
   useEffect(() => {
-    handler()
-      .then(ids => setPosts(ids));
+    fetchAddresses()
+      .then(ids => setAddresses(ids));
   }, []);
 
-  const [posts, setPosts] = useState<string[]>([]);
+  useEffect(() => {
+    const arweave = Arweave.init({
+      host: 'arweave.net',
+      port: 443,
+      protocol: 'https'
+    });
+    const promises = addresses.map(address => {
+      // TODO check this for injection
+      return arweave.transactions.getData(address, {decode: true, string: true});
+    });
+    Promise.allSettled(promises)
+      .then(res => res.filter(item => item.status === 'fulfilled'))
+      .then(res => res.map(item => item as PromiseFulfilledResult<string>))
+      .then(res => res.map(item => item.value))
+      .then(successes => setPosts(successes));
+  }, [addresses]);
 
   return (
     <Container>
