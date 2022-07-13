@@ -29,8 +29,8 @@ export interface IForum {
   // For a given topic, the messages
   getTopicMessages(topic: ForumPost): Promise<ForumPost[]>;
 
-  // Create a new topic
-  createTopic(forumPost: postbox.InputPostData): Promise<web3.TransactionSignature>;
+  // Create a new topic, optionally overriding the post restrictions on the whole forum
+  createTopic(forumPost: postbox.InputPostData, postRestriction?: postbox.PostRestriction): Promise<web3.TransactionSignature>;
 
   // Create a post
   createForumPost(forumPost: postbox.InputPostData, topic: ForumPost): Promise<web3.TransactionSignature>;
@@ -60,8 +60,11 @@ export interface IForum {
   // Update the description of the forum
   setDescription(desc: postbox.Description): Promise<web3.TransactionSignature>;
 
+  // Get any currently set global post restriction on the forum
+  getForumPostRestriction(): Promise<postbox.PostRestriction | null>;
+
   // Update the pots restrictions on the forum
-  setPostboxPostRestriction(restriction: postbox.TokenPostRestriction): Promise<web3.TransactionSignature>;
+  setForumPostRestriction(restriction: postbox.PostRestriction): Promise<web3.TransactionSignature>;
 
   // Delegate the given account as a moderator by giving them a moderator token
   addModerator(newMod: web3.PublicKey): Promise<web3.TransactionSignature>;
@@ -125,12 +128,12 @@ export class Forum implements IForum {
     });
   }
 
-  async createTopic(forumPost: postbox.InputPostData): Promise<web3.TransactionSignature> {
+  async createTopic(forumPost: postbox.InputPostData, postRestriction?: postbox.PostRestriction): Promise<web3.TransactionSignature> {
     if (!forumPost.meta) {
       forumPost.meta = {};
     }
     forumPost.meta.topic = true;
-    return this._postbox.createPost(forumPost);
+    return this._postbox.createPost(forumPost, undefined, postRestriction);
   }
 
   async createForumPost(forumPost: postbox.InputPostData, topic: ForumPost): Promise<web3.TransactionSignature> {
@@ -178,7 +181,11 @@ export class Forum implements IForum {
     return this._postbox.setDescription(desc);
   }
 
-  async setPostboxPostRestriction(restriction: postbox.TokenPostRestriction): Promise<web3.TransactionSignature> {
+  async getForumPostRestriction(): Promise<postbox.PostRestriction | null> {
+    return this._postbox.getPostboxPostRestriction();
+  }
+
+  async setForumPostRestriction(restriction: postbox.PostRestriction): Promise<web3.TransactionSignature> {
     return this._postbox.setPostboxPostRestriction(restriction);
   }
 
@@ -200,12 +207,12 @@ export class Forum implements IForum {
     return this._postbox.isModerator();
   }
 
-  async canPost(): Promise<boolean> {
+  async canCreateTopic(): Promise<boolean> {
     return this._postbox.canPost();
   }
 
-  async canReply(replyTo: ForumPost): Promise<boolean> {
-    return this._postbox.canPost(replyTo);
+  async canPost(topic: ForumPost): Promise<boolean> {
+    return this._postbox.canPost(topic);
   }
 
   // Helper functions
