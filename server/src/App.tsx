@@ -7,7 +7,8 @@ import {
 } from 'react-bootstrap';
 import {
   Header,
-  Content
+  Content,
+  ForumView
 } from './components';
 import { Wallet } from './Wallet';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
@@ -20,6 +21,7 @@ function App() {
         <hr />
         <Routes>
           <Route path="/" element={<Content />} />
+          <Route path="/:identifier" element={<ForumView />} />
         </Routes>
       </BrowserRouter>
     </Wallet>
