@@ -77,31 +77,30 @@ export type TokenPostRestriction = {
   amount: number;
 };
 
+export type NftPostRestriction = {
+  collectionId: web3.PublicKey;
+};
+
+export type PostRestriction = {
+  tokenOwnership?: TokenPostRestriction;
+  nftOwnership?: NftPostRestriction;
+};
+
 type SettingsAccountData = {
   description?: Description;
   ownerInfo?: {
     owners: web3.PublicKey[];
   };
   postRestriction?: {
-    postRestriction: PostRestrictions;
+    postRestriction: PostRestriction;
   };
 };
 
 export enum SettingsType {
   ownerInfo = 'ownerInfo',
   description = 'description',
-  postRestrictions = 'postRestrictions',
+  postRestrictions = 'postRestriction',
 }
-
-export type PostRestrictions = {
-  tokenOwnership?: {
-    mint: web3.PublicKey;
-    amount: anchor.BN;
-  };
-  nftOwnership?: {
-    collectionId: web3.PublicKey;
-  };
-};
 
 export class Postbox {
   private _address: web3.PublicKey | undefined;
@@ -128,7 +127,9 @@ export class Postbox {
     return this.dispatch.sendTransaction(ix);
   }
 
-  async getPostRestrictionAccounts(replyTo?: InteractablePost) {
+  // Some helpers for basic commands
+
+  async _getPostRestrictionAccounts(replyTo?: InteractablePost) {
     for (const setting of replyTo?.settings ?? []) {
       if (setting.postRestriction) {
         if (setting.postRestriction.postRestriction.tokenOwnership) {
@@ -166,11 +167,26 @@ export class Postbox {
     };
   }
 
+  _formatPostRestrictionSetting(postRestriction: PostRestriction) {
+    let normalizedRestriction;
+    if (postRestriction?.tokenOwnership) {
+      normalizedRestriction = {
+        tokenOwnership: {
+          mint: postRestriction.tokenOwnership.mint,
+          amount: new anchor.BN(postRestriction.tokenOwnership.amount),
+        }
+      };
+    } else {
+      normalizedRestriction = postRestriction
+    }
+    return { postRestriction: { postRestriction: normalizedRestriction } };
+  }
+
   // Basic commands
   async createPost(
     input: InputPostData,
     replyTo?: InteractablePost,
-    postRestriction?: PostRestrictions,
+    postRestriction?: PostRestriction,
   ): Promise<web3.TransactionSignature> {
     // TODO(mfasman): make this be a better allocation algorithm
     const growBy = 1; // TODO(mfasman): pull from the IDL
@@ -178,12 +194,12 @@ export class Postbox {
     const addresses = await this.getAddresses(maxId, Math.max(0, maxId - growBy));
     const infos = await this.dispatch.conn.getMultipleAccountsInfo(addresses);
     const data = await this.postDataToBuffer(input);
-    const postRestrictions = await this.getPostRestrictionAccounts(replyTo);
+    const postRestrictions = await this._getPostRestrictionAccounts(replyTo);
     const ix = await this.dispatch.postboxProgram.methods
       .createPost(
         data,
         maxId,
-        postRestriction ? [{ postRestriction: { postRestriction } }] : [],
+        postRestriction ? [this._formatPostRestrictionSetting(postRestriction)] : [],
         postRestrictions.praIdxs ? [postRestrictions.praIdxs] : [],
       )
       .accounts({
@@ -301,12 +317,20 @@ export class Postbox {
     return this.innerSetSetting({ description });
   }
 
-  async getPostboxPostRestriction(): Promise<PostRestrictions | null> {
-    return (await this.innerGetSetting(SettingsType.postRestrictions))?.postRestriction?.postRestriction ?? null;
+  async getPostboxPostRestriction(): Promise<PostRestriction | null> {
+    const inner = await this.innerGetSetting(SettingsType.postRestrictions);
+    const restriction = inner?.postRestriction?.postRestriction ?? null;
+    if (restriction?.tokenOwnership) {
+      return {tokenOwnership: {
+        mint: restriction.tokenOwnership.mint,
+        amount: (restriction.tokenOwnership.amount as any as anchor.BN).toNumber(),
+      }};
+    }
+    return restriction;
   }
 
-  async setPostboxPostRestriction(postRestriction: TokenPostRestriction): Promise<web3.TransactionSignature> {
-    return this.innerSetSetting({ postRestriction: { postRestriction } });
+  async setPostboxPostRestriction(postRestriction: PostRestriction): Promise<web3.TransactionSignature> {
+    return this.innerSetSetting(this._formatPostRestrictionSetting(postRestriction));
   }
 
   async innerGetSetting(settingsType: SettingsType): Promise<SettingsAccountData | undefined> {
@@ -350,7 +374,7 @@ export class Postbox {
   }
 
   async canPost(replyTo?: InteractablePost): Promise<boolean> {
-    let restriction: PostRestrictions | null = null;
+    let restriction: PostRestriction | null = null;
 
     // Reply-to restrictions override the postbox-wide restrictions
     for (const setting of replyTo?.settings ?? []) {
@@ -373,7 +397,7 @@ export class Postbox {
       );
       const info = await this.dispatch.conn.getAccountInfo(ata);
       const balance = info?.data ? splToken.AccountLayout.decode(info?.data).amount : 0;
-      return balance >= restriction.tokenOwnership.amount.toNumber();
+      return balance >= restriction.tokenOwnership.amount;
     }
 
     if (restriction.nftOwnership) {
