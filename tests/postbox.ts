@@ -186,6 +186,18 @@ describe('postbox', () => {
     const tx3 = await postboxAsPoster.replyToPost(replyPost, topic);
     await conn.confirmTransaction(tx3);
 
+    const txA = await postboxAsPoster.vote(topic, true);
+    await conn.confirmTransaction(txA);
+    console.log("This should fail");
+
+    try {
+      await postboxAsOwner.vote(topic, true);
+    } catch(e) {
+      const expectedError = "Error processing Instruction 0: custom program error: 0x183f";
+      assert.ok(e instanceof Error);
+      assert.ok(e.message.includes(expectedError));
+    }
+
     assert.ok(await postboxAsOwner.canPost());
     assert.ok(!await postboxAsOwner.canPost(topic));
     const replyPost2 = {subj: "Should fail", body: "Reply"};
