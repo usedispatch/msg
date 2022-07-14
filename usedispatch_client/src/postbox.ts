@@ -1,4 +1,3 @@
-import { Metaplex } from '@metaplex-foundation/js';
 import * as anchor from '@project-serum/anchor';
 import * as splToken from '@solana/spl-token';
 import * as web3 from '@solana/web3.js';
@@ -105,10 +104,8 @@ export type PostRestrictions = {
 
 export class Postbox {
   private _address: web3.PublicKey | undefined;
-  public metaplex: Metaplex;
 
   constructor(public dispatch: DispatchConnection, public target: PostboxTarget) {
-    this.metaplex = new Metaplex(dispatch.conn);
   }
 
   // Init functions
@@ -143,8 +140,10 @@ export class Postbox {
         }
         if (setting.postRestriction.postRestriction.nftOwnership) {
           const collectionId = setting.postRestriction.postRestriction.nftOwnership.collectionId;
-          const nftsOwned = await this.metaplex.nfts().findAllByOwner(this.dispatch.wallet.publicKey!);
-          const relevantNfts = nftsOwned.filter((nft) => nft.collection?.key.equals(collectionId));
+          // TODO(andrew) replace this
+          // const nftsOwned = await this.metaplex.nfts().findAllByOwner(this.dispatch.wallet.publicKey!);
+          // const relevantNfts = nftsOwned.filter((nft) => nft.collection?.key.equals(collectionId));
+          const relevantNfts: any[] = [];
           if (relevantNfts.length) {
             const nft = relevantNfts[0];
             const ata = await splToken.getAssociatedTokenAddress(nft.mint, this.dispatch.wallet.publicKey!);
@@ -378,8 +377,10 @@ export class Postbox {
 
     if (restriction.nftOwnership) {
       const collectionId = restriction.nftOwnership.collectionId;
-      const nftsOwned = await this.metaplex.nfts().findAllByOwner(this.dispatch.wallet.publicKey!);
-      const relevantNfts = nftsOwned.filter((nft) => nft.collection?.key.equals(collectionId));
+      // TODO(andrew) change this to owned NFTS
+      // const nftsOwned = await this.metaplex.nfts().findAllByOwner(this.dispatch.wallet.publicKey!);
+      // const relevantNfts = nftsOwned.filter((nft) => nft.collection?.key.equals(collectionId));
+      const relevantNfts = [];
       return relevantNfts.length > 0;
     }
 
