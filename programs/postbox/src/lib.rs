@@ -97,7 +97,7 @@ pub mod postbox {
         post_account.reply_to = reply_to_post.as_ref().map(|p| p.key());
 
         let optional_override = ctx.accounts.postbox.validate_post_interaction_is_allowed(
-            reply_to_post.map(|p| p.into_inner()).as_ref(),
+            reply_to_post.as_ref(),
             &ctx.accounts.poster.key(),
             ctx.remaining_accounts,
             &additional_account_offsets,
@@ -140,8 +140,19 @@ pub mod postbox {
         Ok(())
     }
 
-    pub fn vote(ctx: Context<Vote>, _post_id: u32, up_vote: bool) -> Result<()> {
+    pub fn vote(ctx: Context<Vote>, _post_id: u32, up_vote: bool,
+        additional_account_offsets: Vec<AdditionalAccountIndices>,
+    ) -> Result<()> {
         let post_account = &mut ctx.accounts.post;
+
+        ctx.accounts.postbox.validate_post_interaction_is_allowed(
+            Some(post_account),
+            &ctx.accounts.voter.key(),
+            ctx.remaining_accounts,
+            &additional_account_offsets,
+            false,
+        )?;
+
         let vote_count = if up_vote {&mut post_account.up_votes} else {&mut post_account.down_votes};
         *vote_count += if MAX_VOTE == *vote_count {0} else {1};
 
@@ -356,8 +367,8 @@ impl Postbox {
 
     pub fn validate_post_interaction_is_allowed(
         &self,
-        post_for_interaction: Option<& Post>,
-        poster_key: &Pubkey,
+        post_for_interaction: Option<& Account<Post>>,
+        interactor_key: &Pubkey,
         remaining_accounts: &[AccountInfo],
         additional_account_offsets: &Vec<AdditionalAccountIndices>,
         trying_to_override: bool,
@@ -376,7 +387,7 @@ impl Postbox {
         if let Some(restriction) = post_restriction_to_use {
             match restriction {
                 SettingsData::PostRestriction{ post_restriction } => post_restriction.validate_reply_allowed(
-                    poster_key,
+                    interactor_key,
                     remaining_accounts,
                     additional_account_offsets,
                 )?,
