@@ -244,13 +244,17 @@ export class Postbox {
   }
 
   async vote(post: InteractablePost, up: boolean): Promise<web3.TransactionSignature> {
+    const postRestrictions = await this._getPostRestrictionAccounts(post);
     const ix = await this.dispatch.postboxProgram.methods
-      .vote(post.postId, up)
+      .vote(post.postId, up,
+        postRestrictions.praIdxs ? [postRestrictions.praIdxs] : [],
+      )
       .accounts({
         postbox: await this.getAddress(),
         post: post.address,
         treasury: this.dispatch.addresses.treasuryAddress,
       })
+      .remainingAccounts(postRestrictions.pra)
       .transaction();
     return this.dispatch.sendTransaction(ix);
   }
