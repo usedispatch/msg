@@ -76,9 +76,7 @@ pub mod postbox {
         additional_account_offsets: Vec<AdditionalAccountIndices>,
     ) -> Result<()> {
         let postbox_account = &mut ctx.accounts.postbox;
-        if post_id > postbox_account.max_child_id + POSTBOX_GROW_CHILDREN_BY {
-            return Err(Error::from(PostboxErrorCode::PostIdTooLarge).with_source(source!()));
-        }
+        require!(post_id <= postbox_account.max_child_id + POSTBOX_GROW_CHILDREN_BY, PostboxErrorCode::PostIdTooLarge);
         if post_id >= postbox_account.max_child_id {
             postbox_account.max_child_id += POSTBOX_GROW_CHILDREN_BY;
         }
@@ -90,36 +88,23 @@ pub mod postbox {
             post_account.set_setting(&setting)?;
         }
 
-        let mut post_restriction_to_use: Option<&SettingsData> = None;
-        let reply_to_key = ctx.accounts.reply_to.key();
-        let reply_to: Account<Post>;
-        if reply_to_key == Pubkey::default() {
-            post_account.reply_to = None;
+        let reply_to_post: Option<Account<Post>> = if ctx.accounts.reply_to.key() == Pubkey::default() {
+            None
         } else {
             // Check that we are actually replying to a post
-            reply_to = Account::<Post>::try_from(&ctx.accounts.reply_to)?;
-            post_account.reply_to = Some(reply_to_key);
-            post_restriction_to_use = reply_to.get_setting(SettingsType::PostRestriction);
-            // Inherit our parent post restriction rather than allowing a new one on replies
-            if let Some(restriction) = post_restriction_to_use {
-                // require!(false, PostboxErrorCode::TestError);
-                require!(post_account.get_setting(SettingsType::PostRestriction).is_none(), PostboxErrorCode::ReplyCannotRestrictReplies);
-                post_account.set_setting(restriction)?;
-            }
-        }
-        if post_restriction_to_use.is_none() {
-            // Postbox setting specifies the default, which can be overriden in a post
-            post_restriction_to_use = ctx.accounts.postbox.get_setting(SettingsType::PostRestriction);
-        }
-        if let Some(restriction) = post_restriction_to_use {
-            match restriction {
-                SettingsData::PostRestriction{ post_restriction } => post_restriction.validate_reply_allowed(
-                    &ctx.accounts.poster.key(),
-                    ctx.remaining_accounts,
-                    &additional_account_offsets,
-                )?,
-                _ => {return Err(Error::from(PostboxErrorCode::MalformedSetting).with_source(source!()))},
-            };
+            Some(Account::<Post>::try_from(&ctx.accounts.reply_to)?)
+        };
+        post_account.reply_to = reply_to_post.as_ref().map(|p| p.key());
+
+        let optional_override = ctx.accounts.postbox.validate_post_interaction_is_allowed(
+            reply_to_post.map(|p| p.into_inner()).as_ref(),
+            &ctx.accounts.poster.key(),
+            ctx.remaining_accounts,
+            &additional_account_offsets,
+            post_account.get_setting(SettingsType::PostRestriction).is_some(),
+        )?;
+        if let Some(restriction) = optional_override {
+            post_account.set_setting(&restriction)?;
         }
 
         emit!(PostEvent {
@@ -367,6 +352,43 @@ impl Postbox {
             size += setting.get_size();
         }
         return size;
+    }
+
+    pub fn validate_post_interaction_is_allowed(
+        &self,
+        post_for_interaction: Option<& Post>,
+        poster_key: &Pubkey,
+        remaining_accounts: &[AccountInfo],
+        additional_account_offsets: &Vec<AdditionalAccountIndices>,
+        trying_to_override: bool,
+    ) -> Result<Option<SettingsData>> {
+        let mut post_restriction_to_use: Option<&SettingsData> = None;
+        let mut post_specific: bool = false;
+        if let Some(post) = post_for_interaction {
+            post_restriction_to_use = post.get_setting(SettingsType::PostRestriction);
+        }
+        if post_restriction_to_use.is_some() {
+            post_specific = true;
+        } else {
+            // Postbox setting specifies the default, which can be overriden in a post
+            post_restriction_to_use = self.get_setting(SettingsType::PostRestriction);
+        }
+        if let Some(restriction) = post_restriction_to_use {
+            match restriction {
+                SettingsData::PostRestriction{ post_restriction } => post_restriction.validate_reply_allowed(
+                    poster_key,
+                    remaining_accounts,
+                    additional_account_offsets,
+                )?,
+                _ => {return Err(Error::from(PostboxErrorCode::MalformedSetting).with_source(source!()))},
+            };
+            if post_specific {
+                require!(!trying_to_override, PostboxErrorCode::ReplyCannotRestrictReplies);
+                // We need the next post to inherit this, so return it
+                return Ok(Some(restriction.clone()));
+            }
+        }
+        Ok(None)
     }
 }
 
