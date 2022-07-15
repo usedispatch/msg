@@ -58,7 +58,6 @@ export async function getMetadataForOwner(
   const derivedAddresses = await Promise.all(
     mints.map(mint =>
       deriveMetadataAccount(mint)
-      .then(([derived]) => derived)
     )
   );
 

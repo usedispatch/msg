@@ -4,7 +4,7 @@ import * as path from 'path';
 import * as web3 from '@solana/web3.js';
 import * as bs58 from 'bs58';
 import { Mailbox, KeyPairWallet } from "../src/";
-import { getMintsForOwner, getMetaDataForOwner } from '../src/utils';
+import { getMintsForOwner, getMetadataForOwner } from '../src/utils';
 
 const getPayer = () : web3.Keypair => {
   if (process.env.WALLET_SECRET_KEY) {
@@ -120,9 +120,9 @@ describe('Test helper functions', () => {
 
     // Now, get the Metadata for the user...
 
-    // And assert that it owns the trash panda
-    const metadata = await getMetaDataForOwner(conn, publicKey);
-    console.log(metadata[0].collection?.key.toBase58());
+    // And assert that it owns an item in the trash panda
+    // collection
+    const metadata = await getMetadataForOwner(conn, publicKey);
     expect(metadata.some(({ collection }) => {
       return (
         collection &&
