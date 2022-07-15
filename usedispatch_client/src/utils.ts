@@ -11,6 +11,18 @@ import {
   PROGRAM_ID
 } from '@metaplex-foundation/mpl-token-metadata';
 
+export async function deriveMetadataAccount(
+  mint: PublicKey
+) {
+  const [key] = await PublicKey.findProgramAddress([
+    Buffer.from('metadata'),
+    PROGRAM_ID.toBuffer(),
+    mint.toBuffer()
+  ], PROGRAM_ID);
+
+  return key;
+}
+
 export async function getMintsForOwner(
   connection: Connection,
   publicKey: PublicKey
@@ -37,7 +49,7 @@ export async function getMintsForOwner(
  * with a particular PublicKey. Note that this includes both
  * fungible and non-fungible tokens
  */
-export async function getMetaDataForOwner(
+export async function getMetadataForOwner(
   connection: Connection,
   publicKey: PublicKey
 ): Promise<Metadata[]> {
@@ -45,13 +57,8 @@ export async function getMetaDataForOwner(
 
   const derivedAddresses = await Promise.all(
     mints.map(mint =>
-      PublicKey.findProgramAddress([
-        Buffer.from('metadata'),
-        PROGRAM_ID.toBuffer(),
-        mint.toBuffer()
-      ],
-        PROGRAM_ID
-      ).then(([derived]) => derived)
+      deriveMetadataAccount(mint)
+      .then(([derived]) => derived)
     )
   );
 

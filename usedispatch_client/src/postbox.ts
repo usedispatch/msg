@@ -3,6 +3,11 @@ import * as splToken from '@solana/spl-token';
 import * as web3 from '@solana/web3.js';
 import { seeds } from './constants';
 import { DispatchConnection } from './connection';
+import {
+  getMintsForOwner,
+  getMetadataForOwner,
+  deriveMetadataAccount
+} from './utils';
 
 export type PostboxTarget = {
   key: web3.PublicKey;
@@ -140,17 +145,15 @@ export class Postbox {
         }
         if (setting.postRestriction.postRestriction.nftOwnership) {
           const collectionId = setting.postRestriction.postRestriction.nftOwnership.collectionId;
-          // TODO(andrew) replace this
-          // const nftsOwned = await this.metaplex.nfts().findAllByOwner(this.dispatch.wallet.publicKey!);
-          // const relevantNfts = nftsOwned.filter((nft) => nft.collection?.key.equals(collectionId));
-          const relevantNfts: any[] = [];
+          const nftsOwned = await getMetadataForOwner(this.dispatch.conn, this.dispatch.wallet.publicKey!);
+          const relevantNfts = nftsOwned.filter((nft) => nft.collection?.key.equals(collectionId));
           if (relevantNfts.length) {
             const nft = relevantNfts[0];
             const ata = await splToken.getAssociatedTokenAddress(nft.mint, this.dispatch.wallet.publicKey!);
             return {
               pra: [
                 { pubkey: ata, isWritable: false, isSigner: false },
-                { pubkey: nft.metadataAccount.publicKey, isWritable: false, isSigner: false },
+                { pubkey: await deriveMetadataAccount(nft.mint), isWritable: false, isSigner: false },
                 { pubkey: collectionId, isWritable: false, isSigner: false },
               ],
               praIdxs: { nftOwnership: { tokenIdx: 0, meta_idx: 1, collection_idx: 2 } },
@@ -378,9 +381,11 @@ export class Postbox {
     if (restriction.nftOwnership) {
       const collectionId = restriction.nftOwnership.collectionId;
       // TODO(andrew) change this to owned NFTS
-      // const nftsOwned = await this.metaplex.nfts().findAllByOwner(this.dispatch.wallet.publicKey!);
-      // const relevantNfts = nftsOwned.filter((nft) => nft.collection?.key.equals(collectionId));
-      const relevantNfts = [];
+      const nftsOwned = await getMetadataForOwner(
+        this.dispatch.conn,
+        this.dispatch.wallet.publicKey!
+      );
+      const relevantNfts = nftsOwned.filter((nft) => nft.collection?.key.equals(collectionId));
       return relevantNfts.length > 0;
     }
 
