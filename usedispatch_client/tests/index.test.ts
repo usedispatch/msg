@@ -4,6 +4,7 @@ import * as path from 'path';
 import * as web3 from '@solana/web3.js';
 import * as bs58 from 'bs58';
 import { Mailbox, KeyPairWallet } from "../src/";
+import { getMintsForOwner, getMetaDataForOwner } from '../src/utils';
 
 const getPayer = () : web3.Keypair => {
   if (process.env.WALLET_SECRET_KEY) {
@@ -97,5 +98,37 @@ describe("Test for initial Mailbox setup.", () => {
       expect(__messages.length).toEqual(0);
 
     });
+  });
+});
+
+describe('Test helper functions', () => {
+  test('Get mints for user', async () => {
+    // Use mainnet for looking up people's tokens
+    const conn = new web3.Connection(web3.clusterApiUrl('mainnet-beta'));
+
+    // A trash panda holder I found. TODO replace this with a
+    // test wallet under our control
+    const publicKey = new web3.PublicKey('7ycUFfnspMwnjp2DfSjAvZgf7g7T6nugrGv2kpzogrNC');
+
+    const mints = await getMintsForOwner(conn, publicKey);
+
+    // Make sure our mints are correct
+    expect(mints).toEqual([
+      new web3.PublicKey('9pSeEsGdnHCdUF9328Xdn88nMmzWUSLAVEC5dWgPvM3Q'),
+      new web3.PublicKey('DTPMARh15YSqggNbMLECj8RxVoxfhtobyyCLiwEeVwZu')
+    ]);
+
+    // Now, get the Metadata for the user...
+
+    // And assert that it owns the trash panda
+    const metadata = await getMetaDataForOwner(conn, publicKey);
+    console.log(metadata[0].collection?.key.toBase58());
+    expect(metadata.some(({ collection }) => {
+      return (
+        collection &&
+        collection.verified === true &&
+        collection.key.toBase58() === 'GoLMLLR6iSUrA6KsCrFh7f45Uq5EHFQ3p8RmzPoUH9mb'
+      );
+    })).toBe(true);
   });
 });
