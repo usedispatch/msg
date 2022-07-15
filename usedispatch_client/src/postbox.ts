@@ -380,7 +380,6 @@ export class Postbox {
 
     if (restriction.nftOwnership) {
       const collectionId = restriction.nftOwnership.collectionId;
-      // TODO(andrew) change this to owned NFTS
       const nftsOwned = await getMetadataForOwner(
         this.dispatch.conn,
         this.dispatch.wallet.publicKey!

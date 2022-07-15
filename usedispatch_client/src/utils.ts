@@ -14,6 +14,10 @@ import {
 export async function deriveMetadataAccount(
   mint: PublicKey
 ) {
+  // This key derivation is based on the fields describe here:
+  // https://github.com/metaplex-foundation/metaplex-program-library/blob/0d63c8b3c6ac077dba63519c78a8da7a58b285a1/token-metadata/js/src/generated/instructions/MintNewEditionFromMasterEditionViaToken.ts#L46
+  // TODO confirm with Metaplex team that this is the correct
+  // derivation
   const [key] = await PublicKey.findProgramAddress([
     Buffer.from('metadata'),
     PROGRAM_ID.toBuffer(),
