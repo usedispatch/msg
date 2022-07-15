@@ -150,10 +150,11 @@ export class Postbox {
           if (relevantNfts.length) {
             const nft = relevantNfts[0];
             const ata = await splToken.getAssociatedTokenAddress(nft.mint, this.dispatch.wallet.publicKey!);
+            const metadataAddress = await deriveMetadataAccount(nft.mint);
             return {
               pra: [
                 { pubkey: ata, isWritable: false, isSigner: false },
-                { pubkey: await deriveMetadataAccount(nft.mint), isWritable: false, isSigner: false },
+                { pubkey: metadataAddress, isWritable: false, isSigner: false },
                 { pubkey: collectionId, isWritable: false, isSigner: false },
               ],
               praIdxs: { nftOwnership: { tokenIdx: 0, meta_idx: 1, collection_idx: 2 } },
