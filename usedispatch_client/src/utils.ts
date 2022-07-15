@@ -11,11 +11,6 @@ import {
   PROGRAM_ID
 } from '@metaplex-foundation/mpl-token-metadata';
 
-// export interface NFT {
-//   mint: string;
-//   collection?: string;
-// }
-
 export async function getMintsForOwner(
   connection: Connection,
   publicKey: PublicKey
@@ -37,7 +32,12 @@ export async function getMintsForOwner(
   return mints;
 }
 
-export async function getNFTsForOwner(
+/**
+ * This function returns all the `Metadata` objects associated
+ * with a particular PublicKey. Note that this includes both
+ * fungible and non-fungible tokens
+ */
+export async function getMetaDataForOwner(
   connection: Connection,
   publicKey: PublicKey
 ): Promise<Metadata[]> {
@@ -64,18 +64,3 @@ export async function getNFTsForOwner(
     )
   );
 }
-
-async function main() {
-  const conn = new Connection(clusterApiUrl('mainnet-beta'));
-
-  const nfts = await getNFTsForOwner(
-    conn,
-    new PublicKey(
-      '7ycUFfnspMwnjp2DfSjAvZgf7g7T6nugrGv2kpzogrNC'
-    )
-  );
-
-  console.log(nfts);
-}
-
-main();
