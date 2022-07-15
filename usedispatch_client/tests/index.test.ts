@@ -113,13 +113,14 @@ describe('Test helper functions', () => {
     const mints = await getMintsForOwner(conn, publicKey);
 
     // Make sure our mints are correct
-    expect(mints).toEqual([
-      new web3.PublicKey('9pSeEsGdnHCdUF9328Xdn88nMmzWUSLAVEC5dWgPvM3Q'),
-      new web3.PublicKey('DTPMARh15YSqggNbMLECj8RxVoxfhtobyyCLiwEeVwZu')
-    ]);
+    expect(mints).toEqual(
+      expect.arrayContaining([
+        new web3.PublicKey('9pSeEsGdnHCdUF9328Xdn88nMmzWUSLAVEC5dWgPvM3Q'),
+        new web3.PublicKey('DTPMARh15YSqggNbMLECj8RxVoxfhtobyyCLiwEeVwZu')
+      ])
+    );
 
     // Now, get the Metadata for the user...
-
     // And assert that it owns an item in the trash panda
     // collection
     const metadata = await getMetadataForOwner(conn, publicKey);
