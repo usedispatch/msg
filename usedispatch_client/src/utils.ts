@@ -87,6 +87,8 @@ export async function getMetadataForOwner(
   const mints = await getMintsForOwner(connection, publicKey);
 
   const metadataList = await Promise.all(
+    // TODO fetch all of these at once instead of one at a time
+    // to reduce RPC connections
     mints.map(mint => getMetadataForMint(connection, mint))
   );
 
