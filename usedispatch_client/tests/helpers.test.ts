@@ -1,4 +1,5 @@
 import * as web3 from '@solana/web3.js';
+import { Key } from '@metaplex-foundation/mpl-token-metadata';
 import {
   getMintsForOwner,
   getMetadataForOwner
@@ -31,13 +32,21 @@ describe('Test helper functions', () => {
     // And assert that it owns an item in the trash panda
     // collection
     const metadata = await getMetadataForOwner(conn, publicKey);
-    expect(metadata.some(({ collection }) => {
-      return (
-        collection &&
-        collection.verified === true &&
-        collection.key.toBase58() === 'GoLMLLR6iSUrA6KsCrFh7f45Uq5EHFQ3p8RmzPoUH9mb'
-      );
-    })).toBe(true);
+    // Assert that the raccon mint can be found
+    const raccoonOrUndefined = metadata.find(({ mint }) =>
+      mint.toBase58() === '9pSeEsGdnHCdUF9328Xdn88nMmzWUSLAVEC5dWgPvM3Q');
+    // Raccoon should be defined
+    expect(raccoonOrUndefined).not.toBeUndefined();
+    // Now assert we have it
+    const raccoon = raccoonOrUndefined!;
+    // Test the raccoon's properties
+    expect(raccoon.key).toEqual(Key.MetadataV1);
+    expect(raccoon.collection).not.toBeNull();
+    const collection = raccoon.collection!;
+    expect(collection.verified).toBe(true);
+    expect(collection.key).toEqual(
+      new web3.PublicKey('GoLMLLR6iSUrA6KsCrFh7f45Uq5EHFQ3p8RmzPoUH9mb')
+    );
   });
 
   afterAll(() => {
