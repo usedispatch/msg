@@ -4,6 +4,7 @@ import * as path from 'path';
 import * as web3 from '@solana/web3.js';
 import * as bs58 from 'bs58';
 import { Mailbox, KeyPairWallet } from "../src/";
+import { getMintsForOwner, getMetadataForOwner } from '../src/utils';
 
 const getPayer = () : web3.Keypair => {
   if (process.env.WALLET_SECRET_KEY) {
