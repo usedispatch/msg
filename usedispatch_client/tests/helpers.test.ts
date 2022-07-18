@@ -1,5 +1,7 @@
 import * as web3 from '@solana/web3.js';
+import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { Key, Metadata } from '@metaplex-foundation/mpl-token-metadata';
+import { Error } from '../src/types';
 import {
   getMintsForOwner,
   getMetadataForOwner,
@@ -51,7 +53,6 @@ describe('Test helper functions', () => {
   });
 
   test('Test cardinal.so metadata', async () => {
-    // const dispatchKey = new web3.PublicKey('EuoVktg82q5oxEA6LvLXF4Xi9rKT1ZrjYqwcd9JA7X1B');
     const cardinalTokenMint = new web3.PublicKey('3MZRqiVc8AxsFwsnySkwmeT1RWxz8sUDHBSzgeZB7bRc');
 
     const metadataOrError = await getMetadataForMint(conn, cardinalTokenMint);
@@ -62,6 +63,27 @@ describe('Test helper functions', () => {
     expect(metadata.tokenStandard).toBeNull();
     expect(metadata.collection).toBeNull();
     expect(metadata.mint).toEqual(cardinalTokenMint);
+  });
+
+  test('Get account without any metadata', async () => {
+    const confusingMint = new web3.PublicKey('HxNTUR6YEixfzJbxCR1xjDH6sTGLrAACnKEhHEoWdrf');
+    const metadataOrError = await getMetadataForMint(conn, confusingMint);
+    expect(metadataOrError).toHaveProperty('error');
+
+    const error = metadataOrError as Error;
+    expect(error.error).toBe(true);
+  });
+
+  test('Fetch NFTs from Dispatch wallet', async () => {
+    const dispatchKey = new web3.PublicKey('EuoVktg82q5oxEA6LvLXF4Xi9rKT1ZrjYqwcd9JA7X1B');
+    const accts = await conn.getParsedTokenAccountsByOwner(
+      dispatchKey,
+      { programId: TOKEN_PROGRAM_ID }
+    );
+    console.log(accts);
+
+    const metadataList = await getMetadataForOwner(conn, dispatchKey);
+    console.log(metadataList);
   });
 
   afterAll(() => {

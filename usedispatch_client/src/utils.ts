@@ -60,14 +60,19 @@ export async function getMetadataForMint(
   mint: PublicKey
 ): Promise<Result<Metadata>> {
   const derivedAddress = await deriveMetadataAccount(mint);
+  let result: Metadata;
   try {
-    return Metadata.fromAccountAddress(connection, derivedAddress);
+    result = await Metadata.fromAccountAddress(connection, derivedAddress);
   } catch (e: any) {
     return {
       error: true,
       message: e?.message
     }
   }
+  // Put this down here to make sure that the promise is resolved
+  // inside the try block so any errors get caught and don't
+  // escape
+  return result;
 }
 
 /**
