@@ -376,4 +376,8 @@ describe('postbox', () => {
 
     assert.ok(!await forumAsPoster.canCreateTopic());
   });
+
+  it('Validates permissions on a postbox with token gating', async () => {
+    console.log('test');
+  });
 });
