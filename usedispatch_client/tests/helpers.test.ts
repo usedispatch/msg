@@ -12,7 +12,7 @@ describe('Test helper functions', () => {
     conn = new web3.Connection(web3.clusterApiUrl('mainnet-beta'));
   });
 
-  test('Get mints for user', async () => {
+  test('Get V1 metadata for user', async () => {
 
     // A trash panda holder I found. TODO replace this with a
     // test wallet under our control
@@ -48,6 +48,13 @@ describe('Test helper functions', () => {
       new web3.PublicKey('GoLMLLR6iSUrA6KsCrFh7f45Uq5EHFQ3p8RmzPoUH9mb')
     );
   });
+
+  // test('Test cardinal.so metadata', async () => {
+  //   const dispatchKey = new web3.PublicKey('EuoVktg82q5oxEA6LvLXF4Xi9rKT1ZrjYqwcd9JA7X1B');
+  //   
+  //   const metadata = await getMetadataForOwner(conn, dispatchKey);
+  //   console.log('mdata', metadata);
+  // });
 
   afterAll(() => {
     // Wait for six seconds, for the connection to close down

@@ -10,6 +10,9 @@ import {
   Metadata,
   PROGRAM_ID
 } from '@metaplex-foundation/mpl-token-metadata';
+import {
+  Result
+} from '../src/types';
 
 export async function deriveMetadataAccount(
   mint: PublicKey
@@ -49,6 +52,25 @@ export async function getMintsForOwner(
 }
 
 /**
+ * This function fails with an Error if there is no Metadata
+ * associated with the mint
+ */
+export async function getMetadataForMint(
+  connection: Connection,
+  mint: PublicKey
+): Promise<Result<Metadata>> {
+  const derivedAddress = await deriveMetadataAccount(mint);
+  try {
+    return Metadata.fromAccountAddress(connection, derivedAddress);
+  } catch (e: any) {
+    return {
+      error: true,
+      message: e?.message
+    }
+  }
+}
+
+/**
  * This function returns all the `Metadata` objects associated
  * with a particular PublicKey. Note that this includes both
  * fungible and non-fungible tokens
@@ -59,18 +81,13 @@ export async function getMetadataForOwner(
 ): Promise<Metadata[]> {
   const mints = await getMintsForOwner(connection, publicKey);
 
-  const derivedAddresses = await Promise.all(
-    mints.map(mint =>
-      deriveMetadataAccount(mint)
-    )
+  const metadataList = await Promise.all(
+    mints.map(mint => getMetadataForMint(connection, mint))
   );
 
-  return Promise.all(
-    derivedAddresses.map(addr =>
-      Metadata.fromAccountAddress(
-        connection,
-        addr
-      )
-    )
+  const successes = metadataList.filter(metadata =>
+    !('error' in metadata)
   );
+
+  return successes as Metadata[];
 }
