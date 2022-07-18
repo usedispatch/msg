@@ -168,6 +168,7 @@ export class Postbox {
   }
 
   _formatPostRestrictionSetting(postRestriction: PostRestriction) {
+    // Normalizing means converting between number and anchor.BN
     let normalizedRestriction;
     if (postRestriction?.tokenOwnership) {
       normalizedRestriction = {
