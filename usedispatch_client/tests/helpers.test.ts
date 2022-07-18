@@ -41,6 +41,8 @@ describe('Test helper functions', () => {
   });
 
   afterAll(() => {
+    // Wait for six seconds, for the connection to close down
+    // TODO remove this waiting when https://github.com/solana-labs/solana/issues/25069 is resolved
     Atomics.wait(
       new Int32Array(new SharedArrayBuffer(4)),
       0, 0,
