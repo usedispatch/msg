@@ -127,6 +127,25 @@ describe('postbox', () => {
     assert.equal(posts.length, 0);
   });
 
+  it('Designates a moderator while being a moderator', async () => {
+    const owner = new anchor.Wallet(anchor.web3.Keypair.generate());
+    const moderatorA = new anchor.Wallet(anchor.web3.Keypair.generate());
+    const moderatorB = new anchor.Wallet(anchor.web3.Keypair.generate());
+    await conn.confirmTransaction(await conn.requestAirdrop(owner.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
+    await conn.confirmTransaction(await conn.requestAirdrop(moderatorA.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
+
+    const postboxAsOwner = new Postbox(new DispatchConnection(conn, owner), {key: owner.publicKey});
+    const postboxAsModerator = new Postbox(new DispatchConnection(conn, moderatorA), {key: owner.publicKey});
+    const tx0 = await postboxAsOwner.initialize();
+    await conn.confirmTransaction(tx0);
+
+    const tx1 = await postboxAsOwner.addModerator(moderatorA.publicKey);
+    await conn.confirmTransaction(tx1);
+
+    const tx2 = await postboxAsModerator.addModerator(moderatorB.publicKey);
+    await conn.confirmTransaction(tx2);
+  });
+
   it('Allows voting', async () => {
     const owner = new anchor.Wallet(anchor.web3.Keypair.generate());
     const voter = new anchor.Wallet(anchor.web3.Keypair.generate());
