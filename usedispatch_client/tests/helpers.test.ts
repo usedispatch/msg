@@ -1,8 +1,9 @@
 import * as web3 from '@solana/web3.js';
-import { Key } from '@metaplex-foundation/mpl-token-metadata';
+import { Key, Metadata } from '@metaplex-foundation/mpl-token-metadata';
 import {
   getMintsForOwner,
-  getMetadataForOwner
+  getMetadataForOwner,
+  getMetadataForMint
 } from '../src/utils';
 
 describe('Test helper functions', () => {
@@ -49,12 +50,19 @@ describe('Test helper functions', () => {
     );
   });
 
-  // test('Test cardinal.so metadata', async () => {
-  //   const dispatchKey = new web3.PublicKey('EuoVktg82q5oxEA6LvLXF4Xi9rKT1ZrjYqwcd9JA7X1B');
-  //   
-  //   const metadata = await getMetadataForOwner(conn, dispatchKey);
-  //   console.log('mdata', metadata);
-  // });
+  test('Test cardinal.so metadata', async () => {
+    // const dispatchKey = new web3.PublicKey('EuoVktg82q5oxEA6LvLXF4Xi9rKT1ZrjYqwcd9JA7X1B');
+    const cardinalTokenMint = new web3.PublicKey('3MZRqiVc8AxsFwsnySkwmeT1RWxz8sUDHBSzgeZB7bRc');
+
+    const metadataOrError = await getMetadataForMint(conn, cardinalTokenMint);
+    expect(metadataOrError).not.toHaveProperty('error');
+
+    const metadata = metadataOrError as Metadata;
+    expect(metadata.key).toBe(Key.MetadataV1);
+    expect(metadata.tokenStandard).toBeNull();
+    expect(metadata.collection).toBeNull();
+    expect(metadata.mint).toEqual(cardinalTokenMint);
+  });
 
   afterAll(() => {
     // Wait for six seconds, for the connection to close down
