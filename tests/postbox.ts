@@ -207,7 +207,6 @@ describe('postbox', () => {
 
     const txA = await postboxAsPoster.vote(topic, true);
     await conn.confirmTransaction(txA);
-    console.log("This should fail");
 
     try {
       await postboxAsOwner.vote(topic, true);

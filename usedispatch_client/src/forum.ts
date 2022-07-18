@@ -169,6 +169,11 @@ export class Forum implements IForum {
     return this._postbox.vote(post, false);
   }
 
+  async addOwners(newOwners: web3.PublicKey[]): Promise<web3.TransactionSignature> {
+    const updatedOwners = [...new Set([...(await this.getOwners()), ...newOwners])];
+    return this._postbox.setOwners(updatedOwners);
+  }
+
   async getOwners(): Promise<web3.PublicKey[]> {
     return this._postbox.getOwners();
   }
@@ -213,6 +218,10 @@ export class Forum implements IForum {
 
   async canPost(topic: ForumPost): Promise<boolean> {
     return this._postbox.canPost(topic);
+  }
+
+  async canVote(post: ForumPost): Promise<boolean> {
+    return this._postbox.canPost(post);
   }
 
   // Helper functions
