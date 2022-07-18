@@ -1,6 +1,6 @@
 import * as web3 from '@solana/web3.js';
 import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
-import { Key, Metadata } from '@metaplex-foundation/mpl-token-metadata';
+import { Key, Metadata, TokenStandard } from '@metaplex-foundation/mpl-token-metadata';
 import { Error } from '../src/types';
 import {
   getMintsForOwner,
@@ -44,6 +44,7 @@ describe('Test helper functions', () => {
     const raccoon = raccoonOrUndefined!;
     // Test the raccoon's properties
     expect(raccoon.key).toEqual(Key.MetadataV1);
+    expect(raccoon.tokenStandard).toBeNull();
     expect(raccoon.collection).not.toBeNull();
     const collection = raccoon.collection!;
     expect(collection.verified).toBe(true);
@@ -76,14 +77,25 @@ describe('Test helper functions', () => {
 
   test('Fetch NFTs from Dispatch wallet', async () => {
     const dispatchKey = new web3.PublicKey('EuoVktg82q5oxEA6LvLXF4Xi9rKT1ZrjYqwcd9JA7X1B');
-    const accts = await conn.getParsedTokenAccountsByOwner(
-      dispatchKey,
-      { programId: TOKEN_PROGRAM_ID }
-    );
-    console.log(accts);
-
     const metadataList = await getMetadataForOwner(conn, dispatchKey);
-    console.log(metadataList);
+
+    // Should have at least one metadata
+    expect(metadataList.length).toBeGreaterThan(0);
+
+    const nftOrUndefined = metadataList.find(({ mint }) =>
+      mint.toBase58() === '3MZRqiVc8AxsFwsnySkwmeT1RWxz8sUDHBSzgeZB7bRc' );
+
+    expect(nftOrUndefined).not.toBeUndefined();
+
+    const nft = nftOrUndefined!;
+    expect(nft.mint).toEqual(new web3.PublicKey('3MZRqiVc8AxsFwsnySkwmeT1RWxz8sUDHBSzgeZB7bRc'));
+    expect(nft.collection).toBeNull();
+    expect(nft.tokenStandard).toBeNull();
+    expect(nft.collection).toBeNull();
+    expect(nft.data.symbol.replace(/\0/g, ''))
+      .toEqual('NAME');
+    expect(nft.data.name.replace(/\0/g, ''))
+      .toEqual('usedispatch.twitter');
   });
 
   afterAll(() => {
