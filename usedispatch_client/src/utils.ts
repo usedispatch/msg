@@ -103,11 +103,7 @@ export async function getMetadataForOwner(
 ): Promise<Metadata[]> {
   const mints = await getMintsForOwner(connection, publicKey);
 
-  const metadataList = await Promise.all(
-    // TODO fetch all of these at once instead of one at a time
-    // to reduce RPC connections
-    mints.map(mint => getMetadataForMint(connection, mint))
-  );
+  const metadataList = await getMetadataForMints(connection, mints);
 
   const successes = metadataList.filter(metadata =>
     !('error' in metadata)
