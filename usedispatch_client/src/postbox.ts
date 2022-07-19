@@ -3,11 +3,7 @@ import * as splToken from '@solana/spl-token';
 import * as web3 from '@solana/web3.js';
 import { seeds } from './constants';
 import { DispatchConnection } from './connection';
-import {
-  getMintsForOwner,
-  getMetadataForOwner,
-  deriveMetadataAccount
-} from './utils';
+import { getMintsForOwner, getMetadataForOwner, deriveMetadataAccount } from './utils';
 
 export type PostboxTarget = {
   key: web3.PublicKey;
@@ -109,8 +105,7 @@ export enum SettingsType {
 export class Postbox {
   private _address: web3.PublicKey | undefined;
 
-  constructor(public dispatch: DispatchConnection, public target: PostboxTarget) {
-  }
+  constructor(public dispatch: DispatchConnection, public target: PostboxTarget) {}
 
   // Init functions
   async initialize(owners?: web3.PublicKey[], description?: Description): Promise<web3.TransactionSignature> {
@@ -178,10 +173,10 @@ export class Postbox {
         tokenOwnership: {
           mint: postRestriction.tokenOwnership.mint,
           amount: new anchor.BN(postRestriction.tokenOwnership.amount),
-        }
+        },
       };
     } else {
-      normalizedRestriction = postRestriction
+      normalizedRestriction = postRestriction;
     }
     return { postRestriction: { postRestriction: normalizedRestriction } };
   }
@@ -250,9 +245,7 @@ export class Postbox {
   async vote(post: InteractablePost, up: boolean): Promise<web3.TransactionSignature> {
     const postRestrictions = await this._getPostRestrictionAccounts(post);
     const ix = await this.dispatch.postboxProgram.methods
-      .vote(post.postId, up,
-        postRestrictions.praIdxs ? [postRestrictions.praIdxs] : [],
-      )
+      .vote(post.postId, up, postRestrictions.praIdxs ? [postRestrictions.praIdxs] : [])
       .accounts({
         postbox: await this.getAddress(),
         post: post.address,
@@ -329,10 +322,12 @@ export class Postbox {
     const inner = await this.innerGetSetting(SettingsType.postRestrictions);
     const restriction = inner?.postRestriction?.postRestriction ?? null;
     if (restriction?.tokenOwnership) {
-      return {tokenOwnership: {
-        mint: restriction.tokenOwnership.mint,
-        amount: (restriction.tokenOwnership.amount as any as anchor.BN).toNumber(),
-      }};
+      return {
+        tokenOwnership: {
+          mint: restriction.tokenOwnership.mint,
+          amount: (restriction.tokenOwnership.amount as any as anchor.BN).toNumber(),
+        },
+      };
     }
     return restriction;
   }
@@ -410,10 +405,7 @@ export class Postbox {
 
     if (restriction.nftOwnership) {
       const collectionId = restriction.nftOwnership.collectionId;
-      const nftsOwned = await getMetadataForOwner(
-        this.dispatch.conn,
-        this.dispatch.wallet.publicKey!
-      );
+      const nftsOwned = await getMetadataForOwner(this.dispatch.conn, this.dispatch.wallet.publicKey!);
       const relevantNfts = nftsOwned.filter((nft) => nft.collection?.key.equals(collectionId));
       return relevantNfts.length > 0;
     }
