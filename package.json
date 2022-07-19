@@ -1,5 +1,6 @@
 {
     "dependencies": {
+        "@metaplex-foundation/amman": "^0.10.0",
         "@project-serum/anchor": "^0.24.2"
     },
     "devDependencies": {
