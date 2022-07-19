@@ -1,7 +1,7 @@
 import {
   Connection,
   PublicKey,
-  clusterApiUrl
+  AccountInfo
 } from '@solana/web3.js';
 import {
   TOKEN_PROGRAM_ID
@@ -51,6 +51,26 @@ export async function getMintsForOwner(
   return mints;
 }
 
+export async function getMetadataForMints(
+  connection: Connection,
+  mints: PublicKey[]
+): Promise<Metadata[]> {
+  // Derive addresses for all metadata accounts
+  const derivedAddresses = await Promise.all(
+    mints.map(async (mint) => deriveMetadataAccount(mint))
+  );
+  // Derive account list
+  const accountInfoOrNullList = await connection.getMultipleAccountsInfo(derivedAddresses)
+  // Remove missing account into
+  const accountInfoList = accountInfoOrNullList
+    .filter(acct => acct !== null) as AccountInfo<Buffer>[];
+  return accountInfoList
+    // TODO check if Metadata.fromAccountInfo throws errors and
+    // implement try/catch block here if they do
+    .map(accountInfo => Metadata.fromAccountInfo(accountInfo))
+    .map(([metadata]) => metadata);
+}
+
 /**
  * This function fails with an Error if there is no Metadata
  * associated with the mint
@@ -59,20 +79,17 @@ export async function getMetadataForMint(
   connection: Connection,
   mint: PublicKey
 ): Promise<Result<Metadata>> {
-  const derivedAddress = await deriveMetadataAccount(mint);
-  let result: Metadata;
-  try {
-    result = await Metadata.fromAccountAddress(connection, derivedAddress);
-  } catch (e: any) {
+  const metadataList = await getMetadataForMints(connection, [mint]);
+
+  const result = metadataList[0];
+  if (result) {
+    return result;
+  } else {
     return {
       error: true,
-      message: e?.message
-    }
+      message: `Derived account for mint ${mint.toBase58()} not found`
+    };
   }
-  // Put this down here to make sure that the promise is resolved
-  // inside the try block so any errors get caught and don't
-  // escape
-  return result;
 }
 
 /**
@@ -86,11 +103,7 @@ export async function getMetadataForOwner(
 ): Promise<Metadata[]> {
   const mints = await getMintsForOwner(connection, publicKey);
 
-  const metadataList = await Promise.all(
-    // TODO fetch all of these at once instead of one at a time
-    // to reduce RPC connections
-    mints.map(mint => getMetadataForMint(connection, mint))
-  );
+  const metadataList = await getMetadataForMints(connection, mints);
 
   const successes = metadataList.filter(metadata =>
     !('error' in metadata)
