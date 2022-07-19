@@ -30,7 +30,10 @@ export interface IForum {
   getTopicMessages(topic: ForumPost): Promise<ForumPost[]>;
 
   // Create a new topic, optionally overriding the post restrictions on the whole forum
-  createTopic(forumPost: postbox.InputPostData, postRestriction?: postbox.PostRestriction): Promise<web3.TransactionSignature>;
+  createTopic(
+    forumPost: postbox.InputPostData,
+    postRestriction?: postbox.PostRestriction,
+  ): Promise<web3.TransactionSignature>;
 
   // Create a post
   createForumPost(forumPost: postbox.InputPostData, topic: ForumPost): Promise<web3.TransactionSignature>;
@@ -128,7 +131,10 @@ export class Forum implements IForum {
     });
   }
 
-  async createTopic(forumPost: postbox.InputPostData, postRestriction?: postbox.PostRestriction): Promise<web3.TransactionSignature> {
+  async createTopic(
+    forumPost: postbox.InputPostData,
+    postRestriction?: postbox.PostRestriction,
+  ): Promise<web3.TransactionSignature> {
     if (!forumPost.meta) {
       forumPost.meta = {};
     }
