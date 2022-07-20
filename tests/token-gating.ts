@@ -1,4 +1,10 @@
-import * as anchor from '@project-serum/anchor';
+import {
+  Connection,
+  Keypair,
+  LAMPORTS_PER_SOL
+} from '@solana/web3.js';
+import { Amman } from '@metaplex-foundation/amman';
+import { PROGRAM_ADDRESS } from '@metaplex-foundation/mpl-token-metadata';
 import * as splToken from '@solana/spl-token';
 import {
   Metaplex,
@@ -6,35 +12,45 @@ import {
   mockStorage
 } from '@metaplex-foundation/js';
 import { strict as assert } from 'assert';
-import { Postbox, DispatchConnection, Forum, clusterAddresses, PostRestriction } from '../usedispatch_client/src';
+import {
+  Postbox,
+  DispatchConnection,
+  Forum,
+  clusterAddresses,
+  PostRestriction,
+  KeyPairWallet
+} from '../usedispatch_client/src';
 
 describe('Token gating', () => {
+  let conn: Connection;
 
   before(() => {
-    console.log('setup');
+    conn = new Connection( 'http://localhost:8899');
   });
 
-  // Configure the client to use the local cluster.
-  anchor.setProvider(anchor.AnchorProvider.env());
-
-  const conn = anchor.getProvider().connection;
-  const TREASURY = clusterAddresses.get("devnet").treasuryAddress;
-
   it('Validates permissions on a postbox with token gating', async () => {
-    // Generate a new collection id for our forum
-    // TODO this collection id should contain at least one token
-    const collectionId = anchor.web3.Keypair.generate().publicKey;
+    // Initialize collection ID
+    const collectionId = Keypair.generate().publicKey;
 
-    const ownerKeypair = anchor.web3.Keypair.generate();
+    // And the two parties
+    const ownerKeypair = Keypair.generate();
+    const userKeypair = Keypair.generate();
 
-    // Create an owner and a poster
-    const owner = new anchor.Wallet(ownerKeypair);
-    const poster = new anchor.Wallet(anchor.web3.Keypair.generate());
-    await conn.confirmTransaction(await conn.requestAirdrop(owner.publicKey, 20 * anchor.web3.LAMPORTS_PER_SOL));
-    await conn.confirmTransaction(await conn.requestAirdrop(poster.publicKey, 20 * anchor.web3.LAMPORTS_PER_SOL));
+    // Initiate wallets from the parties
+    const owner = new KeyPairWallet(ownerKeypair);
+    const user = new KeyPairWallet(userKeypair);
 
+    // Airdrop both parties some SOL
+    await conn.confirmTransaction(
+      await conn.requestAirdrop(ownerKeypair.publicKey, 2 * LAMPORTS_PER_SOL)
+    );
+    await conn.confirmTransaction(
+      await conn.requestAirdrop(userKeypair.publicKey, 2 * LAMPORTS_PER_SOL)
+    );
+
+    // Initialize forum for both Owner and User
     const forumAsOwner = new Forum(new DispatchConnection(conn, owner), collectionId);
-    const forumAsPoster = new Forum(new DispatchConnection(conn, poster), collectionId);
+    const forumAsUser = new Forum(new DispatchConnection(conn, user), collectionId);
 
     const txs = await forumAsOwner.createForum({
       collectionId,
@@ -44,28 +60,5 @@ describe('Token gating', () => {
       description: "A forum for the test suite",
     });
     await Promise.all(txs.map((t) => conn.confirmTransaction(t)));
-
-    const metaplex = Metaplex.make(conn)
-      .use(keypairIdentity(ownerKeypair))
-      .use(mockStorage())
-
-    const data = await metaplex.nfts().uploadMetadata({
-      name: 'Test NFT'
-    })
-
-    const { nft } = await metaplex.nfts().create({
-      name: 'a test nft',
-      uri: data.uri,
-      sellerFeeBasisPoints: 500
-    });
-
-    // console.log(data, nft);
-
-    // https://github.com/metaplex-foundation/js/pull/145
-    // verify collection feature
-  });
-
-  after(() => {
-    console.log('teardown');
   });
 });
