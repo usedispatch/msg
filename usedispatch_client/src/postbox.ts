@@ -332,12 +332,17 @@ export class Postbox {
     return restriction;
   }
 
-  async setPostboxPostRestriction(postRestriction: PostRestriction): Promise<web3.TransactionSignature> {
-    return this.innerSetSetting(this._formatPostRestrictionSetting(postRestriction));
+  async setPostboxPostRestriction(
+    postRestriction: PostRestriction,
+    // TODO see if there is a better default than recent
+    commitment: web3.Commitment = 'recent'
+  ): Promise<web3.TransactionSignature> {
+    return this.innerSetSetting(this._formatPostRestrictionSetting(postRestriction), commitment);
   }
 
   async innerGetSetting(settingsType: SettingsType): Promise<SettingsAccountData | undefined> {
     const info = await this.getChainPostboxInfo();
+    console.log('info', info);
     for (const setting of info.settings) {
       if (setting[settingsType]) {
         return setting;
@@ -346,14 +351,19 @@ export class Postbox {
     return undefined;
   }
 
-  async innerSetSetting(settingsData: any): Promise<web3.TransactionSignature> {
+  async innerSetSetting(
+    settingsData: any,
+    // TODO see if there is a better default than recent
+    commitment: web3.Commitment = 'recent'
+  ): Promise<web3.TransactionSignature> {
+    console.log('setting to set', settingsData);
     const ix = await this.dispatch.postboxProgram.methods
       .addOrUpdateSetting(settingsData)
       .accounts({
         postbox: await this.getAddress(),
       })
       .transaction();
-    return this.dispatch.sendTransaction(ix);
+    return this.dispatch.sendTransaction(ix, commitment);
   }
 
   // Role functions
@@ -388,6 +398,7 @@ export class Postbox {
     if (!restriction) {
       restriction = await this.getPostboxPostRestriction();
     }
+    console.log('restriction', restriction);
 
     if (!restriction) {
       return true;
@@ -406,6 +417,7 @@ export class Postbox {
     if (restriction.nftOwnership) {
       const collectionId = restriction.nftOwnership.collectionId;
       const nftsOwned = await getMetadataForOwner(this.dispatch.conn, this.dispatch.wallet.publicKey!);
+      console.log('nfts owned', nftsOwned);
       const relevantNfts = nftsOwned.filter((nft) => nft.collection?.key.equals(collectionId));
       return relevantNfts.length > 0;
     }

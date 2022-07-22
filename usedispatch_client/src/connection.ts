@@ -41,7 +41,11 @@ export class DispatchConnection {
     this.postboxProgram = new anchor.Program<Postbox>(postboxProgramIdl as any, this.addresses.postboxAddress);
   }
 
-  public async sendTransaction(tx: web3.Transaction) {
+  public async sendTransaction(
+    tx: web3.Transaction,
+    // TODO see if there is a better default than recent
+    commitment: web3.Commitment = 'recent'
+  ) {
     let sig: string;
     if ('sendTransaction' in this.wallet) {
       const wallet = this.wallet as WalletAdapterInterface;
@@ -53,8 +57,7 @@ export class DispatchConnection {
     } else {
       throw new Error('`wallet` has neither `sendTransaction` nor `payer` so cannot send transaction');
     }
-    // TODO pass this in as a parameter
-    await this.conn.confirmTransaction(sig, 'max');
+    await this.conn.confirmTransaction(sig, commitment);
     return sig;
   }
 }

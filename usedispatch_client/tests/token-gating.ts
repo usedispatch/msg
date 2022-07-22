@@ -109,19 +109,20 @@ describe('Token gating', () => {
         nftOwnership: {
           collectionId: new PublicKey('GcMPukzjZWfY4y4KVM3HNdqtZTf5WyTWPvL4YXznoS9c')
         }
-      }
+      },
+      'max'
     );
 
-    console.log('Verifying permissions were set');
     const restriction = await forumAsOwner.getForumPostRestriction();
     expect(restriction).not.toBeNull();
-    console.log('restriction', restriction);
 
 
     const authorizedUserCanCreateTopic = await forumAsUser.canCreateTopic();
     const unauthorizedUserCanCreateTopic = await forumAsUnauthorizedUser.canCreateTopic();
 
+    console.log('Verifying that an authorized user can create a topic');
     expect(authorizedUserCanCreateTopic).toBe(true);
+    console.log('Verifying that an unauthorized user cannot create a topic');
     expect(unauthorizedUserCanCreateTopic).toBe(false);
   });
 
