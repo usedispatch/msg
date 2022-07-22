@@ -56,10 +56,20 @@ describe('Token gating', () => {
     );
     console.log('Unauthorized user pubkey', unauthorizedUserKeypair.publicKey.toBase58());
     
-    // Airdrop both some SOL
-    // await conn.confirmTransaction(await conn.requestAirdrop(ownerKeypair.publicKey, 2 * LAMPORTS_PER_SOL));
-    // await conn.confirmTransaction(await conn.requestAirdrop(userKeypair.publicKey, 2 * LAMPORTS_PER_SOL));
-    // await conn.confirmTransaction(await conn.requestAirdrop(unauthorizedUserKeypair.publicKey, 2 * LAMPORTS_PER_SOL));
+    // Make sure all accounts have some SOL
+    const ownerBalance = await conn.getBalance(ownerKeypair.publicKey)
+    if (ownerBalance < 2 * LAMPORTS_PER_SOL) {
+      await conn.confirmTransaction(await conn.requestAirdrop(ownerKeypair.publicKey, 2 * LAMPORTS_PER_SOL));
+    }
+    console.log('owner balance', ownerBalance);
+    const userBalance = await conn.getBalance(userKeypair.publicKey);
+    if (userBalance < 2 * LAMPORTS_PER_SOL) {
+      await conn.confirmTransaction(await conn.requestAirdrop(userKeypair.publicKey, 2 * LAMPORTS_PER_SOL));
+    }
+    const unauthorizedUserBalance = await conn.getBalance(unauthorizedUserKeypair.publicKey);
+    if (unauthorizedUserBalance < 2 * LAMPORTS_PER_SOL) {
+      await conn.confirmTransaction(await conn.requestAirdrop(unauthorizedUserKeypair.publicKey, 2 * LAMPORTS_PER_SOL));
+    }
   });
 
   test('Validates permissions on a postbox with token gating', async () => {
