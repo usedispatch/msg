@@ -53,7 +53,8 @@ export class DispatchConnection {
     } else {
       throw new Error('`wallet` has neither `sendTransaction` nor `payer` so cannot send transaction');
     }
-    await this.conn.confirmTransaction(sig, 'recent');
+    // TODO pass this in as a parameter
+    await this.conn.confirmTransaction(sig, 'max');
     return sig;
   }
 }

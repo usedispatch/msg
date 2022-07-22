@@ -30,11 +30,16 @@ import {
 
 describe('Token gating', () => {
   let conn: Connection;
+  // Owner of the forum
   let ownerKeypair: Keypair;
+  // User of the forum
   let userKeypair: Keypair;
+  // Unauthorized user
+  let unauthorizedUserKeypair: Keypair;
 
   beforeAll(async () => {
     conn = new Connection(clusterApiUrl('devnet'));
+    // conn = new Connection('https://devnet.genesysgo.net/');
     config();
 
     // Initialize the two parties
@@ -46,10 +51,15 @@ describe('Token gating', () => {
       decode(process.env.USER_KEY!)
     );
     console.log('User pubkey', userKeypair.publicKey.toBase58());
+    unauthorizedUserKeypair = Keypair.fromSecretKey(
+      decode(process.env.UNAUTHORIZED_USER_KEY!)
+    );
+    console.log('Unauthorized user pubkey', unauthorizedUserKeypair.publicKey.toBase58());
     
     // Airdrop both some SOL
-    await conn.confirmTransaction(await conn.requestAirdrop(ownerKeypair.publicKey, 2 * LAMPORTS_PER_SOL));
-    await conn.confirmTransaction(await conn.requestAirdrop(userKeypair.publicKey, 2 * LAMPORTS_PER_SOL));
+    // await conn.confirmTransaction(await conn.requestAirdrop(ownerKeypair.publicKey, 2 * LAMPORTS_PER_SOL));
+    // await conn.confirmTransaction(await conn.requestAirdrop(userKeypair.publicKey, 2 * LAMPORTS_PER_SOL));
+    // await conn.confirmTransaction(await conn.requestAirdrop(unauthorizedUserKeypair.publicKey, 2 * LAMPORTS_PER_SOL));
   });
 
   test('Validates permissions on a postbox with token gating', async () => {
@@ -61,6 +71,7 @@ describe('Token gating', () => {
     // Initiate wallets from the parties
     const owner = new KeyPairWallet(ownerKeypair);
     const user = new KeyPairWallet(userKeypair);
+    const unauthorizedUser = new KeyPairWallet(unauthorizedUserKeypair);
 
     // Do some airdropping
 
@@ -69,6 +80,8 @@ describe('Token gating', () => {
     const forumAsOwner = new Forum(new DispatchConnection(conn, owner), collectionId);
     console.log('Creating user forum object');
     const forumAsUser = new Forum(new DispatchConnection(conn, user), collectionId);
+    console.log('Creating unauthorized user forum object');
+    const forumAsUnauthorizedUser = new Forum(new DispatchConnection(conn, unauthorizedUser), collectionId);
 
     const balance = await conn.getBalance(ownerKeypair.publicKey);
     console.log('owner balance', balance);
@@ -88,19 +101,34 @@ describe('Token gating', () => {
 
     console.log('Getting description');
     const desc = await forumAsOwner.getDescription()
+    console.log('desc', desc);
 
     console.log('Setting permissions');
     await forumAsOwner.setForumPostRestriction(
       {
         nftOwnership: {
-          collectionId
+          collectionId: new PublicKey('GcMPukzjZWfY4y4KVM3HNdqtZTf5WyTWPvL4YXznoS9c')
         }
       }
     );
 
-    const canCreateTopic = await forumAsUser.canCreateTopic();
+    Atomics.wait(
+      new Int32Array(new SharedArrayBuffer(4)),
+      0, 0,
+      6 * 1000
+    );
 
-    console.log('Can create topic', canCreateTopic);
+    console.log('Verifying permissions were set');
+    const restriction = await forumAsOwner.getForumPostRestriction();
+    expect(restriction).not.toBeNull();
+    console.log('restriction', restriction);
+
+
+    const authorizedUserCanCreateTopic = await forumAsUser.canCreateTopic();
+    const unauthorizedUserCanCreateTopic = await forumAsUnauthorizedUser.canCreateTopic();
+
+    expect(authorizedUserCanCreateTopic).toBe(true);
+    expect(unauthorizedUserCanCreateTopic).toBe(false);
   });
 
   afterAll(() => {
