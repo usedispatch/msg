@@ -144,6 +144,23 @@ describe('Token gating', () => {
     expect(unauthorizedUserCanCreateTopic).toBe(false);
   });
 
+  test('Attempts to create a topic', async () => {
+    expect(async () => {
+      // Allowed user should be able to create a topic
+      await forumAsUser.createTopic({
+        body: 'string'
+      });
+    }).not.toThrow();
+
+    // expect(async () => {
+    //   // Unauthorized user should not be able to create a topic
+      // await forumAsUnauthorizedUser.createTopic({
+      //   subj: 'Subject title',
+      //   body: 'body'
+      // });
+    // }).toThrow();
+  });
+
   afterAll(() => {
     Atomics.wait(
       new Int32Array(new SharedArrayBuffer(4)),
