@@ -112,12 +112,6 @@ describe('Token gating', () => {
       }
     );
 
-    Atomics.wait(
-      new Int32Array(new SharedArrayBuffer(4)),
-      0, 0,
-      6 * 1000
-    );
-
     console.log('Verifying permissions were set');
     const restriction = await forumAsOwner.getForumPostRestriction();
     expect(restriction).not.toBeNull();
