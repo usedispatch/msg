@@ -342,7 +342,6 @@ export class Postbox {
 
   async innerGetSetting(settingsType: SettingsType): Promise<SettingsAccountData | undefined> {
     const info = await this.getChainPostboxInfo();
-    console.log('info', info);
     for (const setting of info.settings) {
       if (setting[settingsType]) {
         return setting;
@@ -356,7 +355,6 @@ export class Postbox {
     // TODO see if there is a better default than recent
     commitment: web3.Commitment = 'recent'
   ): Promise<web3.TransactionSignature> {
-    console.log('setting to set', settingsData);
     const ix = await this.dispatch.postboxProgram.methods
       .addOrUpdateSetting(settingsData)
       .accounts({
@@ -398,7 +396,6 @@ export class Postbox {
     if (!restriction) {
       restriction = await this.getPostboxPostRestriction();
     }
-    console.log('restriction', restriction);
 
     if (!restriction) {
       return true;
@@ -417,7 +414,6 @@ export class Postbox {
     if (restriction.nftOwnership) {
       const collectionId = restriction.nftOwnership.collectionId;
       const nftsOwned = await getMetadataForOwner(this.dispatch.conn, this.dispatch.wallet.publicKey!);
-      console.log('nfts owned', nftsOwned);
       const relevantNfts = nftsOwned.filter((nft) => nft.collection?.key.equals(collectionId));
       return relevantNfts.length > 0;
     }
