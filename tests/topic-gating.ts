@@ -138,5 +138,19 @@ describe('Topic gating', () => {
 
     assert.equal(await forumAsUser.canPost(topic), true);
     assert.equal(await forumAsUnauthorizedUser.canPost(topic), false);
+
+    await forumAsUser.createForumPost({
+      subj: 'reply',
+      body: 'authorized reply to topic'
+    }, topic);
+
+    try {
+      await forumAsUnauthorizedUser.createForumPost({
+        subj: 'reply',
+        body: 'unauthorized reply to topic'
+      }, topic);
+    } catch (e) {
+      console.log('success 2');
+    }
   });
 });
