@@ -26,7 +26,7 @@ import {
   clusterAddresses,
   PostRestriction,
   KeyPairWallet
-} from '../src';
+} from '../usedispatch_client/src';
 
 describe('Token gating', () => {
   let conn: Connection;
@@ -49,7 +49,7 @@ describe('Token gating', () => {
   let forumAsUser: Forum;
   let forumAsUnauthorizedUser: Forum;
 
-  beforeAll(async () => {
+  before(async () => {
     conn = new Connection(clusterApiUrl('devnet'));
     // conn = new Connection('https://devnet.genesysgo.net/');
     config();
@@ -115,12 +115,12 @@ describe('Token gating', () => {
 
     console.log('Getting description');
     const desc = await forumAsOwner.getDescription()
-    expect(desc).not.toBeUndefined();
-    expect(desc!.title).toEqual('Test Forum');
-    expect(desc!.desc).toEqual('A forum for the test suite');
+    assert.notEqual(desc, undefined);
+    assert.equal(desc.title, 'Test Forum');
+    assert.equal(desc.desc, 'A forum for the test suite');
   });
 
-  test('Validates permissions for the entire forum', async () => {
+  it('Validates permissions for the entire forum', async () => {
     console.log('Setting permissions');
     await forumAsOwner.setForumPostRestriction(
       {
@@ -132,36 +132,38 @@ describe('Token gating', () => {
     );
 
     const restriction = await forumAsOwner.getForumPostRestriction();
-    expect(restriction).not.toBeNull();
+    assert.notEqual(restriction, null);
 
 
     const authorizedUserCanCreateTopic = await forumAsUser.canCreateTopic();
     const unauthorizedUserCanCreateTopic = await forumAsUnauthorizedUser.canCreateTopic();
 
     console.log('Verifying that an authorized user can create a topic');
-    expect(authorizedUserCanCreateTopic).toBe(true);
+    assert.equal(authorizedUserCanCreateTopic, true);
     console.log('Verifying that an unauthorized user cannot create a topic');
-    expect(unauthorizedUserCanCreateTopic).toBe(false);
+    assert.equal(unauthorizedUserCanCreateTopic, false);
   });
 
-  test('Attempts to create a topic', async () => {
-    expect(async () => {
-      // Allowed user should be able to create a topic
-      await forumAsUser.createTopic({
-        body: 'string'
-      });
-    }).not.toThrow();
+  it('Attempts to create a topic', async () => {
+    const tx = await forumAsUser.createTopic({
+      subj: 'Subject title',
+      body: 'body'
+    });
+    await conn.confirmTransaction(tx);
 
-    // expect(async () => {
-    //   // Unauthorized user should not be able to create a topic
-      // await forumAsUnauthorizedUser.createTopic({
-      //   subj: 'Subject title',
-      //   body: 'body'
-      // });
-    // }).toThrow();
+    console.log(await forumAsUser.getTopicsForForum());
+
+    // assert.throws(async () => {
+    //   await forumAsUnauthorizedUser.createTopic({
+    //     body: 'body',
+    //     subj: 'subj'
+    //   });
+    // });
+    //
+    // console.log(await forumAsUser.getTopicsForForum());
   });
 
-  afterAll(() => {
+  after(() => {
     Atomics.wait(
       new Int32Array(new SharedArrayBuffer(4)),
       0, 0,
