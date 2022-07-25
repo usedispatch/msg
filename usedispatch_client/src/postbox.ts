@@ -151,7 +151,7 @@ export class Postbox {
           { pubkey: metadataAddress, isWritable: false, isSigner: false },
           { pubkey: collectionId, isWritable: false, isSigner: false },
         ],
-        praIdxs: { nftOwnership: { tokenIdx: 0, meta_idx: 1, collection_idx: 2 } },
+        praIdxs: { nftOwnership: { tokenIdx: 0, metaIdx: 1, collectionIdx: 2 } },
       };
     }
     return {pra: [], praIdxs: null};
