@@ -11,7 +11,7 @@ mod settings;
 mod treasury;
 
 #[cfg(feature = "mainnet")]
-declare_id!("Fs5wSa7GYtTqivXGqHyx673v5oPuD5Cb7ij9utsFKdLb");
+declare_id!("DHepkufWDLJ9DCD37nbEDbPSFKjGiziQ6Lbgo1zgGX7S");
 #[cfg(not(feature = "mainnet"))]
 declare_id!("Fs5wSa7GYtTqivXGqHyx673v5oPuD5Cb7ij9utsFKdLb");
 
