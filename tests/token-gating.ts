@@ -147,22 +147,23 @@ describe('Token gating', () => {
   });
 
   it('Attempts to create a topic', async () => {
-    const tx = await forumAsUser.createTopic({
-      subj: 'Subject title',
-      body: 'body'
+    assert.doesNotThrow(async () => {
+      const tx = await forumAsUser.createTopic({
+        subj: 'Subject title',
+        body: 'body'
+      });
+      await conn.confirmTransaction(tx);
     });
-    await conn.confirmTransaction(tx);
+
+    assert.throws(async () => {
+      const tx = await forumAsUnauthorizedUser.createTopic({
+        body: 'body',
+        subj: 'subj'
+      });
+      await conn.confirmTransaction(tx);
+    });
 
     console.log(await forumAsUser.getTopicsForForum());
-
-    // assert.throws(async () => {
-    //   await forumAsUnauthorizedUser.createTopic({
-    //     body: 'body',
-    //     subj: 'subj'
-    //   });
-    // });
-    //
-    // console.log(await forumAsUser.getTopicsForForum());
   });
 
   after(() => {
