@@ -17,8 +17,44 @@ url = "https://anchor.projectserum.com"
 cluster = "localnet"
 wallet = "~/.config/solana/id.json"
 
+# TODO change this back to tests/**/*.ts when this PR is merged
 [scripts]
-test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/token-gating.ts"
 
 [features]
 seeds = true
+
+[test.validator]
+url = "https://api.devnet.solana.com"
+
+# Collection mint key
+[[test.validator.clone]]
+address = "GcMPukzjZWfY4y4KVM3HNdqtZTf5WyTWPvL4YXznoS9c"
+
+# Collection metadata
+[[test.validator.clone]]
+address = "127CfcfCk5H8zSNDvSLJjKLVxwb6YP6hPK4TGRmVMNtE"
+
+# authorized user key
+[[test.validator.clone]]
+address = "CKQZCHQTJJDXzfkcodYZ4i6adjjL5cwuiqnFQgrgPh67"
+
+# associated token account for authorized user
+[[test.validator.clone]]
+address = "9SEWPdMDNWuvDhsjvzUGzLeAjLpFgthrnBjcCwmvsPA6"
+
+# Owner key
+[[test.validator.clone]]
+address = "E5rGQH5XXds6ZJLWnx9mjtoc2JKDF8rchK5UeDCgkbuV"
+
+# unauthorized user key
+[[test.validator.clone]]
+address = "A5E92mr5PSCHyeSRB1JwPE4tYCjMCGkY3aEHr3TYZ7xg"
+
+# SOLID color #1
+[[test.validator.clone]]
+address = "AGGEiRQSRdqSRvWuxotuNinDoayQH8cVRhNcSsFJQDVp"
+
+# SOLID color #1 metadata
+[[test.validator.clone]]
+address = "3sQSbdWqK8hPMzoA89S8pRuFSkdeU7tZHvThAyKgW4Vg"
