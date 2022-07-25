@@ -147,23 +147,24 @@ describe('Token gating', () => {
   });
 
   it('Attempts to create a topic', async () => {
-    assert.doesNotThrow(async () => {
-      const tx = await forumAsUser.createTopic({
-        subj: 'Subject title',
-        body: 'body'
-      });
-      await conn.confirmTransaction(tx);
+    const tx0 = await forumAsUser.createTopic({
+      subj: 'Subject title',
+      body: 'body'
     });
+    await conn.confirmTransaction(tx0);
 
-    assert.throws(async () => {
+    try {
       const tx = await forumAsUnauthorizedUser.createTopic({
         body: 'body',
         subj: 'subj'
       });
       await conn.confirmTransaction(tx);
-    });
+    } catch (e) {
+      const expectedError = 'Error processing Instruction 0: custom program error: 0x1840';
+      assert.ok(e instanceof Error);
+      assert.ok(e.message.includes(expectedError));
+    }
 
-    console.log(await forumAsUser.getTopicsForForum());
   });
 
   after(() => {
