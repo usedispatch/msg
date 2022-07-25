@@ -29,7 +29,7 @@ import {
 } from '../usedispatch_client/src';
 import * as anchor from '@project-serum/anchor';
 
-describe('Token gating', () => {
+describe('Topic gating', () => {
   let conn: Connection;
   // Owner of the forum
   let ownerKeypair: Keypair;
@@ -122,58 +122,21 @@ describe('Token gating', () => {
     assert.equal(desc.desc, 'A forum for the test suite');
   });
 
-  it('Validates permissions for the entire forum', async () => {
-    console.log('Setting permissions');
-    await forumAsOwner.setForumPostRestriction(
-      {
-        nftOwnership: {
-          collectionId: new PublicKey('GcMPukzjZWfY4y4KVM3HNdqtZTf5WyTWPvL4YXznoS9c')
-        }
-      },
-      'max'
-    );
-
-    const restriction = await forumAsOwner.getForumPostRestriction();
-    assert.notEqual(restriction, null);
-
-
-    const authorizedUserCanCreateTopic = await forumAsUser.canCreateTopic();
-    const unauthorizedUserCanCreateTopic = await forumAsUnauthorizedUser.canCreateTopic();
-
-    console.log('Verifying that an authorized user can create a topic');
-    assert.equal(authorizedUserCanCreateTopic, true);
-    console.log('Verifying that an unauthorized user cannot create a topic');
-    assert.equal(unauthorizedUserCanCreateTopic, false);
-  });
-
-  it('Attempts to create a topic', async () => {
-    const tx0 = await forumAsUser.createTopic({
-      subj: 'Subject title',
-      body: 'body'
+  it('Enforces topic gating', async () => {
+    await forumAsUser.createTopic({
+      subj: 'restricted subject',
+      body: 'restricted body'
+    }, {
+      nftOwnership: {
+        collectionId: new PublicKey('GcMPukzjZWfY4y4KVM3HNdqtZTf5WyTWPvL4YXznoS9c')
+      }
     });
-    await conn.confirmTransaction(tx0);
 
-    try {
-      const tx = await forumAsUnauthorizedUser.createTopic({
-        body: 'body',
-        subj: 'subj'
-      });
-      await conn.confirmTransaction(tx);
-    } catch (e) {
-      const expectedError = 'Error processing Instruction 0: custom program error: 0x1840';
-      assert.ok(e instanceof Error);
-      assert.ok(e.message.includes(expectedError));
-    }
+    const topics = await forumAsUser.getTopicsForForum();
+    assert.equal(topics.length, 1);
+    const topic = topics[0];
 
-    forumAsUnauthorizedUser.canVote
-
-  });
-
-  after(() => {
-    // Atomics.wait(
-    //   new Int32Array(new SharedArrayBuffer(4)),
-    //   0, 0,
-    //   6 * 1000
-    // );
+    assert.equal(await forumAsUser.canPost(topic), true);
+    assert.equal(await forumAsUnauthorizedUser.canPost(topic), false);
   });
 });
