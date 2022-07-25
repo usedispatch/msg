@@ -28,7 +28,7 @@ clusterAddresses.set('devnet', {
 clusterAddresses.set('mainnet-beta', {
   programAddress: new web3.PublicKey('BHJ4tRcogS88tUhYotPfYWDjR4q7MGdizdiguY3N54rb'),
   treasuryAddress: new web3.PublicKey('5MNBoBJDHHG4pB6qtWgYPzGEncoYTLAaANovvoaxu28p'),
-  postboxAddress: new web3.PublicKey('Fs5wSa7GYtTqivXGqHyx673v5oPuD5Cb7ij9utsFKdLb'),
+  postboxAddress: new web3.PublicKey('DHepkufWDLJ9DCD37nbEDbPSFKjGiziQ6Lbgo1zgGX7S'),
 });
 
 export const defaultCluster: web3.Cluster = 'devnet';
