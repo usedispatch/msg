@@ -126,43 +126,50 @@ export class Postbox {
 
   // Some helpers for basic commands
 
+  async _getTokenPostRestrictionAccounts(TokenPostRestriction: TokenPostRestriction) {
+    const ata = await splToken.getAssociatedTokenAddress(
+      TokenPostRestriction.mint,
+      this.dispatch.wallet.publicKey!,
+    );
+    return {
+      pra: [{ pubkey: ata, isWritable: false, isSigner: false }],
+      praIdxs: { tokenOwnership: { tokenIdx: 0 } },
+    };
+  }
+
+  async _getNftPostRestrictionAccounts(nftPostRestriction: NftPostRestriction) {
+    const collectionId = nftPostRestriction.collectionId;
+    const nftsOwned = await getMetadataForOwner(this.dispatch.conn, this.dispatch.wallet.publicKey!);
+    const relevantNfts = nftsOwned.filter((nft) => nft.collection?.key.equals(collectionId));
+    if (relevantNfts.length) {
+      const nft = relevantNfts[0];
+      const ata = await splToken.getAssociatedTokenAddress(nft.mint, this.dispatch.wallet.publicKey!);
+      const metadataAddress = await deriveMetadataAccount(nft.mint);
+      return {
+        pra: [
+          { pubkey: ata, isWritable: false, isSigner: false },
+          { pubkey: metadataAddress, isWritable: false, isSigner: false },
+          { pubkey: collectionId, isWritable: false, isSigner: false },
+        ],
+        praIdxs: { nftOwnership: { tokenIdx: 0, meta_idx: 1, collection_idx: 2 } },
+      };
+    }
+    return {pra: [], praIdxs: null};
+  }
+
   async _getPostRestrictionAccounts(replyTo?: InteractablePost) {
-    for (const setting of replyTo?.settings ?? []) {
-      if (setting.postRestriction) {
-        if (setting.postRestriction.postRestriction.tokenOwnership) {
-          const ata = await splToken.getAssociatedTokenAddress(
-            setting.postRestriction.postRestriction.tokenOwnership.mint,
-            this.dispatch.wallet.publicKey!,
-          );
-          return {
-            pra: [{ pubkey: ata, isWritable: false, isSigner: false }],
-            praIdxs: { tokenOwnership: { tokenIdx: 0 } },
-          };
-        }
-        if (setting.postRestriction.postRestriction.nftOwnership) {
-          const collectionId = setting.postRestriction.postRestriction.nftOwnership.collectionId;
-          const nftsOwned = await getMetadataForOwner(this.dispatch.conn, this.dispatch.wallet.publicKey!);
-          const relevantNfts = nftsOwned.filter((nft) => nft.collection?.key.equals(collectionId));
-          if (relevantNfts.length) {
-            const nft = relevantNfts[0];
-            const ata = await splToken.getAssociatedTokenAddress(nft.mint, this.dispatch.wallet.publicKey!);
-            const metadataAddress = await deriveMetadataAccount(nft.mint);
-            return {
-              pra: [
-                { pubkey: ata, isWritable: false, isSigner: false },
-                { pubkey: metadataAddress, isWritable: false, isSigner: false },
-                { pubkey: collectionId, isWritable: false, isSigner: false },
-              ],
-              praIdxs: { nftOwnership: { tokenIdx: 0, meta_idx: 1, collection_idx: 2 } },
-            };
-          }
-        }
+    const restrictions = (replyTo?.settings ?? []).map((s: SettingsAccountData) => s.postRestriction?.postRestriction || null);
+    // Put the postbox-wide restriction at the end so it's the default
+    restrictions.push(await this.getPostboxPostRestriction());
+    for (const restriction of restrictions) {
+      if (restriction?.tokenOwnership) {
+        return this._getTokenPostRestrictionAccounts(restriction.tokenOwnership);
+      }
+      if (restriction?.nftOwnership) {
+        return this._getNftPostRestrictionAccounts(restriction.nftOwnership);
       }
     }
-    return {
-      pra: [],
-      praIdxs: null,
-    };
+    return {pra: [], praIdxs: null};
   }
 
   _formatPostRestrictionSetting(postRestriction: PostRestriction) {
