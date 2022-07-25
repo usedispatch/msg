@@ -150,7 +150,9 @@ describe('Topic gating', () => {
         body: 'unauthorized reply to topic'
       }, topic);
     } catch (e) {
-      console.log('success 2');
+      const expectedError = 'Error processing Instruction 0: custom program error: 0x1840';
+      assert.ok(e instanceof Error);
+      assert.ok(e.message.includes(expectedError));
     }
   });
 });
