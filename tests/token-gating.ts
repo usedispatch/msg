@@ -27,6 +27,7 @@ import {
   PostRestriction,
   KeyPairWallet
 } from '../usedispatch_client/src';
+import * as anchor from '@project-serum/anchor';
 
 describe('Token gating', () => {
   let conn: Connection;
@@ -50,7 +51,8 @@ describe('Token gating', () => {
   let forumAsUnauthorizedUser: Forum;
 
   before(async () => {
-    conn = new Connection(clusterApiUrl('devnet'));
+    anchor.setProvider(anchor.AnchorProvider.env());
+    conn = anchor.getProvider().connection;
     // conn = new Connection('https://devnet.genesysgo.net/');
     config();
 
@@ -164,10 +166,10 @@ describe('Token gating', () => {
   });
 
   after(() => {
-    Atomics.wait(
-      new Int32Array(new SharedArrayBuffer(4)),
-      0, 0,
-      6 * 1000
-    );
+    // Atomics.wait(
+    //   new Int32Array(new SharedArrayBuffer(4)),
+    //   0, 0,
+    //   6 * 1000
+    // );
   });
 });
