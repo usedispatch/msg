@@ -62,22 +62,18 @@ describe('Token gating', () => {
     ownerKeypair = Keypair.fromSecretKey(
       decode(process.env.OWNER_KEY!)
     );
-    console.log('Owner pubkey', ownerKeypair.publicKey.toBase58());
     userKeypair = Keypair.fromSecretKey(
       decode(process.env.USER_KEY!)
     );
-    console.log('User pubkey', userKeypair.publicKey.toBase58());
     unauthorizedUserKeypair = Keypair.fromSecretKey(
       decode(process.env.UNAUTHORIZED_USER_KEY!)
     );
-    console.log('Unauthorized user pubkey', unauthorizedUserKeypair.publicKey.toBase58());
     
     // Make sure all accounts have some SOL
     const ownerBalance = await conn.getBalance(ownerKeypair.publicKey)
     if (ownerBalance < 2 * LAMPORTS_PER_SOL) {
       await conn.confirmTransaction(await conn.requestAirdrop(ownerKeypair.publicKey, 2 * LAMPORTS_PER_SOL));
     }
-    console.log('owner balance', ownerBalance);
     const userBalance = await conn.getBalance(userKeypair.publicKey);
     if (userBalance < 2 * LAMPORTS_PER_SOL) {
       await conn.confirmTransaction(await conn.requestAirdrop(userKeypair.publicKey, 2 * LAMPORTS_PER_SOL));
@@ -99,14 +95,10 @@ describe('Token gating', () => {
     collectionId = Keypair.generate().publicKey;
 
     // Initialize forum for both Owner and User
-    console.log('Creating owner forum object');
     forumAsOwner = new Forum(new DispatchConnection(conn, owner), collectionId);
-    console.log('Creating user forum object');
     forumAsUser = new Forum(new DispatchConnection(conn, user), collectionId);
-    console.log('Creating unauthorized user forum object');
     forumAsUnauthorizedUser = new Forum(new DispatchConnection(conn, unauthorizedUser), collectionId);
 
-    console.log('Creating forum on-chain');
     const txs = await forumAsOwner.createForum({
       // In the real world, this would be the collection mint ID.
       // But since we need to run this multiple times, it has to
@@ -119,7 +111,6 @@ describe('Token gating', () => {
     });
     await Promise.all(txs.map((t) => conn.confirmTransaction(t)));
 
-    console.log('Getting description');
     const desc = await forumAsOwner.getDescription()
     assert.notEqual(desc, undefined);
     assert.equal(desc.title, 'Test Forum');
@@ -127,7 +118,6 @@ describe('Token gating', () => {
   });
 
   it('Validates permissions for the entire forum', async () => {
-    console.log('Setting permissions');
     await forumAsOwner.setForumPostRestriction(
       {
         nftOwnership: {
@@ -144,9 +134,7 @@ describe('Token gating', () => {
     const authorizedUserCanCreateTopic = await forumAsUser.canCreateTopic();
     const unauthorizedUserCanCreateTopic = await forumAsUnauthorizedUser.canCreateTopic();
 
-    console.log('Verifying that an authorized user can create a topic');
     assert.equal(authorizedUserCanCreateTopic, true);
-    console.log('Verifying that an unauthorized user cannot create a topic');
     assert.equal(unauthorizedUserCanCreateTopic, false);
   });
 
