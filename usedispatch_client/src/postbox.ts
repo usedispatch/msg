@@ -4,6 +4,7 @@ import * as web3 from '@solana/web3.js';
 import { seeds } from './constants';
 import { DispatchConnection } from './connection';
 import { getMintsForOwner, getMetadataForOwner, deriveMetadataAccount } from './utils';
+import { json } from 'stream/consumers';
 
 export type PostboxTarget = {
   key: web3.PublicKey;
@@ -72,6 +73,10 @@ export type Description = {
   desc: string;
 };
 
+export type Images = {
+  [imageName: string]: string | undefined;
+};
+
 export type TokenPostRestriction = {
   mint: web3.PublicKey;
   amount: number;
@@ -88,6 +93,9 @@ export type PostRestriction = {
 
 type SettingsAccountData = {
   description?: Description;
+  images?: {
+    json: string;
+  };
   ownerInfo?: {
     owners: web3.PublicKey[];
   };
@@ -97,8 +105,9 @@ type SettingsAccountData = {
 };
 
 export enum SettingsType {
-  ownerInfo = 'ownerInfo',
   description = 'description',
+  images = 'images',
+  ownerInfo = 'ownerInfo',
   postRestrictions = 'postRestriction',
 }
 
@@ -316,6 +325,15 @@ export class Postbox {
 
   async setDescription(description: Description): Promise<web3.TransactionSignature> {
     return this.innerSetSetting({ description });
+  }
+
+  async getImages(): Promise<Images | undefined> {
+    const images = (await this.innerGetSetting(SettingsType.images))?.images
+    return images ? JSON.parse(images.json) : undefined;
+  }
+
+  async setImages(images: Images): Promise<web3.TransactionSignature> {
+    return this.innerSetSetting({ images: { json: JSON.stringify(images) } });
   }
 
   async getPostboxPostRestriction(): Promise<PostRestriction | null> {
