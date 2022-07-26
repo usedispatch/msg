@@ -53,7 +53,9 @@ describe('Topic gating', () => {
   before(async () => {
     anchor.setProvider(anchor.AnchorProvider.env());
     conn = anchor.getProvider().connection;
-    // conn = new Connection('https://devnet.genesysgo.net/');
+    // Load environment variables from .env
+    // Get info from here for testing
+    // https://www.notion.so/usedispatch/Secret-Keys-for-Testing-63a5ffe7fb3f411dbdeeddc54da06ce1
     config();
 
     // Initialize the two parties
