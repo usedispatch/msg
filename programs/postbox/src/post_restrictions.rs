@@ -76,6 +76,7 @@ impl PostRestrictionRule {
                         require!(mint_meta.collection.is_some(), PostboxErrorCode::NoCollectionOnMetadata);
                         let collection = mint_meta.collection.as_ref().unwrap();
                         let has_collection_nft = token.owner == *poster
+                            && token.amount == 1
                             && collection.verified
                             && collection.key == *collection_id
                             && collection.key == membership_collection.key()

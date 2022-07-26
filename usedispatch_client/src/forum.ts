@@ -196,8 +196,12 @@ export class Forum implements IForum {
     return this._postbox.getPostboxPostRestriction();
   }
 
-  async setForumPostRestriction(restriction: postbox.PostRestriction): Promise<web3.TransactionSignature> {
-    return this._postbox.setPostboxPostRestriction(restriction);
+  async setForumPostRestriction(
+    restriction: postbox.PostRestriction,
+    // TODO confirm whether recent is a reasonable default
+    commitment: web3.Commitment = 'recent'
+  ): Promise<web3.TransactionSignature> {
+    return this._postbox.setPostboxPostRestriction(restriction, commitment);
   }
 
   async addModerator(newMod: web3.PublicKey): Promise<web3.TransactionSignature> {
