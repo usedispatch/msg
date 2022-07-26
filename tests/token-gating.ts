@@ -91,8 +91,10 @@ describe('Token gating', () => {
     unauthorizedUser = new KeyPairWallet(unauthorizedUserKeypair);
 
     // Define a random collectionId here
-    // const collectionId = new PublicKey('GcMPukzjZWfY4y4KVM3HNdqtZTf5WyTWPvL4YXznoS9c');
-    collectionId = new Keypair().publicKey;
+    // Normally this would be the PublicKey of the collection
+    // mint, but we randomize so it doesn't collide with other
+    // forums with the same collectionId for testing purposes
+    collectionId = Keypair.generate().publicKey;
 
     // Initialize forum for both Owner and User
     console.log('Creating owner forum object');
