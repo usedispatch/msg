@@ -126,9 +126,9 @@ export class Postbox {
 
   // Some helpers for basic commands
 
-  async _getTokenPostRestrictionAccounts(TokenPostRestriction: TokenPostRestriction) {
+  async _getTokenPostRestrictionAccounts(tokenPostRestriction: TokenPostRestriction) {
     const ata = await splToken.getAssociatedTokenAddress(
-      TokenPostRestriction.mint,
+      tokenPostRestriction.mint,
       this.dispatch.wallet.publicKey!,
     );
     return {
