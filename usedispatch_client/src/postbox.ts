@@ -127,10 +127,7 @@ export class Postbox {
   // Some helpers for basic commands
 
   async _getTokenPostRestrictionAccounts(tokenPostRestriction: TokenPostRestriction) {
-    const ata = await splToken.getAssociatedTokenAddress(
-      tokenPostRestriction.mint,
-      this.dispatch.wallet.publicKey!,
-    );
+    const ata = await splToken.getAssociatedTokenAddress(tokenPostRestriction.mint, this.dispatch.wallet.publicKey!);
     return {
       pra: [{ pubkey: ata, isWritable: false, isSigner: false }],
       praIdxs: { tokenOwnership: { tokenIdx: 0 } },
@@ -154,11 +151,13 @@ export class Postbox {
         praIdxs: { nftOwnership: { tokenIdx: 0, metaIdx: 1, collectionIdx: 2 } },
       };
     }
-    return {pra: [], praIdxs: null};
+    return { pra: [], praIdxs: null };
   }
 
   async _getPostRestrictionAccounts(replyTo?: InteractablePost) {
-    const restrictions = (replyTo?.settings ?? []).map((s: SettingsAccountData) => s.postRestriction?.postRestriction || null);
+    const restrictions = (replyTo?.settings ?? []).map(
+      (s: SettingsAccountData) => s.postRestriction?.postRestriction || null,
+    );
     // Put the postbox-wide restriction at the end so it's the default
     restrictions.push(await this.getPostboxPostRestriction());
     for (const restriction of restrictions) {
@@ -169,7 +168,7 @@ export class Postbox {
         return this._getNftPostRestrictionAccounts(restriction.nftOwnership);
       }
     }
-    return {pra: [], praIdxs: null};
+    return { pra: [], praIdxs: null };
   }
 
   _formatPostRestrictionSetting(postRestriction: PostRestriction) {
@@ -342,7 +341,7 @@ export class Postbox {
   async setPostboxPostRestriction(
     postRestriction: PostRestriction,
     // TODO see if there is a better default than recent
-    commitment: web3.Commitment = 'recent'
+    commitment: web3.Commitment = 'recent',
   ): Promise<web3.TransactionSignature> {
     return this.innerSetSetting(this._formatPostRestrictionSetting(postRestriction), commitment);
   }
@@ -360,7 +359,7 @@ export class Postbox {
   async innerSetSetting(
     settingsData: any,
     // TODO see if there is a better default than recent
-    commitment: web3.Commitment = 'recent'
+    commitment: web3.Commitment = 'recent',
   ): Promise<web3.TransactionSignature> {
     const ix = await this.dispatch.postboxProgram.methods
       .addOrUpdateSetting(settingsData)

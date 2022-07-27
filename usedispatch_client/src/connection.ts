@@ -44,7 +44,7 @@ export class DispatchConnection {
   public async sendTransaction(
     tx: web3.Transaction,
     // TODO see if there is a better default than recent
-    commitment: web3.Commitment = 'recent'
+    commitment: web3.Commitment = 'recent',
   ) {
     let sig: string;
     if ('sendTransaction' in this.wallet) {
