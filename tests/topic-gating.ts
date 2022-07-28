@@ -169,5 +169,24 @@ describe('Topic gating', () => {
     assert.equal(userCanVote, true);
     assert.equal(unauthorizedUserCanVote, false);
     assert.equal(zeroBalanceUserCanVote, false);
+
+    // Should upvote without issue
+    await forumAsUser.voteUpForumPost(topic);
+
+    try {
+      await forumAsUnauthorizedUser.voteUpForumPost(topic);
+    } catch (e) {
+      const expectedError = 'Error processing Instruction 0: custom program error: 0x1840';
+      assert.ok(e instanceof Error);
+      assert.ok(e.message.includes(expectedError));
+    }
+
+    try {
+      await forumAsZeroBalanceUser.voteUpForumPost(topic);
+    } catch (e) {
+      const expectedError = 'Error processing Instruction 0: custom program error: 0x1840';
+      assert.ok(e instanceof Error);
+      assert.ok(e.message.includes(expectedError));
+    }
   });
 });
