@@ -96,7 +96,7 @@ describe('Topic gating', () => {
     forumAsOwner = new Forum(new DispatchConnection(conn, owner), collectionId);
     forumAsUser = new Forum(new DispatchConnection(conn, user), collectionId);
     forumAsUnauthorizedUser = new Forum(new DispatchConnection(conn, unauthorizedUser), collectionId);
-    forumAsZeroBalanceUser = new Forum(new DispatchConnection(conn, user), collectionId);
+    forumAsZeroBalanceUser = new Forum(new DispatchConnection(conn, zeroBalanceUser), collectionId);
 
     const txs = await forumAsOwner.createForum({
       // In the real world, this would be the collection mint ID.
