@@ -37,11 +37,15 @@ describe('Token gating', () => {
   let userKeypair: Keypair;
   // Unauthorized user
   let unauthorizedUserKeypair: Keypair;
+  // A user who has an associated account for the token but does
+  // not own it
+  let zeroBalanceUserKeypair: Keypair;
 
   // Wallets
   let owner: KeyPairWallet;
   let user: KeyPairWallet;
   let unauthorizedUser: KeyPairWallet;
+  let zeroBalanceUser: KeyPairWallet;
 
   // Identifier for created forum
   let collectionId: PublicKey;
@@ -49,6 +53,7 @@ describe('Token gating', () => {
   let forumAsOwner: Forum;
   let forumAsUser: Forum;
   let forumAsUnauthorizedUser: Forum;
+  let forumAsZeroBalanceUser: Forum;
 
   before(async () => {
     anchor.setProvider(anchor.AnchorProvider.env());
@@ -62,31 +67,24 @@ describe('Token gating', () => {
     ownerKeypair = Keypair.fromSecretKey(
       decode(process.env.OWNER_KEY!)
     );
+    console.log(ownerKeypair.publicKey.toBase58());
     userKeypair = Keypair.fromSecretKey(
       decode(process.env.USER_KEY!)
     );
+    console.log(userKeypair.publicKey.toBase58());
     unauthorizedUserKeypair = Keypair.fromSecretKey(
       decode(process.env.UNAUTHORIZED_USER_KEY!)
     );
-
-    // Make sure all accounts have some SOL
-    const ownerBalance = await conn.getBalance(ownerKeypair.publicKey)
-    if (ownerBalance < 2 * LAMPORTS_PER_SOL) {
-      await conn.confirmTransaction(await conn.requestAirdrop(ownerKeypair.publicKey, 2 * LAMPORTS_PER_SOL));
-    }
-    const userBalance = await conn.getBalance(userKeypair.publicKey);
-    if (userBalance < 2 * LAMPORTS_PER_SOL) {
-      await conn.confirmTransaction(await conn.requestAirdrop(userKeypair.publicKey, 2 * LAMPORTS_PER_SOL));
-    }
-    const unauthorizedUserBalance = await conn.getBalance(unauthorizedUserKeypair.publicKey);
-    if (unauthorizedUserBalance < 2 * LAMPORTS_PER_SOL) {
-      await conn.confirmTransaction(await conn.requestAirdrop(unauthorizedUserKeypair.publicKey, 2 * LAMPORTS_PER_SOL));
-    }
+    console.log(unauthorizedUserKeypair.publicKey.toBase58());
+    zeroBalanceUserKeypair = Keypair.fromSecretKey(
+      decode(process.env.USER_WITH_ASSOCIATED_ACCOUNT_WITH_ZERO_BALANCE_KEY!)
+    );
 
     // Initiate wallets for the keypairs
     owner = new KeyPairWallet(ownerKeypair);
     user = new KeyPairWallet(userKeypair);
     unauthorizedUser = new KeyPairWallet(unauthorizedUserKeypair);
+    zeroBalanceUser = new KeyPairWallet(zeroBalanceUserKeypair);
 
     // Define a random collectionId here
     // Normally this would be the PublicKey of the collection
@@ -98,6 +96,7 @@ describe('Token gating', () => {
     forumAsOwner = new Forum(new DispatchConnection(conn, owner), collectionId);
     forumAsUser = new Forum(new DispatchConnection(conn, user), collectionId);
     forumAsUnauthorizedUser = new Forum(new DispatchConnection(conn, unauthorizedUser), collectionId);
+    forumAsZeroBalanceUser = new Forum(new DispatchConnection(conn, zeroBalanceUser), collectionId);
 
     const txs = await forumAsOwner.createForum({
       // In the real world, this would be the collection mint ID.
@@ -133,9 +132,11 @@ describe('Token gating', () => {
 
     const authorizedUserCanCreateTopic = await forumAsUser.canCreateTopic();
     const unauthorizedUserCanCreateTopic = await forumAsUnauthorizedUser.canCreateTopic();
+    const zeroBalanceUserCanCreateTopic = await forumAsZeroBalanceUser.canCreateTopic();
 
     assert.equal(authorizedUserCanCreateTopic, true);
     assert.equal(unauthorizedUserCanCreateTopic, false);
+    assert.equal(zeroBalanceUserCanCreateTopic, false);
   });
 
   it('Attempts to create a topic', async () => {
