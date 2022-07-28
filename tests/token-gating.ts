@@ -155,6 +155,18 @@ describe('Token gating', () => {
       assert.ok(e.message.includes(expectedError));
     }
 
+    try {
+      const tx = await forumAsZeroBalanceUser.createTopic({
+        body: 'body',
+        subj: 'subj'
+      });
+      await conn.confirmTransaction(tx);
+    } catch (e) {
+      const expectedError = 'Error processing Instruction 0: custom program error: 0x1840';
+      assert.ok(e instanceof Error);
+      assert.ok(e.message.includes(expectedError));
+    }
+
   });
 
   it('Topics without explicit permissions inherit permissions from forum', async () => {
