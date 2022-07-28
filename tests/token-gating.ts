@@ -68,7 +68,7 @@ describe('Token gating', () => {
     unauthorizedUserKeypair = Keypair.fromSecretKey(
       decode(process.env.UNAUTHORIZED_USER_KEY!)
     );
-    
+
     // Make sure all accounts have some SOL
     const ownerBalance = await conn.getBalance(ownerKeypair.publicKey)
     if (ownerBalance < 2 * LAMPORTS_PER_SOL) {
@@ -157,15 +157,30 @@ describe('Token gating', () => {
       assert.ok(e.message.includes(expectedError));
     }
 
-    forumAsUnauthorizedUser.canVote
-
   });
 
-  after(() => {
-    // Atomics.wait(
-    //   new Int32Array(new SharedArrayBuffer(4)),
-    //   0, 0,
-    //   6 * 1000
-    // );
+  it('Topics without explicit permissions inherit permissions from forum', async () => {
+    // forum permissions should be set before this happens
+    await forumAsUser.createTopic({
+      subj: 'Topic without permissions',
+      body: 'body'
+    });
+
+    const topics = await forumAsUser.getTopicsForForum();
+    const topic = topics.find(topic => topic.data.subj === 'Topic without permissions');
+
+    assert.notEqual(topic, null);
+
+    assert.equal(await forumAsUser.canPost(topic), true);
+    assert.equal(await forumAsUnauthorizedUser.canPost(topic), false);
+
+    await forumAsUser.replyToForumPost(topic, { subj: 'reply', body: 'unauthorized reply' })
+    try {
+      await forumAsUnauthorizedUser.replyToForumPost(topic, { subj: 'unauthorized reply', body: 'unauthorized reply' });
+    } catch (e) {
+      const expectedError = 'Error processing Instruction 0: custom program error: 0x1840';
+      assert.ok(e instanceof Error);
+      assert.ok(e.message.includes(expectedError));
+    }
   });
 });
