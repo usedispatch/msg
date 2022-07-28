@@ -144,6 +144,7 @@ describe('Topic gating', () => {
         subj: 'reply',
         body: 'unauthorized reply to topic'
       }, topic);
+      assert.fail();
     } catch (e) {
       const expectedError = 'Error processing Instruction 0: custom program error: 0x1840';
       assert.ok(e instanceof Error);
@@ -155,6 +156,7 @@ describe('Topic gating', () => {
         subj: 'reply',
         body: 'unauthorized reply to topic'
       }, topic);
+      assert.fail();
     } catch (e) {
       const expectedError = 'Error processing Instruction 0: custom program error: 0x1840';
       assert.ok(e instanceof Error);
@@ -175,6 +177,7 @@ describe('Topic gating', () => {
 
     try {
       await forumAsUnauthorizedUser.voteUpForumPost(topic);
+      assert.fail();
     } catch (e) {
       const expectedError = 'Error processing Instruction 0: custom program error: 0x1840';
       assert.ok(e instanceof Error);
@@ -183,6 +186,7 @@ describe('Topic gating', () => {
 
     try {
       await forumAsZeroBalanceUser.voteUpForumPost(topic);
+      assert.fail();
     } catch (e) {
       const expectedError = 'Error processing Instruction 0: custom program error: 0x1840';
       assert.ok(e instanceof Error);

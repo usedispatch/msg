@@ -149,6 +149,7 @@ describe('Token gating', () => {
         subj: 'subj'
       });
       await conn.confirmTransaction(tx);
+      assert.fail();
     } catch (e) {
       const expectedError = 'Error processing Instruction 0: custom program error: 0x1840';
       assert.ok(e instanceof Error);
@@ -161,6 +162,7 @@ describe('Token gating', () => {
         subj: 'subj'
       });
       await conn.confirmTransaction(tx);
+      assert.fail();
     } catch (e) {
       const expectedError = 'Error processing Instruction 0: custom program error: 0x1840';
       assert.ok(e instanceof Error);
@@ -187,6 +189,7 @@ describe('Token gating', () => {
     await forumAsUser.replyToForumPost(topic, { subj: 'reply', body: 'unauthorized reply' })
     try {
       await forumAsUnauthorizedUser.replyToForumPost(topic, { subj: 'unauthorized reply', body: 'unauthorized reply' });
+      assert.fail();
     } catch (e) {
       const expectedError = 'Error processing Instruction 0: custom program error: 0x1840';
       assert.ok(e instanceof Error);
