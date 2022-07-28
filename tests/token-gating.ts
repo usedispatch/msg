@@ -67,15 +67,12 @@ describe('Token gating', () => {
     ownerKeypair = Keypair.fromSecretKey(
       decode(process.env.OWNER_KEY!)
     );
-    console.log(ownerKeypair.publicKey.toBase58());
     userKeypair = Keypair.fromSecretKey(
       decode(process.env.USER_KEY!)
     );
-    console.log(userKeypair.publicKey.toBase58());
     unauthorizedUserKeypair = Keypair.fromSecretKey(
       decode(process.env.UNAUTHORIZED_USER_KEY!)
     );
-    console.log(unauthorizedUserKeypair.publicKey.toBase58());
     zeroBalanceUserKeypair = Keypair.fromSecretKey(
       decode(process.env.USER_WITH_ASSOCIATED_ACCOUNT_WITH_ZERO_BALANCE_KEY!)
     );
