@@ -27,16 +27,17 @@ export async function getMintsForOwner(connection: Connection, publicKey: Public
 
   const parsedObjects = value.map(({ account }) => account.data.parsed);
   const mints = parsedObjects
-    .filter((obj) =>
-      'info' in obj &&
-      // Confirm the object has a mint, which is a string
-      'mint' in obj.info &&
-      typeof obj.info.mint === 'string' &&
-      // Confirm the object has a token amount, which is greater than zero
-      'tokenAmount' in obj.info &&
-      'amount' in obj.info.tokenAmount &&
-      typeof obj.info.tokenAmount.amount === 'string' &&
-      Number(obj.info.tokenAmount.amount) > 0
+    .filter(
+      (obj) =>
+        'info' in obj &&
+        // Confirm the object has a mint, which is a string
+        'mint' in obj.info &&
+        typeof obj.info.mint === 'string' &&
+        // Confirm the object has a token amount, which is greater than zero
+        'tokenAmount' in obj.info &&
+        'amount' in obj.info.tokenAmount &&
+        typeof obj.info.tokenAmount.amount === 'string' &&
+        Number(obj.info.tokenAmount.amount) > 0,
     )
     .map((obj) => new PublicKey(obj.info.mint));
 
