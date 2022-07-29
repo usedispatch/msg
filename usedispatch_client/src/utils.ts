@@ -16,12 +16,28 @@ export async function deriveMetadataAccount(mint: PublicKey) {
   return key;
 }
 
+/**
+ * This function will return a list of a mints for which the user
+ * has a balance of one or more. Note that this will include both
+ * fungible and non-fungible tokens, as long as their balance is
+ * greater than zero
+ */
 export async function getMintsForOwner(connection: Connection, publicKey: PublicKey): Promise<PublicKey[]> {
   const { value } = await connection.getParsedTokenAccountsByOwner(publicKey, { programId: TOKEN_PROGRAM_ID });
 
   const parsedObjects = value.map(({ account }) => account.data.parsed);
   const mints = parsedObjects
-    .filter((obj) => 'info' in obj && 'mint' in obj.info && typeof obj.info.mint === 'string')
+    .filter((obj) =>
+      'info' in obj &&
+      // Confirm the object has a mint, which is a string
+      'mint' in obj.info &&
+      typeof obj.info.mint === 'string' &&
+      // Confirm the object has a token amount, which is greater than zero
+      'tokenAmount' in obj.info &&
+      'amount' in obj.info.tokenAmount &&
+      typeof obj.info.tokenAmount.amount === 'string' &&
+      Number(obj.info.tokenAmount.amount) > 0
+    )
     .map((obj) => new PublicKey(obj.info.mint));
 
   return mints;
