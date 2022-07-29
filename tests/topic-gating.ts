@@ -25,7 +25,8 @@ import {
   Forum,
   clusterAddresses,
   PostRestriction,
-  KeyPairWallet
+  KeyPairWallet,
+  ForumPost
 } from '../usedispatch_client/src';
 import * as anchor from '@project-serum/anchor';
 
@@ -37,11 +38,14 @@ describe('Topic gating', () => {
   let userKeypair: Keypair;
   // Unauthorized user
   let unauthorizedUserKeypair: Keypair;
+  // User with zero token balance
+  let zeroBalanceUserKeypair: Keypair;
 
   // Wallets
   let owner: KeyPairWallet;
   let user: KeyPairWallet;
   let unauthorizedUser: KeyPairWallet;
+  let zeroBalanceUser: KeyPairWallet;
 
   // Identifier for created forum
   let collectionId: PublicKey;
@@ -49,6 +53,10 @@ describe('Topic gating', () => {
   let forumAsOwner: Forum;
   let forumAsUser: Forum;
   let forumAsUnauthorizedUser: Forum;
+  let forumAsZeroBalanceUser: Forum;
+
+  // A topic for testing
+  let topic: ForumPost;
 
   before(async () => {
     anchor.setProvider(anchor.AnchorProvider.env());
@@ -68,25 +76,15 @@ describe('Topic gating', () => {
     unauthorizedUserKeypair = Keypair.fromSecretKey(
       decode(process.env.UNAUTHORIZED_USER_KEY!)
     );
-    
-    // Make sure all accounts have some SOL
-    const ownerBalance = await conn.getBalance(ownerKeypair.publicKey)
-    if (ownerBalance < 2 * LAMPORTS_PER_SOL) {
-      await conn.confirmTransaction(await conn.requestAirdrop(ownerKeypair.publicKey, 2 * LAMPORTS_PER_SOL));
-    }
-    const userBalance = await conn.getBalance(userKeypair.publicKey);
-    if (userBalance < 2 * LAMPORTS_PER_SOL) {
-      await conn.confirmTransaction(await conn.requestAirdrop(userKeypair.publicKey, 2 * LAMPORTS_PER_SOL));
-    }
-    const unauthorizedUserBalance = await conn.getBalance(unauthorizedUserKeypair.publicKey);
-    if (unauthorizedUserBalance < 2 * LAMPORTS_PER_SOL) {
-      await conn.confirmTransaction(await conn.requestAirdrop(unauthorizedUserKeypair.publicKey, 2 * LAMPORTS_PER_SOL));
-    }
+    zeroBalanceUserKeypair = Keypair.fromSecretKey(
+      decode(process.env.USER_WITH_ASSOCIATED_ACCOUNT_WITH_ZERO_BALANCE_KEY!)
+    );
 
     // Initiate wallets for the keypairs
     owner = new KeyPairWallet(ownerKeypair);
     user = new KeyPairWallet(userKeypair);
     unauthorizedUser = new KeyPairWallet(unauthorizedUserKeypair);
+    zeroBalanceUser = new KeyPairWallet(zeroBalanceUserKeypair);
 
     // Define a random collectionId here
     // Normally this would be the PublicKey of the collection
@@ -98,6 +96,7 @@ describe('Topic gating', () => {
     forumAsOwner = new Forum(new DispatchConnection(conn, owner), collectionId);
     forumAsUser = new Forum(new DispatchConnection(conn, user), collectionId);
     forumAsUnauthorizedUser = new Forum(new DispatchConnection(conn, unauthorizedUser), collectionId);
+    forumAsZeroBalanceUser = new Forum(new DispatchConnection(conn, zeroBalanceUser), collectionId);
 
     const txs = await forumAsOwner.createForum({
       // In the real world, this would be the collection mint ID.
@@ -115,9 +114,7 @@ describe('Topic gating', () => {
     assert.notEqual(desc, undefined);
     assert.equal(desc.title, 'Test Forum');
     assert.equal(desc.desc, 'A forum for the test suite');
-  });
 
-  it('Enforces topic gating', async () => {
     await forumAsUser.createTopic({
       subj: 'restricted subject',
       body: 'restricted body'
@@ -129,7 +126,10 @@ describe('Topic gating', () => {
 
     const topics = await forumAsUser.getTopicsForForum();
     assert.equal(topics.length, 1);
-    const topic = topics[0];
+    topic = topics[0];
+  });
+
+  it('Enforces topic gating', async () => {
 
     assert.equal(await forumAsUser.canPost(topic), true);
     assert.equal(await forumAsUnauthorizedUser.canPost(topic), false);
@@ -144,6 +144,49 @@ describe('Topic gating', () => {
         subj: 'reply',
         body: 'unauthorized reply to topic'
       }, topic);
+      assert.fail();
+    } catch (e) {
+      const expectedError = 'Error processing Instruction 0: custom program error: 0x1840';
+      assert.ok(e instanceof Error);
+      assert.ok(e.message.includes(expectedError));
+    }
+
+    try {
+      await forumAsZeroBalanceUser.createForumPost({
+        subj: 'reply',
+        body: 'unauthorized reply to topic'
+      }, topic);
+      assert.fail();
+    } catch (e) {
+      const expectedError = 'Error processing Instruction 0: custom program error: 0x1840';
+      assert.ok(e instanceof Error);
+      assert.ok(e.message.includes(expectedError));
+    }
+  });
+
+  it('Gates voting', async () => {
+    const userCanVote = await forumAsUser.canVote(topic);
+    const unauthorizedUserCanVote = await forumAsUnauthorizedUser.canVote(topic);
+    const zeroBalanceUserCanVote = await forumAsZeroBalanceUser.canVote(topic);
+    assert.equal(userCanVote, true);
+    assert.equal(unauthorizedUserCanVote, false);
+    assert.equal(zeroBalanceUserCanVote, false);
+
+    // Should upvote without issue
+    await forumAsUser.voteUpForumPost(topic);
+
+    try {
+      await forumAsUnauthorizedUser.voteUpForumPost(topic);
+      assert.fail();
+    } catch (e) {
+      const expectedError = 'Error processing Instruction 0: custom program error: 0x1840';
+      assert.ok(e instanceof Error);
+      assert.ok(e.message.includes(expectedError));
+    }
+
+    try {
+      await forumAsZeroBalanceUser.voteUpForumPost(topic);
+      assert.fail();
     } catch (e) {
       const expectedError = 'Error processing Instruction 0: custom program error: 0x1840';
       assert.ok(e instanceof Error);

@@ -50,6 +50,22 @@ address = "E5rGQH5XXds6ZJLWnx9mjtoc2JKDF8rchK5UeDCgkbuV"
 [[test.validator.clone]]
 address = "A5E92mr5PSCHyeSRB1JwPE4tYCjMCGkY3aEHr3TYZ7xg"
 
+# zero-balance user key
+[[test.validator.clone]]
+address = "GFUfnHVCpDLgoVfuvUEYnqwogn5AfPkrW57EzK2TKVFC"
+
+# associated token account for zero-balance user
+[[test.validator.clone]]
+address = "ERrPQisQyjdNTMXej1hfSrV7c3eWMARykgS5KRR5MmCu"
+
+# SOLID color #6
+[[test.validator.clone]]
+address = "3m1CQGFk31VtcBU6gEQqcqvSeH265bGX52URHAy7aMwZ"
+
+# SOLID color #6 metadata
+[[test.validator.clone]]
+address = "H2wPow8g9KCgXPeUcM4djJECK3ji4NJeiQQ2HgWHA3Sf"
+
 # SOLID color #1
 [[test.validator.clone]]
 address = "AGGEiRQSRdqSRvWuxotuNinDoayQH8cVRhNcSsFJQDVp"
