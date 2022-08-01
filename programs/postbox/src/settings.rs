@@ -13,6 +13,7 @@ pub enum SettingsType {
     OwnerInfo,
     PostRestriction,
     Null,
+    Images,
 }
 
 #[derive(
@@ -27,6 +28,7 @@ pub enum SettingsData {
     OwnerInfo { owners: Vec<Pubkey> },
     PostRestriction { post_restriction: PostRestrictionRule },
     Null,
+    Images { json: String },
 }
 
 impl SettingsData {
@@ -43,6 +45,7 @@ impl SettingsData {
             SettingsData::OwnerInfo { owners: _ } => SettingsType::OwnerInfo,
             SettingsData::PostRestriction { post_restriction: _ } => SettingsType::PostRestriction,
             SettingsData::Null => SettingsType::Null,
+            SettingsData::Images { json: _ } => SettingsType::Images,
         };
     }
 }
