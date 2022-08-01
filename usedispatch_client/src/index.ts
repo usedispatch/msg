@@ -5,3 +5,4 @@ export { MailboxAccount, MessageAccount, MailboxOpts, Mailbox } from './mailbox'
 export { lookupDotSol } from './naming';
 export { Postbox, SettingsType, PostRestriction } from './postbox';
 export { KeyPairWallet, WalletInterface } from './wallets';
+export * from './utils';
