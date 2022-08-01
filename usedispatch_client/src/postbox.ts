@@ -328,24 +328,24 @@ export class Postbox {
 
   // Settings functions
 
-  async getOwners(): Promise<web3.PublicKey[]> {
-    return (await this.innerGetSetting(SettingsType.ownerInfo))?.ownerInfo?.owners ?? [];
+  async getOwners(refresh = false): Promise<web3.PublicKey[]> {
+    return (await this.innerGetSetting(SettingsType.ownerInfo, refresh))?.ownerInfo?.owners ?? [];
   }
 
   async setOwners(owners: web3.PublicKey[]): Promise<web3.TransactionSignature> {
     return this.innerSetSetting({ ownerInfo: { owners } });
   }
 
-  async getDescription(): Promise<Description | undefined> {
-    return (await this.innerGetSetting(SettingsType.description))?.description;
+  async getDescription(refresh = false): Promise<Description | undefined> {
+    return (await this.innerGetSetting(SettingsType.description, refresh))?.description;
   }
 
   async setDescription(description: Description): Promise<web3.TransactionSignature> {
     return this.innerSetSetting({ description });
   }
 
-  async getPostboxPostRestriction(): Promise<PostRestriction | null> {
-    const inner = await this.innerGetSetting(SettingsType.postRestrictions);
+  async getPostboxPostRestriction(refresh = false): Promise<PostRestriction | null> {
+    const inner = await this.innerGetSetting(SettingsType.postRestrictions, refresh);
     const restriction = inner?.postRestriction?.postRestriction ?? null;
     if (restriction?.tokenOwnership) {
       return {
