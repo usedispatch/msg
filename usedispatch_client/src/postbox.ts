@@ -114,7 +114,7 @@ export class Postbox {
   // Moderators
   private moderators: [] | undefined;
   // Posts
-  private posts: [] | undefined;
+  private posts: Post[] | undefined;
 
   constructor(public dispatch: DispatchConnection, public target: PostboxTarget) {}
 
@@ -138,7 +138,12 @@ export class Postbox {
     // chain postbox info
     // TODO await here instead?
     this.dispatch.conn.confirmTransaction(signature)
-      .then(async () => { this.getPostboxInfo(true); })
+      .then(async () => {
+        // Get postbox info...
+        this.getPostboxInfo(true);
+        // ..and fetch posts
+        this.fetchAllPosts(true);
+      })
 
     return signature;
   }
@@ -299,7 +304,10 @@ export class Postbox {
 
   async fetchAllPosts(refresh = false): Promise<Post[]> {
     const info = await this.getPostboxInfo(refresh);
-    return this.innerFetchPosts(this, info.maxChildId);
+    if (refresh || this.posts === undefined) {
+      this.posts = await this.innerFetchPosts(this, info.maxChildId);
+    }
+    return this.posts;
   }
 
   async fetchPosts(): Promise<Post[]> {
