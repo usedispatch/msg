@@ -26,6 +26,9 @@ export interface IForum {
   // topics are the same as a post but with topic=true set
   getTopicsForForum(forum: Forum): Promise<ForumPost[]>;
 
+  // Get all posts for a forum
+  getPostsForForum(forum: Forum): Promise<ForumPost[]>;
+
   // For a given topic, the messages
   getTopicMessages(topic: ForumPost): Promise<ForumPost[]>;
 
@@ -118,6 +121,14 @@ export class Forum implements IForum {
     const topLevelPosts = await this._postbox.fetchPosts();
     const topics = topLevelPosts.filter((p) => p.data.meta?.topic === true);
     return topics.map(this.convertPostboxToForum).sort((a, b) => {
+      // Newest topic first
+      return -(a.data.ts.getTime() - b.data.ts.getTime());
+    });
+  }
+
+  async getPostsForForum(): Promise<ForumPost[]> {
+    const posts = await this._postbox.fetchPosts();
+    return posts.map(this.convertPostboxToForum).sort((a, b) => {
       // Newest topic first
       return -(a.data.ts.getTime() - b.data.ts.getTime());
     });
