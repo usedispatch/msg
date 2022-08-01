@@ -105,6 +105,17 @@ export enum SettingsType {
 export class Postbox {
   private _address: web3.PublicKey | undefined;
 
+  // Some fields of the postbox are stored in this data structure.
+  // When asked to report these values, the postbox will return
+  // the values stored here, but can also be asked to refresh
+  // from on-chain
+  // Metadata and settings
+  private postboxInfo: ChainPostboxInfo | undefined;
+  // Moderators
+  private moderators: [] | undefined;
+  // Posts
+  private posts: [] | undefined;
+
   constructor(public dispatch: DispatchConnection, public target: PostboxTarget) {}
 
   // Init functions
@@ -121,7 +132,15 @@ export class Postbox {
         treasury: this.dispatch.addresses.treasuryAddress,
       })
       .transaction();
-    return this.dispatch.sendTransaction(ix);
+    const signature = await this.dispatch.sendTransaction(ix);
+
+    // Set a callback-- when transaction is confirmed, update
+    // chain postbox info
+    // TODO await here instead?
+    this.dispatch.conn.confirmTransaction(signature)
+      .then(async () => { this.getPostboxInfo(true); })
+
+    return signature;
   }
 
   // Some helpers for basic commands
@@ -195,7 +214,7 @@ export class Postbox {
   ): Promise<web3.TransactionSignature> {
     // TODO(mfasman): make this be a better allocation algorithm
     const growBy = 1; // TODO(mfasman): pull from the IDL
-    const maxId = (await this.getChainPostboxInfo()).maxChildId;
+    const maxId = (await this.getPostboxInfo(true)).maxChildId;
     const addresses = await this.getAddresses(maxId, Math.max(0, maxId - growBy));
     const infos = await this.dispatch.conn.getMultipleAccountsInfo(addresses);
     const data = await this.postDataToBuffer(input);
@@ -263,6 +282,7 @@ export class Postbox {
   }
 
   // Fetching functions
+  // TODO(Andrew): store this in cache
   async innerFetchPosts(parent: PostNode, maxChildId: number): Promise<Post[]> {
     if (maxChildId === 0) return [];
     const addresses = await this.getAddresses(maxChildId);
@@ -277,8 +297,8 @@ export class Postbox {
     return convertedPosts.filter((p): p is Post => p !== null);
   }
 
-  async fetchAllPosts(): Promise<Post[]> {
-    const info = await this.getChainPostboxInfo();
+  async fetchAllPosts(refresh = false): Promise<Post[]> {
+    const info = await this.getPostboxInfo(refresh);
     return this.innerFetchPosts(this, info.maxChildId);
   }
 
@@ -292,7 +312,7 @@ export class Postbox {
 
   // Admin functions
   async addModerator(newModerator: web3.PublicKey): Promise<web3.TransactionSignature> {
-    const info = await this.getChainPostboxInfo();
+    const info = await this.getPostboxInfo(true);
     const ata = await splToken.getAssociatedTokenAddress(info.moderatorMint, newModerator);
     const ix = await this.dispatch.postboxProgram.methods
       .designateModerator(this.target.str ?? '')
@@ -346,8 +366,8 @@ export class Postbox {
     return this.innerSetSetting(this._formatPostRestrictionSetting(postRestriction), commitment);
   }
 
-  async innerGetSetting(settingsType: SettingsType): Promise<SettingsAccountData | undefined> {
-    const info = await this.getChainPostboxInfo();
+  async innerGetSetting(settingsType: SettingsType, refresh = false): Promise<SettingsAccountData | undefined> {
+    const info = await this.getPostboxInfo(refresh);
     for (const setting of info.settings) {
       if (setting[settingsType]) {
         return setting;
@@ -461,12 +481,21 @@ export class Postbox {
     return addresses;
   }
 
-  async getChainPostboxInfo(): Promise<ChainPostboxInfo> {
-    return this.dispatch.postboxProgram.account.postbox.fetch(await this.getAddress());
+  async getPostboxInfo(refresh = false): Promise<ChainPostboxInfo> {
+    // If we have no postbox info stored locally, or we are asked
+    // to refresh...
+    if (
+      this.postboxInfo === undefined ||
+      refresh
+    ) {
+      this.postboxInfo = await this.dispatch.postboxProgram.account.postbox.fetch(await this.getAddress());
+    }
+    // Return our local copy
+    return this.postboxInfo;
   }
 
-  async getModeratorMint(): Promise<web3.PublicKey> {
-    return (await this.getChainPostboxInfo()).moderatorMint;
+  async getModeratorMint(refresh = false): Promise<web3.PublicKey> {
+    return (await this.getPostboxInfo(refresh)).moderatorMint;
   }
 
   async getModerators(): Promise<web3.PublicKey[]> {
