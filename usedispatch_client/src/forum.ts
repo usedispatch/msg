@@ -192,6 +192,14 @@ export class Forum implements IForum {
     return this._postbox.setDescription(desc);
   }
 
+  async getImageUrls(): Promise<postbox.Images | undefined> {
+    return this._postbox.getImages();
+  }
+
+  async setImageUrls(images: postbox.Images): Promise<web3.TransactionSignature> {
+    return this._postbox.setImages(images);
+  }
+
   async getForumPostRestriction(): Promise<postbox.PostRestriction | null> {
     return this._postbox.getPostboxPostRestriction();
   }
