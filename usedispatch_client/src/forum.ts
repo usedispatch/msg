@@ -127,7 +127,7 @@ export class Forum implements IForum {
   }
 
   async getPostsForForum(): Promise<ForumPost[]> {
-    const posts = await this._postbox.fetchPosts();
+    const posts = await this._postbox.fetchAllPosts();
     return posts.map(this.convertPostboxToForum).sort((a, b) => {
       // Newest topic first
       return -(a.data.ts.getTime() - b.data.ts.getTime());
