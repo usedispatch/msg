@@ -334,7 +334,7 @@ export class Postbox {
   }
 
   async getImages(): Promise<Images | undefined> {
-    const images = (await this.innerGetSetting(SettingsType.images))?.images
+    const images = (await this.innerGetSetting(SettingsType.images))?.images;
     return images ? JSON.parse(images.json) : undefined;
   }
 
