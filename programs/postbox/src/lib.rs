@@ -24,7 +24,7 @@ const MODERATOR_SEED: & str = "moderator";
 const POSTBOX_GROW_CHILDREN_BY: u32 = 1;
 
 #[constant]
-const FEE_NEW_POSTBOX: u64 = 50_000;
+const FEE_NEW_POSTBOX: u64 = 100_000;
 #[constant]
 const FEE_NEW_PERSONAL_BOX: u64 = 50_000;
 #[constant]
