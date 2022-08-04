@@ -58,20 +58,29 @@ describe('Token gating', () => {
   before(async () => {
     anchor.setProvider(anchor.AnchorProvider.env());
     conn = anchor.getProvider().connection;
-    // Load environment variables from .env
-    // Get info from here for testing
-    // https://www.notion.so/usedispatch/Secret-Keys-for-Testing-63a5ffe7fb3f411dbdeeddc54da06ce1
+    // Load environment variables from .env, if it exists
     config();
+
+    if (
+      !process.env.OWNER_KEY ||
+      !process.env.USER_KEY ||
+      !process.env.UNAUTHORIZED_USER_KEY ||
+      !process.env.USER_WITH_ASSOCIATED_ACCOUNT_WITH_ZERO_BALANCE_KEY
+    ) {
+      assert.fail(
+        'Secret keys not found. If running locally, fetch secret keys from https://www.notion.so/usedispatch/Secret-Keys-for-Testing-c468d260f9514c16aa0e227b6b693421 and write them to a file called .env in the project root'
+      );
+    }
 
     // Initialize the two parties
     ownerKeypair = Keypair.fromSecretKey(
-      decode(process.env.OWNER_KEY!)
+      decode(process.env.OWNER_KEY)
     );
     userKeypair = Keypair.fromSecretKey(
-      decode(process.env.USER_KEY!)
+      decode(process.env.USER_KEY)
     );
     unauthorizedUserKeypair = Keypair.fromSecretKey(
-      decode(process.env.UNAUTHORIZED_USER_KEY!)
+      decode(process.env.UNAUTHORIZED_USER_KEY)
     );
     zeroBalanceUserKeypair = Keypair.fromSecretKey(
       decode(process.env.USER_WITH_ASSOCIATED_ACCOUNT_WITH_ZERO_BALANCE_KEY!)
