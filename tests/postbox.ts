@@ -29,13 +29,13 @@ describe('postbox', () => {
     const tx0 = await postbox.initialize();
     await conn.confirmTransaction(tx0);
 
-    assert.equal(await conn.getBalance(TREASURY), treasuryBalance + 1_000_000_000);
+    assert.equal(await conn.getBalance(TREASURY), treasuryBalance + 100_000);
 
     const testPost = {subj: "Test", body: "This is a test post"};
     const tx1 = await postbox.createPost(testPost);
     await conn.confirmTransaction(tx1);
 
-    assert.equal(await conn.getBalance(TREASURY), treasuryBalance + 1_000_000_000 + 50_000);
+    assert.equal(await conn.getBalance(TREASURY), treasuryBalance + 100_000 + 50_000);
 
     const posts = await postbox.fetchPosts();
     assert.equal(posts.length, 1);
