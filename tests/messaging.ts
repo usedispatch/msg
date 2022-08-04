@@ -4,7 +4,8 @@ import { strict as assert } from 'assert';
 import { Program } from '@project-serum/anchor';
 import { Messaging } from '../target/types/messaging';
 
-import { Mailbox, clusterAddresses, seeds, lookupDotSol } from '../usedispatch_client/src';
+import { Mailbox, clusterAddresses, seeds } from '../usedispatch_client/src';
+import { lookupDotSol } from '../usedispatch_client/src';
 
 describe('messaging', () => {
 
@@ -523,11 +524,11 @@ describe('messaging', () => {
     assert.deepEqual(sentMessages2Text, ["msg0", "msg1", "msg3"]);
   });
 
-  it("Tests bonfida naming", async () => {
-    const connMainnet = new anchor.web3.Connection(anchor.web3.clusterApiUrl('mainnet-beta'));
-    let a = await lookupDotSol(connMainnet, "viksit");
-    assert.equal(a.ownerPubKey.toBase58(), "EuoVktg82q5oxEA6LvLXF4Xi9rKT1ZrjYqwcd9JA7X1B");
-  });
+  // it("Tests bonfida naming", async () => {
+  //   const connMainnet = new anchor.web3.Connection(anchor.web3.clusterApiUrl('mainnet-beta'));
+  //   let a = await lookupDotSol(connMainnet, "viksit");
+  //   assert.equal(a.ownerPubKey.toBase58(), "EuoVktg82q5oxEA6LvLXF4Xi9rKT1ZrjYqwcd9JA7X1B");
+  // });
 
   it('Sends an enhanced message and fetches it', async () => {
     const receiver = new anchor.Wallet(anchor.web3.Keypair.generate());
