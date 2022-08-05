@@ -158,6 +158,17 @@ export class Forum implements IForum {
     return this._postbox.createPost(forumPost, topic);
   }
 
+  async editForumPost(forumPost: ForumPost, newPostData: postbox.InputPostData): Promise<web3.TransactionSignature> {
+    if (forumPost.isTopic) {
+      if (!newPostData.meta) {
+        newPostData.meta = {};
+      }
+      newPostData.meta.topic = true;
+    }
+    const pPost = this.convertForumToInteractable(forumPost);
+    return this._postbox.editPost(pPost, newPostData);
+  }
+
   async deleteForumPost(forumPost: ForumPost, asModerator?: boolean): Promise<web3.TransactionSignature> {
     const pPost = this.convertForumToInteractable(forumPost);
     if (asModerator) {

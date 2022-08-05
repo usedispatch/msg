@@ -240,6 +240,18 @@ export class Postbox {
     return this.createPost(input, replyTo);
   }
 
+  async editPost(post: InteractablePost, newInput: InputPostData): Promise<web3.TransactionSignature> {
+    const newData = await this.postDataToBuffer(newInput);
+    const ix = await this.dispatch.postboxProgram.methods
+      .editPost(post.postId, newData)
+      .accounts({
+        postbox: await this.getAddress(),
+        post: post.address,
+      })
+      .transaction();
+    return this.dispatch.sendTransaction(ix);
+  }
+
   async deletePost(post: InteractablePost): Promise<web3.TransactionSignature> {
     const ix = await this.dispatch.postboxProgram.methods
       .deleteOwnPost(post.postId)
