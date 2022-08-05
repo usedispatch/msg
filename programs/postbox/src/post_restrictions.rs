@@ -77,7 +77,12 @@ impl PostRestrictionRule {
         poster: &Pubkey,
         extra_accounts: &[AccountInfo],
         account_indices_vec: &Vec<AdditionalAccountIndices>,
+        postbox: &crate::Postbox,
     ) -> Result<()> {
+        if postbox.has_owner(poster) {
+            return Ok(());
+        }
+
         match self {
             PostRestrictionRule::TokenOwnership { mint, amount } => {
                 let mut checked: bool = false;

@@ -530,6 +530,10 @@ export class Postbox {
       return true;
     }
 
+    if ((await this.getOwners()).some((o) => o.equals(this.dispatch.wallet.publicKey!))) {
+      return true;
+    }
+
     if (restriction.tokenOwnership) {
       const ata = await splToken.getAssociatedTokenAddress(
         restriction.tokenOwnership.mint,
