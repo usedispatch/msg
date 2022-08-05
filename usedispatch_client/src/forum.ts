@@ -22,6 +22,9 @@ export interface IForum {
   // Create a postbox for a given collection ID. This might require multiple signatures
   createForum(forum: ForumInfo): Promise<web3.TransactionSignature[]>;
 
+  // Create a postbox for a given collection ID. This might require multiple signatures
+  createForumIx(forum: ForumInfo): Promise<web3.Transaction>;
+
   // Get topics for a forum
   // topics are the same as a post but with topic=true set
   getTopicsForForum(forum: Forum): Promise<ForumPost[]>;
@@ -75,6 +78,9 @@ export interface IForum {
   // Delegate the given account as a moderator by giving them a moderator token
   addModerator(newMod: web3.PublicKey): Promise<web3.TransactionSignature>;
 
+  // // Delegate the given account as a moderator by giving them a moderator token
+  // addModeratorIx(newMod: web3.PublicKey): Promise<web3.TransactionSignature>;
+
   // Get a list of moderators
   getModerators(): Promise<web3.PublicKey[]>;
 }
@@ -100,6 +106,33 @@ export class Forum implements IForum {
   }
 
   async createForum(info: ForumInfo): Promise<web3.TransactionSignature[]> {
+    const forumIx = await this.createForumIx(info);
+    const tx = await this.dispatchConn.sendTransaction(forumIx);
+    await this._postbox.dispatch.conn.confirmTransaction(tx);
+    console.log(tx)
+    return [tx];
+  }
+
+  // previous createForum function that works
+  // async createForum(info: ForumInfo): Promise<web3.TransactionSignature[]> {
+  //   if (!this.collectionId.equals(info.collectionId)) {
+  //     throw new Error('Collection ID must match');
+  //   }
+  //   const desc = {
+  //     title: info.title,
+  //     desc: info.description,
+  //   };
+  //   const initTx = await this._postbox.initialize(info.owners, desc);
+  //   await this._postbox.dispatch.conn.confirmTransaction(initTx);
+  //   const modTxs = await Promise.all(
+  //     info.moderators.map((m) => {
+  //       return this._postbox.addModerator(m);
+  //     }),
+  //   );
+  //   return [initTx, ...modTxs];
+  // }
+
+  async createForumIx(info: ForumInfo): Promise<web3.Transaction> {
     if (!this.collectionId.equals(info.collectionId)) {
       throw new Error('Collection ID must match');
     }
@@ -107,14 +140,15 @@ export class Forum implements IForum {
       title: info.title,
       desc: info.description,
     };
-    const initTx = await this._postbox.initialize(info.owners, desc);
-    await this._postbox.dispatch.conn.confirmTransaction(initTx);
-    const modTxs = await Promise.all(
+    const ixs = new web3.Transaction();
+    ixs.add(await this._postbox.createInitializeIx(info.owners, desc));
+    const modIxs = await Promise.all(
       info.moderators.map((m) => {
-        return this._postbox.addModerator(m);
+        return this._postbox.createAddModeratorIx(m);
       }),
     );
-    return [initTx, ...modTxs];
+    ixs.add(...modIxs)
+    return ixs;
   }
 
   async getTopicsForForum(): Promise<ForumPost[]> {

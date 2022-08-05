@@ -118,6 +118,11 @@ export class Postbox {
 
   // Init functions
   async initialize(owners?: web3.PublicKey[], description?: Description): Promise<web3.TransactionSignature> {
+    const ix = await this.createInitializeIx(owners, description);
+    return this.dispatch.sendTransaction(ix);
+  }
+
+  async createInitializeIx(owners?: web3.PublicKey[], description?: Description): Promise<web3.Transaction> {
     const ix = await this.dispatch.postboxProgram.methods
       .initialize(
         this.target.str ?? '',
@@ -130,7 +135,7 @@ export class Postbox {
         treasury: this.dispatch.addresses.treasuryAddress,
       })
       .transaction();
-    return this.dispatch.sendTransaction(ix);
+    return ix;
   }
 
   // Some helpers for basic commands
@@ -300,7 +305,7 @@ export class Postbox {
   }
 
   // Admin functions
-  async addModerator(newModerator: web3.PublicKey): Promise<web3.TransactionSignature> {
+  async createAddModeratorIx(newModerator: web3.PublicKey): Promise<web3.Transaction> {
     const info = await this.getChainPostboxInfo();
     const ata = await splToken.getAssociatedTokenAddress(info.moderatorMint, newModerator);
     const ix = await this.dispatch.postboxProgram.methods
@@ -312,8 +317,14 @@ export class Postbox {
         moderatorAta: ata,
       })
       .transaction();
+    return ix;
+  }
+
+  async addModerator(newModerator: web3.PublicKey): Promise<web3.TransactionSignature> {
+    const ix = await this.createAddModeratorIx(newModerator);
     return this.dispatch.sendTransaction(ix);
   }
+  
 
   // Settings functions
 
