@@ -196,4 +196,37 @@ describe('Token gating', () => {
       assert.ok(e.message.includes(expectedError));
     }
   });
+
+  it('Validates NFT list (any) permissions', async () => {
+    await forumAsOwner.setForumPostRestriction(
+      {
+        nftListAnyOwnership: {
+          collectionIds: [
+            PublicKey.default,
+            new PublicKey('GcMPukzjZWfY4y4KVM3HNdqtZTf5WyTWPvL4YXznoS9c'),
+          ]
+        }
+      },
+      'max'
+    );
+
+    const restriction = await forumAsOwner.getForumPostRestriction();
+    assert.notEqual(restriction, null);
+
+    await forumAsUser.createTopic({
+      subj: 'Topic without permissions',
+      body: 'body'
+    });
+    const topics = await forumAsUser.getTopicsForForum();
+    const topic = topics.find(topic => topic.data.subj === 'Topic without permissions');
+    assert.notEqual(topic, null);
+
+    const authorizedUserCanCreateTopic = await forumAsUser.canCreateTopic();
+    const unauthorizedUserCanCreateTopic = await forumAsUnauthorizedUser.canCreateTopic();
+    const zeroBalanceUserCanCreateTopic = await forumAsZeroBalanceUser.canCreateTopic();
+
+    assert.equal(authorizedUserCanCreateTopic, true);
+    assert.equal(unauthorizedUserCanCreateTopic, false);
+    assert.equal(zeroBalanceUserCanCreateTopic, false);
+  });
 });
