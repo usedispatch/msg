@@ -375,6 +375,13 @@ export class Postbox {
     return this.innerSetSetting(this._formatPostRestrictionSetting(postRestriction), commitment);
   }
 
+  async setPostboxPostRestrictionIx(
+    postRestriction: PostRestriction,
+    // TODO see if there is a better default than recent
+  ): Promise<web3.Transaction> {
+    return this.innerSetSettingIx(this._formatPostRestrictionSetting(postRestriction));
+  }
+
   async innerGetSetting(settingsType: SettingsType): Promise<SettingsAccountData | undefined> {
     const info = await this.getChainPostboxInfo();
     for (const setting of info.settings) {
@@ -390,13 +397,20 @@ export class Postbox {
     // TODO see if there is a better default than recent
     commitment: web3.Commitment = 'recent',
   ): Promise<web3.TransactionSignature> {
+    const ix = await this.innerSetSettingIx(settingsData);
+    return this.dispatch.sendTransaction(ix, commitment);
+  }
+
+  async innerSetSettingIx(
+    settingsData: any,
+  ): Promise<web3.Transaction> {
     const ix = await this.dispatch.postboxProgram.methods
       .addOrUpdateSetting(settingsData)
       .accounts({
         postbox: await this.getAddress(),
       })
       .transaction();
-    return this.dispatch.sendTransaction(ix, commitment);
+    return ix
   }
 
   // Role functions
