@@ -324,7 +324,6 @@ export class Postbox {
     const ix = await this.createAddModeratorIx(newModerator);
     return this.dispatch.sendTransaction(ix);
   }
-  
 
   // Settings functions
 
@@ -401,9 +400,7 @@ export class Postbox {
     return this.dispatch.sendTransaction(ix, commitment);
   }
 
-  async innerSetSettingIx(
-    settingsData: any,
-  ): Promise<web3.Transaction> {
+  async innerSetSettingIx(settingsData: any): Promise<web3.Transaction> {
     const ix = await this.dispatch.postboxProgram.methods
       .addOrUpdateSetting(settingsData)
       .accounts({
@@ -510,7 +507,10 @@ export class Postbox {
 
   async getModeratorMint(): Promise<web3.PublicKey> {
     const postboxAddress = await this.getAddress();
-    const [modMint] = await anchor.web3.PublicKey.findProgramAddress([seeds.protocolSeed, seeds.moderatorSeed, postboxAddress.toBuffer()], this.dispatch.postboxProgram.programId);
+    const [modMint] = await anchor.web3.PublicKey.findProgramAddress(
+      [seeds.protocolSeed, seeds.moderatorSeed, postboxAddress.toBuffer()],
+      this.dispatch.postboxProgram.programId,
+    );
     return modMint;
   }
 

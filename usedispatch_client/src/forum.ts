@@ -128,9 +128,11 @@ export class Forum implements IForum {
       const addRestriction = await this._postbox.setPostboxPostRestrictionIx(info.postRestriction);
       ixs.add(addRestriction);
     }
-    await Promise.all(info.moderators.map(async (m) => {
-      ixs.add(await this.addModeratorIx(m));
-    }))
+    await Promise.all(
+      info.moderators.map(async (m) => {
+        ixs.add(await this.addModeratorIx(m));
+      }),
+    );
     return ixs;
   }
 
@@ -240,9 +242,7 @@ export class Forum implements IForum {
     return this._postbox.setPostboxPostRestriction(restriction, commitment);
   }
 
-  async setForumPostRestrictionIx(
-    restriction: postbox.PostRestriction,
-  ): Promise<web3.Transaction> {
+  async setForumPostRestrictionIx(restriction: postbox.PostRestriction): Promise<web3.Transaction> {
     return this._postbox.setPostboxPostRestrictionIx(restriction);
   }
 
