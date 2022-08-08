@@ -410,7 +410,7 @@ export class Postbox {
         postbox: await this.getAddress(),
       })
       .transaction();
-    return ix
+    return ix;
   }
 
   // Role functions
