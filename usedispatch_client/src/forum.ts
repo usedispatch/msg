@@ -8,6 +8,7 @@ export type ForumInfo = {
   moderators: web3.PublicKey[];
   title: string;
   description: string;
+  postRestriction?: postbox.PostRestriction;
 };
 
 export type ForumPost = postbox.Post & {
@@ -127,6 +128,10 @@ export class Forum implements IForum {
       ixs.add(await this.addModeratorIx(m));
     }))
 
+    if (info.postRestriction) {
+      ixs.add(await this.setForumPostRestrictionIx(info.postRestriction));
+    }
+
     return ixs;
   }
 
@@ -234,6 +239,12 @@ export class Forum implements IForum {
     commitment: web3.Commitment = 'recent',
   ): Promise<web3.TransactionSignature> {
     return this._postbox.setPostboxPostRestriction(restriction, commitment);
+  }
+
+  async setForumPostRestrictionIx(
+    restriction: postbox.PostRestriction,
+  ): Promise<web3.Transaction> {
+    return this._postbox.setPostboxPostRestrictionIx(restriction);
   }
 
   async addModerator(newMod: web3.PublicKey): Promise<web3.TransactionSignature> {
