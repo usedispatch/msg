@@ -261,7 +261,7 @@ describe('postbox', () => {
       });
       await Promise.all(txs.map((t) => conn.confirmTransaction(t)));
     }
-
+    
     const owners = await forumAsOwner.getOwners();
     assert.ok(owners[0].equals(owner.publicKey));
     const desc = await forumAsOwner.getDescription();

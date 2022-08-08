@@ -109,28 +109,8 @@ export class Forum implements IForum {
     const forumIx = await this.createForumIx(info);
     const tx = await this.dispatchConn.sendTransaction(forumIx);
     await this._postbox.dispatch.conn.confirmTransaction(tx);
-    console.log(tx)
     return [tx];
   }
-
-  // previous createForum function that works
-  // async createForum(info: ForumInfo): Promise<web3.TransactionSignature[]> {
-  //   if (!this.collectionId.equals(info.collectionId)) {
-  //     throw new Error('Collection ID must match');
-  //   }
-  //   const desc = {
-  //     title: info.title,
-  //     desc: info.description,
-  //   };
-  //   const initTx = await this._postbox.initialize(info.owners, desc);
-  //   await this._postbox.dispatch.conn.confirmTransaction(initTx);
-  //   const modTxs = await Promise.all(
-  //     info.moderators.map((m) => {
-  //       return this._postbox.addModerator(m);
-  //     }),
-  //   );
-  //   return [initTx, ...modTxs];
-  // }
 
   async createForumIx(info: ForumInfo): Promise<web3.Transaction> {
     if (!this.collectionId.equals(info.collectionId)) {
@@ -142,16 +122,11 @@ export class Forum implements IForum {
     };
     const ixs = new web3.Transaction();
     ixs.add(await this._postbox.createInitializeIx(info.owners, desc));
-    
-    // const modIxs = 
-    //   info.moderators.map((m) => {
-    //     return await this._postbox.createAddModeratorIx(m);
-    //   }),
-    
-    // TODO support multiple moderators
-    const modIxs = await this._postbox.createAddModeratorIx(info.moderators[0]);
 
-    ixs.add(modIxs)
+    await Promise.all(info.moderators.map(async (m) => {
+      ixs.add(await this._postbox.createAddModeratorIx(m));
+    }))
+
     return ixs;
   }
 
