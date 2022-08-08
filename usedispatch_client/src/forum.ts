@@ -124,14 +124,13 @@ export class Forum implements IForum {
     const ixs = new web3.Transaction();
     ixs.add(await this._postbox.createInitializeIx(info.owners, desc));
 
+    if (info.postRestriction != undefined) {
+      const addRestriction = await this._postbox.setPostboxPostRestrictionIx(info.postRestriction);
+      ixs.add(addRestriction);
+    }
     await Promise.all(info.moderators.map(async (m) => {
       ixs.add(await this.addModeratorIx(m));
     }))
-
-    if (info.postRestriction) {
-      ixs.add(await this.setForumPostRestrictionIx(info.postRestriction));
-    }
-
     return ixs;
   }
 
