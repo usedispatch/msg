@@ -13,6 +13,7 @@ export const seeds = {
   messageSeed: Buffer.from('message'),
   postboxSeed: Buffer.from('postbox'),
   postSeed: Buffer.from('post'),
+  moderatorSeed: Buffer.from('moderator'),
 };
 
 export const eventName = 'DispatchMessage';

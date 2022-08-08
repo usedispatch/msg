@@ -1,10 +1,5 @@
 import * as anchor from '@project-serum/anchor';
 import * as splToken from '@solana/spl-token';
-import {
-  Metaplex,
-  keypairIdentity,
-  mockStorage
-} from '@metaplex-foundation/js';
 import { strict as assert } from 'assert';
 
 import { Postbox, DispatchConnection, Forum, clusterAddresses, PostRestriction } from '../usedispatch_client/src';
