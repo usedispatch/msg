@@ -78,8 +78,8 @@ export interface IForum {
   // Delegate the given account as a moderator by giving them a moderator token
   addModerator(newMod: web3.PublicKey): Promise<web3.TransactionSignature>;
 
-  // // Delegate the given account as a moderator by giving them a moderator token
-  // addModeratorIx(newMod: web3.PublicKey): Promise<web3.TransactionSignature>;
+  // Delegate the given account as a moderator by giving them a moderator token
+  addModeratorIx(newMod: web3.PublicKey): Promise<web3.Transaction>;
 
   // Get a list of moderators
   getModerators(): Promise<web3.PublicKey[]>;
@@ -124,7 +124,7 @@ export class Forum implements IForum {
     ixs.add(await this._postbox.createInitializeIx(info.owners, desc));
 
     await Promise.all(info.moderators.map(async (m) => {
-      ixs.add(await this._postbox.createAddModeratorIx(m));
+      ixs.add(await this.addModeratorIx(m));
     }))
 
     return ixs;
@@ -238,6 +238,10 @@ export class Forum implements IForum {
 
   async addModerator(newMod: web3.PublicKey): Promise<web3.TransactionSignature> {
     return this._postbox.addModerator(newMod);
+  }
+
+  async addModeratorIx(newMod: web3.PublicKey): Promise<web3.Transaction> {
+    return this._postbox.createAddModeratorIx(newMod);
   }
 
   async getModerators(): Promise<web3.PublicKey[]> {
