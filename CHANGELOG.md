@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [0.11.1] - 2020-08-08
+
+- client: Add Instruction Helper functions ([#70](https://github.com/usedispatch/msg/pull/70))
+
 ## [0.10.4] 2022-07-29
 
 - client: Add token amount check for token gating
