@@ -124,7 +124,7 @@ export class Forum implements IForum {
     const ixs = new web3.Transaction();
     ixs.add(await this._postbox.createInitializeIx(info.owners, desc));
 
-    if (info.postRestriction != undefined) {
+    if (info.postRestriction !== undefined) {
       const addRestriction = await this._postbox.setPostboxPostRestrictionIx(info.postRestriction);
       ixs.add(addRestriction);
     }
