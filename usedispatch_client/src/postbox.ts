@@ -118,6 +118,11 @@ export class Postbox {
 
   // Init functions
   async initialize(owners?: web3.PublicKey[], description?: Description): Promise<web3.TransactionSignature> {
+    const ix = await this.createInitializeIx(owners, description);
+    return this.dispatch.sendTransaction(ix);
+  }
+
+  async createInitializeIx(owners?: web3.PublicKey[], description?: Description): Promise<web3.Transaction> {
     const ix = await this.dispatch.postboxProgram.methods
       .initialize(
         this.target.str ?? '',
@@ -130,7 +135,7 @@ export class Postbox {
         treasury: this.dispatch.addresses.treasuryAddress,
       })
       .transaction();
-    return this.dispatch.sendTransaction(ix);
+    return ix;
   }
 
   // Some helpers for basic commands
@@ -300,9 +305,9 @@ export class Postbox {
   }
 
   // Admin functions
-  async addModerator(newModerator: web3.PublicKey): Promise<web3.TransactionSignature> {
-    const info = await this.getChainPostboxInfo();
-    const ata = await splToken.getAssociatedTokenAddress(info.moderatorMint, newModerator);
+  async createAddModeratorIx(newModerator: web3.PublicKey): Promise<web3.Transaction> {
+    const moderatorMint = await this.getModeratorMint();
+    const ata = await splToken.getAssociatedTokenAddress(moderatorMint, newModerator);
     const ix = await this.dispatch.postboxProgram.methods
       .designateModerator(this.target.str ?? '')
       .accounts({
@@ -312,8 +317,14 @@ export class Postbox {
         moderatorAta: ata,
       })
       .transaction();
+    return ix;
+  }
+
+  async addModerator(newModerator: web3.PublicKey): Promise<web3.TransactionSignature> {
+    const ix = await this.createAddModeratorIx(newModerator);
     return this.dispatch.sendTransaction(ix);
   }
+  
 
   // Settings functions
 
@@ -364,6 +375,13 @@ export class Postbox {
     return this.innerSetSetting(this._formatPostRestrictionSetting(postRestriction), commitment);
   }
 
+  async setPostboxPostRestrictionIx(
+    postRestriction: PostRestriction,
+    // TODO see if there is a better default than recent
+  ): Promise<web3.Transaction> {
+    return this.innerSetSettingIx(this._formatPostRestrictionSetting(postRestriction));
+  }
+
   async innerGetSetting(settingsType: SettingsType): Promise<SettingsAccountData | undefined> {
     const info = await this.getChainPostboxInfo();
     for (const setting of info.settings) {
@@ -379,13 +397,20 @@ export class Postbox {
     // TODO see if there is a better default than recent
     commitment: web3.Commitment = 'recent',
   ): Promise<web3.TransactionSignature> {
+    const ix = await this.innerSetSettingIx(settingsData);
+    return this.dispatch.sendTransaction(ix, commitment);
+  }
+
+  async innerSetSettingIx(
+    settingsData: any,
+  ): Promise<web3.Transaction> {
     const ix = await this.dispatch.postboxProgram.methods
       .addOrUpdateSetting(settingsData)
       .accounts({
         postbox: await this.getAddress(),
       })
       .transaction();
-    return this.dispatch.sendTransaction(ix, commitment);
+    return ix;
   }
 
   // Role functions
@@ -484,7 +509,9 @@ export class Postbox {
   }
 
   async getModeratorMint(): Promise<web3.PublicKey> {
-    return (await this.getChainPostboxInfo()).moderatorMint;
+    const postboxAddress = await this.getAddress();
+    const [modMint] = await anchor.web3.PublicKey.findProgramAddress([seeds.protocolSeed, seeds.moderatorSeed, postboxAddress.toBuffer()], this.dispatch.postboxProgram.programId);
+    return modMint;
   }
 
   async getModerators(): Promise<web3.PublicKey[]> {
