@@ -142,12 +142,16 @@ export class Forum implements IForum {
     };
     const ixs = new web3.Transaction();
     ixs.add(await this._postbox.createInitializeIx(info.owners, desc));
-    const modIxs = await Promise.all(
-      info.moderators.map((m) => {
-        return this._postbox.createAddModeratorIx(m);
-      }),
-    );
-    ixs.add(...modIxs)
+    
+    // const modIxs = 
+    //   info.moderators.map((m) => {
+    //     return await this._postbox.createAddModeratorIx(m);
+    //   }),
+    
+    // TODO support multiple moderators
+    const modIxs = await this._postbox.createAddModeratorIx(info.moderators[0]);
+
+    ixs.add(modIxs)
     return ixs;
   }
 

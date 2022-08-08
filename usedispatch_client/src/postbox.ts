@@ -306,8 +306,8 @@ export class Postbox {
 
   // Admin functions
   async createAddModeratorIx(newModerator: web3.PublicKey): Promise<web3.Transaction> {
-    const info = await this.getChainPostboxInfo();
-    const ata = await splToken.getAssociatedTokenAddress(info.moderatorMint, newModerator);
+    const moderatorMint = await this.getModeratorMint();
+    const ata = await splToken.getAssociatedTokenAddress(moderatorMint, newModerator);
     const ix = await this.dispatch.postboxProgram.methods
       .designateModerator(this.target.str ?? '')
       .accounts({
@@ -495,7 +495,9 @@ export class Postbox {
   }
 
   async getModeratorMint(): Promise<web3.PublicKey> {
-    return (await this.getChainPostboxInfo()).moderatorMint;
+    const postboxAddress = await this.getAddress();
+    const [modMint] = await anchor.web3.PublicKey.findProgramAddress([seeds.protocolSeed, seeds.moderatorSeed, postboxAddress.toBuffer()], this.dispatch.postboxProgram.programId);
+    return modMint;
   }
 
   async getModerators(): Promise<web3.PublicKey[]> {
