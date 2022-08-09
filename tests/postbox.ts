@@ -384,6 +384,46 @@ describe('postbox', () => {
     assert.ok(!await forumAsPoster.canCreateTopic());
   });
 
+  it('Removes token post restrictions on a forum', async () => {
+    const collectionId = anchor.web3.Keypair.generate().publicKey;
+
+    const owner = new anchor.Wallet(anchor.web3.Keypair.generate());
+    const poster = new anchor.Wallet(anchor.web3.Keypair.generate());
+    await conn.confirmTransaction(await conn.requestAirdrop(owner.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
+    await conn.confirmTransaction(await conn.requestAirdrop(poster.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
+
+    const forumAsOwner = new Forum(new DispatchConnection(conn, owner), collectionId);
+    const forumAsPoster = new Forum(new DispatchConnection(conn, poster), collectionId);
+
+    const txs = await forumAsOwner.createForum({
+      collectionId,
+      owners: [owner.publicKey],
+      moderators: [owner.publicKey],
+      title: "Test Forum",
+      description: "A forum for the test suite",
+    });
+    await Promise.all(txs.map((t) => conn.confirmTransaction(t)));
+
+    const restrictionMint = await splToken.createMint(conn, owner.payer, owner.publicKey, owner.publicKey, 9);
+    const restrictionAmount = 50000;
+    const restriction: PostRestriction = {tokenOwnership: {
+      mint: restrictionMint,
+      amount: restrictionAmount,
+    }};
+
+    const tx0 = await forumAsOwner.setForumPostRestriction(restriction);
+    await conn.confirmTransaction(tx0);
+    assert.ok(!await forumAsPoster.canCreateTopic());
+
+    const tx1 = await forumAsOwner.deleteForumPostRestriction();
+    await conn.confirmTransaction(tx1);
+    assert.ok(await forumAsPoster.canCreateTopic());
+
+    const topic0 = {subj: "Test Topic", body: "This is a test topic."};
+    const tx2 = await forumAsPoster.createTopic(topic0);
+    await conn.confirmTransaction(tx2);
+  });
+
   it('Sets images and retrieves them', async () => {
     const collectionId = anchor.web3.Keypair.generate().publicKey;
 
