@@ -86,9 +86,14 @@ export type NftPostRestriction = {
   collectionId: web3.PublicKey;
 };
 
+export type NftListAnyPostRestriction = {
+  collectionIds: web3.PublicKey[];
+};
+
 export type PostRestriction = {
   tokenOwnership?: TokenPostRestriction;
   nftOwnership?: NftPostRestriction;
+  nftListAnyOwnership?: NftListAnyPostRestriction;
 };
 
 type SettingsAccountData = {
@@ -148,12 +153,13 @@ export class Postbox {
     };
   }
 
-  async _getNftPostRestrictionAccounts(nftPostRestriction: NftPostRestriction) {
-    const collectionId = nftPostRestriction.collectionId;
+  async _getNftPostRestrictionAccounts(collectionIds: web3.PublicKey[]) {
     const nftsOwned = await getMetadataForOwner(this.dispatch.conn, this.dispatch.wallet.publicKey!);
-    const relevantNfts = nftsOwned.filter((nft) => nft.collection?.key.equals(collectionId));
+    const relevantNfts = nftsOwned.filter(
+      (nft) => nft.collection?.key && collectionIds.some((c) => c.equals(nft.collection!.key)));
     if (relevantNfts.length) {
       const nft = relevantNfts[0];
+      const collectionId = nft.collection!.key;
       const ata = await splToken.getAssociatedTokenAddress(nft.mint, this.dispatch.wallet.publicKey!);
       const metadataAddress = await deriveMetadataAccount(nft.mint);
       return {
@@ -179,7 +185,10 @@ export class Postbox {
         return this._getTokenPostRestrictionAccounts(restriction.tokenOwnership);
       }
       if (restriction?.nftOwnership) {
-        return this._getNftPostRestrictionAccounts(restriction.nftOwnership);
+        return this._getNftPostRestrictionAccounts([restriction.nftOwnership.collectionId]);
+      }
+      if (restriction?.nftListAnyOwnership) {
+        return this._getNftPostRestrictionAccounts(restriction.nftListAnyOwnership.collectionIds);
       }
     }
     return { pra: [], praIdxs: null };
@@ -234,6 +243,18 @@ export class Postbox {
 
   async replyToPost(input: InputPostData, replyTo: InteractablePost): Promise<web3.TransactionSignature> {
     return this.createPost(input, replyTo);
+  }
+
+  async editPost(post: InteractablePost, newInput: InputPostData): Promise<web3.TransactionSignature> {
+    const newData = await this.postDataToBuffer(newInput);
+    const ix = await this.dispatch.postboxProgram.methods
+      .editPost(post.postId, newData)
+      .accounts({
+        postbox: await this.getAddress(),
+        post: post.address,
+      })
+      .transaction();
+    return this.dispatch.sendTransaction(ix);
   }
 
   async deletePost(post: InteractablePost): Promise<web3.TransactionSignature> {
@@ -461,6 +482,14 @@ export class Postbox {
       const collectionId = restriction.nftOwnership.collectionId;
       const nftsOwned = await getMetadataForOwner(this.dispatch.conn, this.dispatch.wallet.publicKey!);
       const relevantNfts = nftsOwned.filter((nft) => nft.collection?.key.equals(collectionId));
+      return relevantNfts.length > 0;
+    }
+
+    if (restriction.nftListAnyOwnership) {
+      const collectionIds = restriction.nftListAnyOwnership.collectionIds;
+      const nftsOwned = await getMetadataForOwner(this.dispatch.conn, this.dispatch.wallet.publicKey!);
+      const relevantNfts = nftsOwned.filter(
+        (nft) => nft.collection?.key && collectionIds.some((c) => c.equals(nft.collection!.key)));
       return relevantNfts.length > 0;
     }
 

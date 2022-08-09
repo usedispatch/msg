@@ -330,6 +330,13 @@ describe('postbox', () => {
     const replies = await forumAsModerator.getReplies(postsAgain[0]);
     assert.equal(replies.length, 1);
     assert.equal(replies[0].data.subj, "Reply");
+
+    const newTopic = {subj: "Test Topic Renamed", body: "This is a test topic."};
+    const tx7 = await forumAsPoster.editForumPost(topics[0], newTopic);
+    await conn.confirmTransaction(tx7);
+
+    const topicsPostEdit = await forumAsPoster.getTopicsForForum();
+    assert.equal(topicsPostEdit[0].data.subj, "Test Topic Renamed");
   });
 
   it('Sets token post restrictions on a forum', async () => {
