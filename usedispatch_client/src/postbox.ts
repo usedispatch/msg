@@ -94,6 +94,7 @@ export type PostRestriction = {
   tokenOwnership?: TokenPostRestriction;
   nftOwnership?: NftPostRestriction;
   nftListAnyOwnership?: NftListAnyPostRestriction;
+  null?: {};
 };
 
 type SettingsAccountData = {
@@ -465,6 +466,10 @@ export class Postbox {
     }
 
     if (!restriction) {
+      return true;
+    }
+
+    if (restriction.null) {
       return true;
     }
 
