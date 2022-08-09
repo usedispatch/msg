@@ -188,6 +188,23 @@ pub mod postbox {
         resize_account(postbox.to_account_info().as_ref(), & ctx.accounts.owner, postbox.get_size())?;
         Ok(())
     }
+
+    pub fn edit_post(ctx: Context<EditPost>, post_id: u32, new_data: Vec<u8>) -> Result<()> {
+        let post = & mut ctx.accounts.post;
+        let old_data = post.data.clone();
+        post.data = new_data.clone();
+        let new_size = post.to_account_info().data_len() + new_data.len() - old_data.len();
+        resize_account(post.to_account_info().as_ref(), & ctx.accounts.poster, new_size)?;
+
+        emit!(EditedEvent {
+            postbox_pubkey: ctx.accounts.postbox.key(),
+            post_pubkey: post.key(),
+            post_id: post_id,
+            old_data: old_data,
+            new_data: new_data,
+        });
+        Ok(())
+    }
 }
 
 #[derive(Accounts)]
@@ -336,6 +353,20 @@ pub struct AddOrUpdateSetting<'info> {
     pub postbox: Box<Account<'info, Postbox>>,
     #[account(mut, constraint = postbox.has_owner(&owner.key))]
     pub owner: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+#[instruction(post_id: u32)]
+pub struct EditPost<'info> {
+    #[account(mut, has_one=poster,
+        seeds=[PROTOCOL_SEED.as_bytes(), POST_SEED.as_bytes(), postbox.key().as_ref(), &post_id.to_le_bytes()],
+        bump,
+    )]
+    pub post: Box<Account<'info, Post>>,
+    pub postbox: Box<Account<'info, Postbox>>,
+    #[account(mut)]
+    pub poster: Signer<'info>,
     pub system_program: Program<'info, System>,
 }
 
@@ -491,4 +522,13 @@ pub struct DeleteEvent {
     pub postbox_pubkey: Pubkey,
     pub post_pubkey: Pubkey,
     pub post_id: u32,
+}
+
+#[event]
+pub struct EditedEvent {
+    pub postbox_pubkey: Pubkey,
+    pub post_pubkey: Pubkey,
+    pub post_id: u32,
+    old_data: Vec<u8>,
+    new_data: Vec<u8>,
 }
