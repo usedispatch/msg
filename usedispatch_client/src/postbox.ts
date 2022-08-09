@@ -157,7 +157,8 @@ export class Postbox {
   async _getNftPostRestrictionAccounts(collectionIds: web3.PublicKey[]) {
     const nftsOwned = await getMetadataForOwner(this.dispatch.conn, this.dispatch.wallet.publicKey!);
     const relevantNfts = nftsOwned.filter(
-      (nft) => nft.collection?.key && collectionIds.some((c) => c.equals(nft.collection!.key)));
+      (nft) => nft.collection?.key && collectionIds.some((c) => c.equals(nft.collection!.key)),
+    );
     if (relevantNfts.length) {
       const nft = relevantNfts[0];
       const collectionId = nft.collection!.key;
@@ -494,7 +495,8 @@ export class Postbox {
       const collectionIds = restriction.nftListAnyOwnership.collectionIds;
       const nftsOwned = await getMetadataForOwner(this.dispatch.conn, this.dispatch.wallet.publicKey!);
       const relevantNfts = nftsOwned.filter(
-        (nft) => nft.collection?.key && collectionIds.some((c) => c.equals(nft.collection!.key)));
+        (nft) => nft.collection?.key && collectionIds.some((c) => c.equals(nft.collection!.key)),
+      );
       return relevantNfts.length > 0;
     }
 

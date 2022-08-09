@@ -257,9 +257,8 @@ export class Forum implements IForum {
     return this._postbox.setPostboxPostRestrictionIx(restriction);
   }
 
-  async deleteForumPostRestriction(commitment: web3.Commitment = 'recent',
-  ): Promise<web3.TransactionSignature> {
-    return this._postbox.setPostboxPostRestriction({null: {}}, commitment);
+  async deleteForumPostRestriction(commitment: web3.Commitment = 'recent'): Promise<web3.TransactionSignature> {
+    return this._postbox.setPostboxPostRestriction({ null: {} }, commitment);
   }
 
   async addModerator(newMod: web3.PublicKey): Promise<web3.TransactionSignature> {
