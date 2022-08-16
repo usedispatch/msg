@@ -36,3 +36,6 @@ const messages = await mailbox.fetch();
 await mailbox.pop();
 await mailbox.pop();
 ```
+
+### Hackathon 2022
+For the solana summer 2022 hackathon, please review the entry point in usedispatch_client/src/forum.ts and programs/postbox/.
