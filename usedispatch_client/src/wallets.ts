@@ -1,27 +1,37 @@
 import * as web3 from '@solana/web3.js';
+import { WalletContextState } from '@solana/wallet-adapter-react';
 
-interface SignerWalletProps {
-  signTransaction(transaction: web3.Transaction): Promise<web3.Transaction>;
-  signAllTransactions(transaction: web3.Transaction[]): Promise<web3.Transaction[]>;
-}
+// interface SignerWalletProps {
+//   signTransaction(transaction: web3.Transaction): Promise<web3.Transaction>;
+//   signAllTransactions(transaction: web3.Transaction[]): Promise<web3.Transaction[]>;
+// }
 
-export interface WalletInterface {
-  signTransaction: SignerWalletProps['signTransaction'] | undefined;
-  signAllTransactions: SignerWalletProps['signAllTransactions'] | undefined;
-  get publicKey(): web3.PublicKey | null;
-}
+export type WalletInterface = Pick<
+  WalletContextState
+  , 'signTransaction'
+  | 'signAllTransactions'
+  | 'publicKey'
+  | 'wallet'
+  | 'sendTransaction'
+>;
+
+// export interface WalletInterface {
+//   signTransaction: SignerWalletProps['signTransaction'] | undefined;
+//   signAllTransactions: SignerWalletProps['signAllTransactions'] | undefined;
+//   get publicKey(): web3.PublicKey | null;
+// }
 
 export interface SendTransactionOptions extends web3.SendOptions {
   signers?: web3.Signer[];
 }
 
-export interface WalletAdapterInterface extends WalletInterface {
-  sendTransaction(
-    transaction: web3.Transaction,
-    connection: web3.Connection,
-    options?: SendTransactionOptions,
-  ): Promise<web3.TransactionSignature>;
-}
+// export interface WalletAdapterInterface extends WalletInterface {
+//   sendTransaction(
+//     transaction: web3.Transaction,
+//     connection: web3.Connection,
+//     options?: SendTransactionOptions,
+//   ): Promise<web3.TransactionSignature>;
+// }
 
 export interface AnchorNodeWalletInterface extends WalletInterface {
   payer: web3.Signer;
@@ -34,7 +44,7 @@ export interface AnchorExpectedWalletInterface {
 }
 
 export class KeyPairWallet {
-  constructor(readonly payer: web3.Keypair) {}
+  constructor(readonly payer: web3.Keypair = new web3.Keypair()) {}
 
   async signTransaction(tx: web3.Transaction): Promise<web3.Transaction> {
     tx.partialSign(this.payer);
