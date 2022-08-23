@@ -25,7 +25,7 @@ export interface AnchorExpectedWalletInterface {
 }
 
 export class KeyPairWallet {
-  constructor(readonly payer: web3.Keypair = new web3.Keypair()) {}
+  constructor(readonly payer: web3.Keypair) {}
 
   async signTransaction(tx: web3.Transaction): Promise<web3.Transaction> {
     tx.partialSign(this.payer);
