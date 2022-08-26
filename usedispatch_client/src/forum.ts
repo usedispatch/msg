@@ -1,5 +1,6 @@
 import * as web3 from '@solana/web3.js';
 import { DispatchConnection } from './connection';
+import { TXN_COMMITMENT } from './constants';
 import * as postbox from './postbox';
 
 export type ForumInfo = {
@@ -95,6 +96,7 @@ export class Forum implements IForum {
 
   constructor(public dispatchConn: DispatchConnection, public collectionId: web3.PublicKey) {
     // Create a third party postbox for this forum
+    console.log('link')
     this._postbox = new postbox.Postbox(dispatchConn, {
       key: collectionId,
       str: 'Public',
@@ -248,7 +250,7 @@ export class Forum implements IForum {
   async setForumPostRestriction(
     restriction: postbox.PostRestriction,
     // TODO confirm whether recent is a reasonable default
-    commitment: web3.Commitment = 'recent',
+    commitment: web3.Commitment = TXN_COMMITMENT,
   ): Promise<web3.TransactionSignature> {
     return this._postbox.setPostboxPostRestriction(restriction, commitment);
   }
@@ -257,7 +259,7 @@ export class Forum implements IForum {
     return this._postbox.setPostboxPostRestrictionIx(restriction);
   }
 
-  async deleteForumPostRestriction(commitment: web3.Commitment = 'recent'): Promise<web3.TransactionSignature> {
+  async deleteForumPostRestriction(commitment: web3.Commitment = TXN_COMMITMENT): Promise<web3.TransactionSignature> {
     return this._postbox.setPostboxPostRestriction({ null: {} }, commitment);
   }
 

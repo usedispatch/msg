@@ -33,3 +33,5 @@ clusterAddresses.set('mainnet-beta', {
 });
 
 export const defaultCluster: web3.Cluster = 'devnet';
+
+export const TXN_COMMITMENT = 'processed';

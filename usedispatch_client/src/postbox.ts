@@ -1,7 +1,7 @@
 import * as anchor from '@project-serum/anchor';
 import * as splToken from '@solana/spl-token';
 import * as web3 from '@solana/web3.js';
-import { seeds } from './constants';
+import { seeds, TXN_COMMITMENT } from './constants';
 import { DispatchConnection } from './connection';
 import { getMintsForOwner, getMetadataForOwner, deriveMetadataAccount } from './utils';
 import { json } from 'stream/consumers';
@@ -392,7 +392,7 @@ export class Postbox {
   async setPostboxPostRestriction(
     postRestriction: PostRestriction,
     // TODO see if there is a better default than recent
-    commitment: web3.Commitment = 'recent',
+    commitment: web3.Commitment = TXN_COMMITMENT,
   ): Promise<web3.TransactionSignature> {
     return this.innerSetSetting(this._formatPostRestrictionSetting(postRestriction), commitment);
   }
@@ -417,7 +417,7 @@ export class Postbox {
   async innerSetSetting(
     settingsData: any,
     // TODO see if there is a better default than recent
-    commitment: web3.Commitment = 'recent',
+    commitment: web3.Commitment = TXN_COMMITMENT,
   ): Promise<web3.TransactionSignature> {
     const ix = await this.innerSetSettingIx(settingsData);
     return this.dispatch.sendTransaction(ix, commitment);
