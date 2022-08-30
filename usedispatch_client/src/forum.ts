@@ -96,7 +96,6 @@ export class Forum implements IForum {
 
   constructor(public dispatchConn: DispatchConnection, public collectionId: web3.PublicKey) {
     // Create a third party postbox for this forum
-    console.log('link')
     this._postbox = new postbox.Postbox(dispatchConn, {
       key: collectionId,
       str: 'Public',
