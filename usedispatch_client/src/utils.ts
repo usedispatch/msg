@@ -1,5 +1,6 @@
 import { Connection, PublicKey, AccountInfo } from '@solana/web3.js';
 import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import { chunk, concat } from 'lodash';
 import { Metadata, PROGRAM_ID } from '@metaplex-foundation/mpl-token-metadata';
 import { Result } from '../src/types';
 
@@ -48,8 +49,8 @@ export async function getMetadataForMints(connection: Connection, mints: PublicK
   // Derive addresses for all metadata accounts
   const derivedAddresses = await Promise.all(mints.map(async (mint) => deriveMetadataAccount(mint)));
   // Derive account list
-  const accountInfoOrNullList = await connection.getMultipleAccountsInfo(derivedAddresses);
-  // Remove missing account into
+  // Here is the problem
+  const accountInfoOrNullList = await getAccountsInfoPaginated(connection, derivedAddresses);
   const accountInfoList = accountInfoOrNullList.filter((acct) => acct !== null) as AccountInfo<Buffer>[];
   return (
     accountInfoList
@@ -58,6 +59,33 @@ export async function getMetadataForMints(connection: Connection, mints: PublicK
       .map((accountInfo) => Metadata.fromAccountInfo(accountInfo))
       .map(([metadata]) => metadata)
   );
+}
+
+/**
+ * Like connection.getMultipleAccountsInfo, but paginated over
+ * groups of (default) 100 to prevent endpoint errors
+ */
+async function getAccountsInfoPaginated(
+  connection: Connection,
+  pkeys: PublicKey[],
+  chunkSize = 100
+): Promise<(AccountInfo<Buffer> | null)[]> {
+  // Divide the list of publicKeys into groups of size `chunkSize`
+  const chunks = chunk(pkeys, chunkSize)
+  // Fetch each group of publicKeys in its own
+  // getMultipleAccountsInfo() call
+  const chunkFetchPromises = chunks.map(chunk => {
+    return connection.getMultipleAccountsInfo(chunk)
+  });
+
+  // Await all these promises to get a list of lists of
+  // AccountInfo's
+  const fetchedChunks = await Promise.all(chunkFetchPromises);
+
+  // Flatten this group to get all accountInfo in one array
+  const result = fetchedChunks.flat();
+
+  return result;
 }
 
 /**
