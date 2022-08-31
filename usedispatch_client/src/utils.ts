@@ -48,9 +48,9 @@ export async function getMintsForOwner(connection: Connection, publicKey: Public
 export async function getMetadataForMints(connection: Connection, mints: PublicKey[]): Promise<Metadata[]> {
   // Derive addresses for all metadata accounts
   const derivedAddresses = await Promise.all(mints.map(async (mint) => deriveMetadataAccount(mint)));
-  // Derive account list
-  // Here is the problem
+  // Fetch all accounts, paginated
   const accountInfoOrNullList = await getAccountsInfoPaginated(connection, derivedAddresses);
+  // Filter out nulls
   const accountInfoList = accountInfoOrNullList.filter((acct) => acct !== null) as AccountInfo<Buffer>[];
   return (
     accountInfoList
