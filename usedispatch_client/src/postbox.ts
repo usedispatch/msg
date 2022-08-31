@@ -144,6 +144,17 @@ export class Postbox {
     return ix;
   }
 
+  async createVoteTracker(): Promise<web3.TransactionSignature> {
+    const ix = await this.dispatch.postboxProgram.methods
+      .createVoteTracker()
+      .accounts({
+        postbox: await this.getAddress(),
+        voter: this.dispatch.wallet.publicKey!,
+      })
+      .transaction();
+    return this.dispatch.sendTransaction(ix);
+  }
+
   // Some helpers for basic commands
 
   async _getTokenPostRestrictionAccounts(tokenPostRestriction: TokenPostRestriction) {

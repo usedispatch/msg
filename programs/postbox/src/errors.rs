@@ -39,4 +39,6 @@ pub enum PostboxErrorCode {
     MissingRequiredOffsets,
     #[msg("We hit the test error")]
     TestError,
+    #[msg("Already voted on this post")]
+    AlreadyVoted,
 }

@@ -455,4 +455,45 @@ describe('postbox', () => {
     assert.equal(images.background, expectedImages.background);
     assert.equal(images.thumbnail, expectedImages.thumbnail);
   });
+
+  it('Prevents double votes', async () => {
+    const voter = new anchor.Wallet(anchor.web3.Keypair.generate());
+    await conn.confirmTransaction(await conn.requestAirdrop(voter.publicKey, 100 * anchor.web3.LAMPORTS_PER_SOL));
+
+    const postboxAsVoter = new Postbox(new DispatchConnection(conn, voter), {key: voter.publicKey});
+    await conn.confirmTransaction(await postboxAsVoter.initialize());
+    await conn.confirmTransaction(await postboxAsVoter.createVoteTracker());
+
+    const testPost = { subj: "T", body: "T" };
+    await conn.confirmTransaction(await postboxAsVoter.createPost(testPost));
+    const topLevelPosts = await postboxAsVoter.fetchPosts();
+    const post = topLevelPosts[topLevelPosts.length - 1];
+    await conn.confirmTransaction(await postboxAsVoter.vote(post, true));
+
+    try {
+      await conn.confirmTransaction(await postboxAsVoter.vote(post, true));
+    } catch (e) {
+      assert.ok(String(e).includes("custom program error: 0x1842"));
+    }
+  });
+
+  xit('Tests large numbers of votes', async () => {
+    const voter = new anchor.Wallet(anchor.web3.Keypair.generate());
+    await conn.confirmTransaction(await conn.requestAirdrop(voter.publicKey, 100 * anchor.web3.LAMPORTS_PER_SOL));
+
+    const postboxAsVoter = new Postbox(new DispatchConnection(conn, voter), {key: voter.publicKey});
+    await conn.confirmTransaction(await postboxAsVoter.initialize());
+    await conn.confirmTransaction(await postboxAsVoter.createVoteTracker());
+
+    const iterations = 1500;
+    for (let i = 0; i < iterations; ++i) {
+      if (i % 100 == 0) {
+        console.log("Doing vote", i);
+      }
+      const testPost = { subj: String(i), body: "T" };
+      await conn.confirmTransaction(await postboxAsVoter.createPost(testPost));
+      const topLevelPosts = await postboxAsVoter.fetchPosts();
+      await conn.confirmTransaction(await postboxAsVoter.vote(topLevelPosts[topLevelPosts.length - 1], true));
+    }
+  });
 });
