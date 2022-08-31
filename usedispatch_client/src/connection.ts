@@ -42,9 +42,7 @@ export class DispatchConnection {
   }
 
   public async sendTransaction(
-    tx: web3.Transaction,
-    // TODO see if there is a better default than recent
-    commitment: web3.Commitment = 'recent',
+    tx: web3.Transaction
   ) {
     let sig: string;
     if ('sendTransaction' in this.wallet) {
@@ -57,7 +55,6 @@ export class DispatchConnection {
     } else {
       throw new Error('`wallet` has neither `sendTransaction` nor `payer` so cannot send transaction');
     }
-    await this.conn.confirmTransaction(sig, commitment);
     return sig;
   }
 }

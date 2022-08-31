@@ -390,11 +390,9 @@ export class Postbox {
   }
 
   async setPostboxPostRestriction(
-    postRestriction: PostRestriction,
-    // TODO see if there is a better default than recent
-    commitment: web3.Commitment = 'recent',
+    postRestriction: PostRestriction
   ): Promise<web3.TransactionSignature> {
-    return this.innerSetSetting(this._formatPostRestrictionSetting(postRestriction), commitment);
+    return this.innerSetSetting(this._formatPostRestrictionSetting(postRestriction));
   }
 
   async setPostboxPostRestrictionIx(
@@ -415,12 +413,10 @@ export class Postbox {
   }
 
   async innerSetSetting(
-    settingsData: any,
-    // TODO see if there is a better default than recent
-    commitment: web3.Commitment = 'recent',
+    settingsData: any
   ): Promise<web3.TransactionSignature> {
     const ix = await this.innerSetSettingIx(settingsData);
-    return this.dispatch.sendTransaction(ix, commitment);
+    return this.dispatch.sendTransaction(ix);
   }
 
   async innerSetSettingIx(settingsData: any): Promise<web3.Transaction> {
