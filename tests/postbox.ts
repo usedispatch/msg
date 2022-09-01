@@ -210,8 +210,9 @@ describe('postbox', () => {
 
     try {
       await postboxAsOwner.vote(topic, true);
+      assert.fail();
     } catch(e) {
-      const expectedError = "Error processing Instruction 0: custom program error: 0x183f";
+      const expectedError = "custom program error: 0x183f";
       assert.ok(e instanceof Error);
       assert.ok(e.message.includes(expectedError));
     }
@@ -221,8 +222,9 @@ describe('postbox', () => {
     const replyPost2 = {subj: "Should fail", body: "Reply"};
     try {
       await postboxAsOwner.replyToPost(replyPost2, topic);
+      assert.fail();
     } catch(e) {
-      const expectedError = "Error processing Instruction 0: custom program error: 0x183f";
+      const expectedError = "custom program error: 0x183f";
       assert.ok(e instanceof Error);
       assert.ok(e.message.includes(expectedError));
     }
@@ -462,7 +464,6 @@ describe('postbox', () => {
 
     const postboxAsVoter = new Postbox(new DispatchConnection(conn, voter), {key: voter.publicKey});
     await conn.confirmTransaction(await postboxAsVoter.initialize());
-    await conn.confirmTransaction(await postboxAsVoter.createVoteTracker());
 
     const testPost = { subj: "T", body: "T" };
     await conn.confirmTransaction(await postboxAsVoter.createPost(testPost));
@@ -472,6 +473,7 @@ describe('postbox', () => {
 
     try {
       await conn.confirmTransaction(await postboxAsVoter.vote(post, true));
+      assert.fail();
     } catch (e) {
       assert.ok(String(e).includes("custom program error: 0x1842"));
     }
@@ -483,7 +485,6 @@ describe('postbox', () => {
 
     const postboxAsVoter = new Postbox(new DispatchConnection(conn, voter), {key: voter.publicKey});
     await conn.confirmTransaction(await postboxAsVoter.initialize());
-    await conn.confirmTransaction(await postboxAsVoter.createVoteTracker());
 
     const iterations = 1500;
     for (let i = 0; i < iterations; ++i) {
