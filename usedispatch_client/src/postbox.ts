@@ -3,8 +3,7 @@ import * as splToken from '@solana/spl-token';
 import * as web3 from '@solana/web3.js';
 import { seeds } from './constants';
 import { DispatchConnection } from './connection';
-import { getMintsForOwner, getMetadataForOwner, deriveMetadataAccount } from './utils';
-import { json } from 'stream/consumers';
+import { getMetadataForOwner, deriveMetadataAccount } from './utils';
 
 export type PostboxTarget = {
   key: web3.PublicKey;
@@ -219,10 +218,10 @@ export class Postbox {
     postRestriction?: PostRestriction,
   ): Promise<web3.TransactionSignature> {
     // TODO(mfasman): make this be a better allocation algorithm
-    const growBy = 1; // TODO(mfasman): pull from the IDL
+    // const growBy = 1; // TODO(mfasman): pull from the IDL
     const maxId = (await this.getChainPostboxInfo()).maxChildId;
-    const addresses = await this.getAddresses(maxId, Math.max(0, maxId - growBy));
-    const infos = await this.dispatch.conn.getMultipleAccountsInfo(addresses);
+    // const addresses = await this.getAddresses(maxId, Math.max(0, maxId - growBy));
+    // const infos = await this.dispatch.conn.getMultipleAccountsInfo(addresses);
     const data = await this.postDataToBuffer(input);
     const postRestrictions = await this._getPostRestrictionAccounts(replyTo);
     const ix = await this.dispatch.postboxProgram.methods
