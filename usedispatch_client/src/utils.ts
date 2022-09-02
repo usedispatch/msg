@@ -65,7 +65,7 @@ export async function getMetadataForMints(connection: Connection, mints: PublicK
  * Like connection.getMultipleAccountsInfo, but paginated over
  * groups of (default) 100 to prevent endpoint errors
  */
-async function getAccountsInfoPaginated(
+export async function getAccountsInfoPaginated(
   connection: Connection,
   pkeys: PublicKey[],
   chunkSize = 100
