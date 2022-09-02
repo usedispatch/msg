@@ -4,7 +4,7 @@ import { Messaging } from '../../target/types/messaging';
 import messagingProgramIdl from '../../target/idl/messaging.json';
 import { Postbox } from '../../target/types/postbox';
 import postboxProgramIdl from '../../target/idl/postbox.json';
-import { clusterAddresses, defaultCluster, DispatchAddresses } from './constants';
+import { clusterAddresses, defaultCluster, DispatchAddresses, TXN_COMMITMENT } from './constants';
 import {
   WalletInterface,
   AnchorExpectedWalletInterface,
@@ -44,7 +44,7 @@ export class DispatchConnection {
   public async sendTransaction(
     tx: web3.Transaction,
     // TODO see if there is a better default than recent
-    commitment: web3.Commitment = 'recent',
+    commitment: web3.Commitment = TXN_COMMITMENT,
   ) {
     let sig: string;
     if ('sendTransaction' in this.wallet) {
