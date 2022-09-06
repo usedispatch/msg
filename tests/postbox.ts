@@ -479,6 +479,28 @@ describe('postbox', () => {
     }
   });
 
+  it('Allows changing a vote', async () => {
+    const voter = new anchor.Wallet(anchor.web3.Keypair.generate());
+    await conn.confirmTransaction(await conn.requestAirdrop(voter.publicKey, 100 * anchor.web3.LAMPORTS_PER_SOL));
+
+    const postboxAsVoter = new Postbox(new DispatchConnection(conn, voter), {key: voter.publicKey});
+    await conn.confirmTransaction(await postboxAsVoter.initialize());
+
+    const testPost = { subj: "T", body: "T" };
+    await conn.confirmTransaction(await postboxAsVoter.createPost(testPost));
+    const topLevelPosts = await postboxAsVoter.fetchPosts();
+    const post = topLevelPosts[0];
+    // Flip back and forth to make sure the bookkeeping is ok
+    await conn.confirmTransaction(await postboxAsVoter.vote(post, true));
+    await conn.confirmTransaction(await postboxAsVoter.vote(post, false));
+    await conn.confirmTransaction(await postboxAsVoter.vote(post, true));
+    await conn.confirmTransaction(await postboxAsVoter.vote(post, false));
+
+    const posts = await postboxAsVoter.fetchPosts();
+    assert.equal(posts[0].upVotes, 0);
+    assert.equal(posts[0].downVotes, 1);
+  });
+
   xit('Tests large numbers of votes', async () => {
     const voter = new anchor.Wallet(anchor.web3.Keypair.generate());
     await conn.confirmTransaction(await conn.requestAirdrop(voter.publicKey, 100 * anchor.web3.LAMPORTS_PER_SOL));

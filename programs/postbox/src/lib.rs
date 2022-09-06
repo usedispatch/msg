@@ -3,12 +3,14 @@ use anchor_spl::{token, associated_token};
 use errors::PostboxErrorCode;
 use post_restrictions::AdditionalAccountIndices;
 use settings::{SettingsData, SettingsType};
+use vote_entry::{VoteEntry};
 
 mod errors;
 mod nft_metadata;
 mod post_restrictions;
 mod settings;
 mod treasury;
+mod vote_entry;
 
 #[cfg(feature = "mainnet")]
 declare_id!("DHepkufWDLJ9DCD37nbEDbPSFKjGiziQ6Lbgo1zgGX7S");
@@ -154,14 +156,29 @@ pub mod postbox {
             false,
         )?;
 
-        // Make sure haven't voted on this post already
-        require!(!ctx.accounts.vote_tracker.votes.contains(&post_id), PostboxErrorCode::AlreadyVoted);
-        ctx.accounts.vote_tracker.votes.push(post_id);
-        resize_account(
-            ctx.accounts.vote_tracker.to_account_info().as_ref(),
-            &ctx.accounts.voter,
-            8 + 4 + 4 * ctx.accounts.vote_tracker.votes.len(),
-        )?;
+        // Check if we already voted
+        let mut relevant_vote_entry: Option<&mut VoteEntry> = None;
+        for vote_entry in &mut ctx.accounts.vote_tracker.votes {
+            if vote_entry.post_id == post_id {
+                relevant_vote_entry = Some(vote_entry);
+            }
+        }
+
+        if let Some(vote_entry) = relevant_vote_entry {
+            require!(vote_entry.up_vote != up_vote, PostboxErrorCode::AlreadyVoted);
+            // If we already voted, we can only change the vote, so back out the old vote
+            let old_vote_count = if vote_entry.up_vote {&mut post_account.up_votes} else {&mut post_account.down_votes};
+            *old_vote_count -= if 0 == *old_vote_count {0} else {1};
+            vote_entry.up_vote = up_vote;
+        } else {
+            // Allow a new vote
+            ctx.accounts.vote_tracker.votes.push(VoteEntry {post_id, up_vote});
+            resize_account(
+                ctx.accounts.vote_tracker.to_account_info().as_ref(),
+                &ctx.accounts.voter,
+                8 + 4 + 5 * ctx.accounts.vote_tracker.votes.len(),
+            )?;
+        }
 
         let vote_count = if up_vote {&mut post_account.up_votes} else {&mut post_account.down_votes};
         *vote_count += if MAX_VOTE == *vote_count {0} else {1};
@@ -546,7 +563,7 @@ pub struct Post {
 #[account]
 #[derive(Default)]
 pub struct VoteTracker {
-    votes: Vec<u32>,
+    votes: Vec<VoteEntry>,
 }
 
 #[event]
