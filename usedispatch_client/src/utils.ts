@@ -74,8 +74,8 @@ export async function getAccountsInfoPaginated(
   const chunks = chunk(pkeys, chunkSize)
   // Fetch each group of publicKeys in its own
   // getMultipleAccountsInfo() call
-  const chunkFetchPromises = chunks.map(chunk => {
-    return connection.getMultipleAccountsInfo(chunk)
+  const chunkFetchPromises = chunks.map(c => {
+    return connection.getMultipleAccountsInfo(c)
   });
 
   // Await all these promises to get a list of lists of
