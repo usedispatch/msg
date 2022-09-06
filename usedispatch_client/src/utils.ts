@@ -68,14 +68,14 @@ export async function getMetadataForMints(connection: Connection, mints: PublicK
 export async function getAccountsInfoPaginated(
   connection: Connection,
   pkeys: PublicKey[],
-  chunkSize = 100
+  chunkSize = 100,
 ): Promise<(AccountInfo<Buffer> | null)[]> {
   // Divide the list of publicKeys into groups of size `chunkSize`
-  const chunks = chunk(pkeys, chunkSize)
+  const chunks = chunk(pkeys, chunkSize);
   // Fetch each group of publicKeys in its own
   // getMultipleAccountsInfo() call
-  const chunkFetchPromises = chunks.map(c => {
-    return connection.getMultipleAccountsInfo(c)
+  const chunkFetchPromises = chunks.map((c) => {
+    return connection.getMultipleAccountsInfo(c);
   });
 
   // Await all these promises to get a list of lists of
