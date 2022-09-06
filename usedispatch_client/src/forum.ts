@@ -216,6 +216,10 @@ export class Forum implements IForum {
     return this._postbox.vote(post, false);
   }
 
+  async getVote(post: ForumPost): Promise<postbox.VoteType | undefined> {
+    return this._postbox.getVote(post);
+  }
+
   async addOwners(newOwners: web3.PublicKey[]): Promise<web3.TransactionSignature> {
     const updatedOwners = [...new Set([...(await this.getOwners()), ...newOwners])];
     return this._postbox.setOwners(updatedOwners);

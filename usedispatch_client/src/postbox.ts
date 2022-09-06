@@ -117,6 +117,22 @@ export enum SettingsType {
   postRestrictions = 'postRestriction',
 }
 
+export enum VoteType {
+  down,
+  up,
+}
+
+type ChainVoteEntry = {
+  postId: number;
+  upVote: boolean;
+};
+
+type ChainVoteTracker = {
+  votes: ChainVoteEntry[];
+};
+
+type NullableChainVoteTracker = ChainVoteTracker | null;
+
 export class Postbox {
   private _address: web3.PublicKey | undefined;
   private _voteTrackerAddress: web3.PublicKey | undefined;
@@ -339,6 +355,23 @@ export class Postbox {
 
   async fetchReplies(post: InteractablePost): Promise<Post[]> {
     return (await this.fetchAllPosts()).filter((p) => p.replyTo && p.replyTo.equals(post.address));
+  }
+
+  async getVote(post: InteractablePost): Promise<VoteType | undefined> {
+    const voteTrackerAddress = await this.getVoteTrackerAddress();
+    const voteTracker = await this.dispatch.postboxProgram.account.voteTracker.fetchNullable(
+      voteTrackerAddress) as NullableChainVoteTracker;
+    if (voteTracker !== null) {
+      for (const voteRecord of voteTracker.votes) {
+        if (post.postId === voteRecord.postId) {
+          if (voteRecord.upVote) {
+            return VoteType.up;
+          }
+          return VoteType.down;
+        }
+      }
+    }
+    return undefined;
   }
 
   // Admin functions

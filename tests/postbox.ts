@@ -2,7 +2,7 @@ import * as anchor from '@project-serum/anchor';
 import * as splToken from '@solana/spl-token';
 import { strict as assert } from 'assert';
 
-import { Postbox, DispatchConnection, Forum, clusterAddresses, PostRestriction } from '../usedispatch_client/src';
+import { Postbox, DispatchConnection, Forum, clusterAddresses, PostRestriction, VoteType } from '../usedispatch_client/src';
 
 describe('postbox', () => {
 
@@ -321,6 +321,9 @@ describe('postbox', () => {
     const posts = await forumAsModerator.getTopicMessages(topics[0]);
     const tx5 = await forumAsModerator.voteUpForumPost(posts[0]);
     await conn.confirmTransaction(tx5);
+
+    const vote = await forumAsModerator.getVote(posts[0]);
+    assert.equal(vote, VoteType.up);
 
     const postsAgain = await forumAsModerator.getTopicMessages(topics[0]);
     assert.equal(postsAgain[0].upVotes, 1);
