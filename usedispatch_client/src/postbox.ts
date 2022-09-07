@@ -116,8 +116,25 @@ export enum SettingsType {
   postRestrictions = 'postRestriction',
 }
 
+export enum VoteType {
+  down,
+  up,
+}
+
+type ChainVoteEntry = {
+  postId: number;
+  upVote: boolean;
+};
+
+type ChainVoteTracker = {
+  votes: ChainVoteEntry[];
+};
+
+type NullableChainVoteTracker = ChainVoteTracker | null;
+
 export class Postbox {
   private _address: web3.PublicKey | undefined;
+  private _voteTrackerAddress: web3.PublicKey | undefined;
 
   constructor(public dispatch: DispatchConnection, public target: PostboxTarget) {}
 
@@ -138,6 +155,17 @@ export class Postbox {
         signer: this.dispatch.wallet.publicKey!,
         targetAccount: this.target.key,
         treasury: this.dispatch.addresses.treasuryAddress,
+      })
+      .transaction();
+    return ix;
+  }
+
+  async createVoteTrackerIx(): Promise<web3.Transaction> {
+    const ix = await this.dispatch.postboxProgram.methods
+      .createVoteTracker()
+      .accounts({
+        postbox: await this.getAddress(),
+        voter: this.dispatch.wallet.publicKey!,
       })
       .transaction();
     return ix;
@@ -285,6 +313,7 @@ export class Postbox {
   }
 
   async vote(post: InteractablePost, up: boolean): Promise<web3.TransactionSignature> {
+    const tx = (await this.hasVoteTracker()) ? new web3.Transaction() : await this.createVoteTrackerIx();
     const postRestrictions = await this._getPostRestrictionAccounts(post);
     const ix = await this.dispatch.postboxProgram.methods
       .vote(post.postId, up, postRestrictions.praIdxs ? [postRestrictions.praIdxs] : [])
@@ -295,7 +324,8 @@ export class Postbox {
       })
       .remainingAccounts(postRestrictions.pra)
       .transaction();
-    return this.dispatch.sendTransaction(ix);
+    tx.add(ix);
+    return this.dispatch.sendTransaction(tx);
   }
 
   // Fetching functions
@@ -324,6 +354,23 @@ export class Postbox {
 
   async fetchReplies(post: InteractablePost): Promise<Post[]> {
     return (await this.fetchAllPosts()).filter((p) => p.replyTo && p.replyTo.equals(post.address));
+  }
+
+  async getVote(post: InteractablePost): Promise<VoteType | undefined> {
+    const voteTrackerAddress = await this.getVoteTrackerAddress();
+    const voteTracker = await this.dispatch.postboxProgram.account.voteTracker.fetchNullable(
+      voteTrackerAddress) as NullableChainVoteTracker;
+    if (voteTracker !== null) {
+      for (const voteRecord of voteTracker.votes) {
+        if (post.postId === voteRecord.postId) {
+          if (voteRecord.upVote) {
+            return VoteType.up;
+          }
+          return VoteType.down;
+        }
+      }
+    }
+    return undefined;
   }
 
   // Admin functions
@@ -502,6 +549,12 @@ export class Postbox {
     return false;
   }
 
+  async hasVoteTracker(): Promise<boolean> {
+    const voteTrackerAddress = await this.getVoteTrackerAddress();
+    const tracker = await this.dispatch.postboxProgram.account.voteTracker.fetchNullable(voteTrackerAddress);
+    return tracker !== null;
+  }
+
   // Chain functions
   async getAddress(): Promise<web3.PublicKey> {
     if (!this._address) {
@@ -512,6 +565,18 @@ export class Postbox {
       this._address = postAddress;
     }
     return this._address;
+  }
+
+  async getVoteTrackerAddress(): Promise<web3.PublicKey> {
+    if (!this._voteTrackerAddress) {
+      const postboxAddress = await this.getAddress();
+      const [voteTrackerAddress] = await web3.PublicKey.findProgramAddress(
+        [seeds.protocolSeed, seeds.voteTrackerSeed, postboxAddress.toBuffer(), this.dispatch.wallet.publicKey!.toBuffer()],
+        this.dispatch.postboxProgram.programId,
+      );
+      this._voteTrackerAddress = voteTrackerAddress;
+    }
+    return this._voteTrackerAddress;
   }
 
   async getPostAddress(postId: number): Promise<web3.PublicKey> {

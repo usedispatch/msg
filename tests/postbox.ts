@@ -2,7 +2,7 @@ import * as anchor from '@project-serum/anchor';
 import * as splToken from '@solana/spl-token';
 import { strict as assert } from 'assert';
 
-import { Postbox, DispatchConnection, Forum, clusterAddresses, PostRestriction } from '../usedispatch_client/src';
+import { Postbox, DispatchConnection, Forum, clusterAddresses, PostRestriction, VoteType } from '../usedispatch_client/src';
 
 describe('postbox', () => {
 
@@ -210,8 +210,9 @@ describe('postbox', () => {
 
     try {
       await postboxAsOwner.vote(topic, true);
+      assert.fail();
     } catch(e) {
-      const expectedError = "Error processing Instruction 0: custom program error: 0x183f";
+      const expectedError = "custom program error: 0x183f";
       assert.ok(e instanceof Error);
       assert.ok(e.message.includes(expectedError));
     }
@@ -221,8 +222,9 @@ describe('postbox', () => {
     const replyPost2 = {subj: "Should fail", body: "Reply"};
     try {
       await postboxAsOwner.replyToPost(replyPost2, topic);
+      assert.fail();
     } catch(e) {
-      const expectedError = "Error processing Instruction 0: custom program error: 0x183f";
+      const expectedError = "custom program error: 0x183f";
       assert.ok(e instanceof Error);
       assert.ok(e.message.includes(expectedError));
     }
@@ -319,6 +321,9 @@ describe('postbox', () => {
     const posts = await forumAsModerator.getTopicMessages(topics[0]);
     const tx5 = await forumAsModerator.voteUpForumPost(posts[0]);
     await conn.confirmTransaction(tx5);
+
+    const vote = await forumAsModerator.getVote(posts[0]);
+    assert.equal(vote, VoteType.up);
 
     const postsAgain = await forumAsModerator.getTopicMessages(topics[0]);
     assert.equal(postsAgain[0].upVotes, 1);
@@ -454,5 +459,67 @@ describe('postbox', () => {
     const images = await forumAsOwner.getImageUrls();
     assert.equal(images.background, expectedImages.background);
     assert.equal(images.thumbnail, expectedImages.thumbnail);
+  });
+
+  it('Prevents double votes', async () => {
+    const voter = new anchor.Wallet(anchor.web3.Keypair.generate());
+    await conn.confirmTransaction(await conn.requestAirdrop(voter.publicKey, 100 * anchor.web3.LAMPORTS_PER_SOL));
+
+    const postboxAsVoter = new Postbox(new DispatchConnection(conn, voter), {key: voter.publicKey});
+    await conn.confirmTransaction(await postboxAsVoter.initialize());
+
+    const testPost = { subj: "T", body: "T" };
+    await conn.confirmTransaction(await postboxAsVoter.createPost(testPost));
+    const topLevelPosts = await postboxAsVoter.fetchPosts();
+    const post = topLevelPosts[topLevelPosts.length - 1];
+    await conn.confirmTransaction(await postboxAsVoter.vote(post, true));
+
+    try {
+      await conn.confirmTransaction(await postboxAsVoter.vote(post, true));
+      assert.fail();
+    } catch (e) {
+      assert.ok(String(e).includes("custom program error: 0x1842"));
+    }
+  });
+
+  it('Allows changing a vote', async () => {
+    const voter = new anchor.Wallet(anchor.web3.Keypair.generate());
+    await conn.confirmTransaction(await conn.requestAirdrop(voter.publicKey, 100 * anchor.web3.LAMPORTS_PER_SOL));
+
+    const postboxAsVoter = new Postbox(new DispatchConnection(conn, voter), {key: voter.publicKey});
+    await conn.confirmTransaction(await postboxAsVoter.initialize());
+
+    const testPost = { subj: "T", body: "T" };
+    await conn.confirmTransaction(await postboxAsVoter.createPost(testPost));
+    const topLevelPosts = await postboxAsVoter.fetchPosts();
+    const post = topLevelPosts[0];
+    // Flip back and forth to make sure the bookkeeping is ok
+    await conn.confirmTransaction(await postboxAsVoter.vote(post, true));
+    await conn.confirmTransaction(await postboxAsVoter.vote(post, false));
+    await conn.confirmTransaction(await postboxAsVoter.vote(post, true));
+    await conn.confirmTransaction(await postboxAsVoter.vote(post, false));
+
+    const posts = await postboxAsVoter.fetchPosts();
+    assert.equal(posts[0].upVotes, 0);
+    assert.equal(posts[0].downVotes, 1);
+  });
+
+  xit('Tests large numbers of votes', async () => {
+    const voter = new anchor.Wallet(anchor.web3.Keypair.generate());
+    await conn.confirmTransaction(await conn.requestAirdrop(voter.publicKey, 100 * anchor.web3.LAMPORTS_PER_SOL));
+
+    const postboxAsVoter = new Postbox(new DispatchConnection(conn, voter), {key: voter.publicKey});
+    await conn.confirmTransaction(await postboxAsVoter.initialize());
+
+    const iterations = 1500;
+    for (let i = 0; i < iterations; ++i) {
+      if (i % 100 == 0) {
+        console.log("Doing vote", i);
+      }
+      const testPost = { subj: String(i), body: "T" };
+      await conn.confirmTransaction(await postboxAsVoter.createPost(testPost));
+      const topLevelPosts = await postboxAsVoter.fetchPosts();
+      await conn.confirmTransaction(await postboxAsVoter.vote(topLevelPosts[topLevelPosts.length - 1], true));
+    }
   });
 });
