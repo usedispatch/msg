@@ -358,8 +358,9 @@ export class Postbox {
 
   async getVote(post: InteractablePost): Promise<VoteType | undefined> {
     const voteTrackerAddress = await this.getVoteTrackerAddress();
-    const voteTracker = await this.dispatch.postboxProgram.account.voteTracker.fetchNullable(
-      voteTrackerAddress) as NullableChainVoteTracker;
+    const voteTracker = (await this.dispatch.postboxProgram.account.voteTracker.fetchNullable(
+      voteTrackerAddress,
+    )) as NullableChainVoteTracker;
     if (voteTracker !== null) {
       for (const voteRecord of voteTracker.votes) {
         if (post.postId === voteRecord.postId) {
@@ -375,8 +376,9 @@ export class Postbox {
 
   async getVotes(): Promise<ChainVoteEntry[] | undefined> {
     const voteTrackerAddress = await this.getVoteTrackerAddress();
-    const voteTracker = await this.dispatch.postboxProgram.account.voteTracker.fetchNullable(
-      voteTrackerAddress) as NullableChainVoteTracker;
+    const voteTracker = (await this.dispatch.postboxProgram.account.voteTracker.fetchNullable(
+      voteTrackerAddress,
+    )) as NullableChainVoteTracker;
     if (voteTracker !== null) {
       return voteTracker.votes;
     }
@@ -581,7 +583,12 @@ export class Postbox {
     if (!this._voteTrackerAddress) {
       const postboxAddress = await this.getAddress();
       const [voteTrackerAddress] = await web3.PublicKey.findProgramAddress(
-        [seeds.protocolSeed, seeds.voteTrackerSeed, postboxAddress.toBuffer(), this.dispatch.wallet.publicKey!.toBuffer()],
+        [
+          seeds.protocolSeed,
+          seeds.voteTrackerSeed,
+          postboxAddress.toBuffer(),
+          this.dispatch.wallet.publicKey!.toBuffer(),
+        ],
         this.dispatch.postboxProgram.programId,
       );
       this._voteTrackerAddress = voteTrackerAddress;
