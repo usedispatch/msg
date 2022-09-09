@@ -178,11 +178,14 @@ describe('postbox', () => {
   it('Restricts posts to token holders', async () => {
     const owner = new anchor.Wallet(anchor.web3.Keypair.generate());
     const poster = new anchor.Wallet(anchor.web3.Keypair.generate());
+    const other = new anchor.Wallet(anchor.web3.Keypair.generate());
     await conn.confirmTransaction(await conn.requestAirdrop(owner.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
     await conn.confirmTransaction(await conn.requestAirdrop(poster.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
+    await conn.confirmTransaction(await conn.requestAirdrop(other.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
 
     const postboxAsOwner = new Postbox(new DispatchConnection(conn, owner), {key: owner.publicKey});
     const postboxAsPoster = new Postbox(new DispatchConnection(conn, poster), {key: owner.publicKey});
+    const postboxAsOther = new Postbox(new DispatchConnection(conn, other), {key: owner.publicKey});
     const tx0 = await postboxAsOwner.initialize();
     await conn.confirmTransaction(tx0);
 
@@ -208,29 +211,43 @@ describe('postbox', () => {
     const txA = await postboxAsPoster.vote(topic, true);
     await conn.confirmTransaction(txA);
 
+    // super-user logic
+    assert.ok(await postboxAsOwner.canPost());
+    assert.ok(await postboxAsOwner.canPost(topic));
+    const replyPostOwner = {subj: "Interesting", body: "Reply by owner"};
+    const tx5 = await postboxAsOwner.replyToPost(replyPostOwner, topic);
+    await conn.confirmTransaction(tx5);
+
+    const tx6 = await postboxAsOwner.vote(topic, true);
+    await conn.confirmTransaction(tx6);
+
+    let errors = 0;
     try {
-      await postboxAsOwner.vote(topic, true);
+      await postboxAsOther.vote(topic, true);
       assert.fail();
     } catch(e) {
       const expectedError = "custom program error: 0x183f";
       assert.ok(e instanceof Error);
       assert.ok(e.message.includes(expectedError));
+      errors++;
     }
 
-    assert.ok(await postboxAsOwner.canPost());
-    assert.ok(!await postboxAsOwner.canPost(topic));
+    assert.ok(await postboxAsOther.canPost());
+    assert.ok(!await postboxAsOther.canPost(topic));
     const replyPost2 = {subj: "Should fail", body: "Reply"};
     try {
-      await postboxAsOwner.replyToPost(replyPost2, topic);
+      await postboxAsOther.replyToPost(replyPost2, topic);
       assert.fail();
     } catch(e) {
       const expectedError = "custom program error: 0x183f";
       assert.ok(e instanceof Error);
       assert.ok(e.message.includes(expectedError));
+      errors++;
     }
+    assert.equal(errors, 2);
 
     const replies = await postboxAsOwner.fetchReplies(topic);
-    assert.equal(replies.length, 1);
+    assert.equal(replies.length, 2);
   });
 
   it('Uses the forum.ts wrapper', async () => {

@@ -475,6 +475,7 @@ impl Postbox {
                     interactor_key,
                     remaining_accounts,
                     additional_account_offsets,
+                    self,
                 )?,
                 _ => {return Err(Error::from(PostboxErrorCode::MalformedSetting).with_source(source!()))},
             };
