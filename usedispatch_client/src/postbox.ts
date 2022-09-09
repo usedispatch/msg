@@ -121,7 +121,7 @@ export enum VoteType {
   up,
 }
 
-type ChainVoteEntry = {
+export type ChainVoteEntry = {
   postId: number;
   upVote: boolean;
 };
@@ -369,6 +369,16 @@ export class Postbox {
           return VoteType.down;
         }
       }
+    }
+    return undefined;
+  }
+
+  async getVotes(): Promise<ChainVoteEntry[] | undefined> {
+    const voteTrackerAddress = await this.getVoteTrackerAddress();
+    const voteTracker = await this.dispatch.postboxProgram.account.voteTracker.fetchNullable(
+      voteTrackerAddress) as NullableChainVoteTracker;
+    if (voteTracker !== null) {
+      return voteTracker.votes;
     }
     return undefined;
   }

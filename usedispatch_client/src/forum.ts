@@ -62,6 +62,12 @@ export interface IForum {
   // Vote a post down
   voteDownForumPost(post: ForumPost): Promise<web3.TransactionSignature>;
 
+  // Get the vote for a post
+  getVote(post: ForumPost): Promise<postbox.VoteType | undefined>;
+
+  // Get all votes for a user in a forum
+  getVotes(): Promise<postbox.ChainVoteEntry[] | undefined>;
+
   // Get a list of the owners of this forum
   getOwners(): Promise<web3.PublicKey[]>;
 
@@ -221,6 +227,10 @@ export class Forum implements IForum {
 
   async getVote(post: ForumPost): Promise<postbox.VoteType | undefined> {
     return this._postbox.getVote(post);
+  }
+
+  async getVotes(): Promise<postbox.ChainVoteEntry[] | undefined> {
+    return this._postbox.getVotes();
   }
 
   async addOwners(newOwners: web3.PublicKey[]): Promise<web3.TransactionSignature> {
