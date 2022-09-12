@@ -41,4 +41,4 @@ export const TXN_COMMITMENT = 'processed';
  * How many times the dispatch connection should retry sending a
  * connection if it fails
  */
-export const SOLANA_CONNECTION_MAX_RETRIES
+export const SOLANA_CONNECTION_MAX_RETRIES = 6;
