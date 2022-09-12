@@ -36,3 +36,9 @@ clusterAddresses.set('mainnet-beta', {
 export const defaultCluster: web3.Cluster = 'devnet';
 
 export const TXN_COMMITMENT = 'processed';
+
+/**
+ * How many times the dispatch connection should retry sending a
+ * connection if it fails
+ */
+export const SOLANA_CONNECTION_MAX_RETRIES
