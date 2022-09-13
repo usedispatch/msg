@@ -1,6 +1,6 @@
 import { Connection, PublicKey, AccountInfo } from '@solana/web3.js';
 import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
-import { chunk, concat } from 'lodash';
+import chunk from 'lodash/chunk';
 import { Metadata, PROGRAM_ID } from '@metaplex-foundation/mpl-token-metadata';
 import { Result } from '../src/types';
 
