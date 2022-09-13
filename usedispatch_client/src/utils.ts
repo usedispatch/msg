@@ -1,8 +1,10 @@
 import { Connection, PublicKey, AccountInfo } from '@solana/web3.js';
 import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import chunk from 'lodash/chunk';
-import { Metadata, PROGRAM_ID } from '@metaplex-foundation/mpl-token-metadata';
+import { Metadata } from '@metaplex-foundation/mpl-token-metadata/dist/src/generated/accounts/Metadata';
 import { Result } from '../src/types';
+
+const PROGRAM_ID = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
 
 export async function deriveMetadataAccount(mint: PublicKey) {
   // This key derivation is based on the fields describe here:
