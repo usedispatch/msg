@@ -2,3 +2,5 @@ node_modules
 lib
 .parcel-cache
 dist
+.pnp.*
+.yarn/*
