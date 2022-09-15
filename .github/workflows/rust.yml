@@ -51,6 +51,6 @@ jobs:
           USER_WITH_ASSOCIATED_ACCOUNT_WITH_ZERO_BALANCE_KEY: ${{ secrets.USER_WITH_ASSOCIATED_ACCOUNT_WITH_ZERO_BALANCE_KEY }}
         run: anchor test
       - name: Test Dispatch client
-        run: cd usedispatch_client && npm install && cd ..
+        run: cd usedispatch_client && yarn install && cd ..
       - name: Build Dispatch CLI (no tests yet)
-        run: cd usedispatch_cli && npm install && cd ..
+        run: cd usedispatch_cli && yarn install && cd ..
