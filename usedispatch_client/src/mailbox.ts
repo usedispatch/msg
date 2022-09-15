@@ -181,6 +181,13 @@ export class Mailbox extends DispatchConnection {
     return sentToReceiver;
   }
 
+  async fetchMessagesByAddress(receiverAddress: web3.PublicKey): Promise<MessageAccount[]> {
+    const receiverMailbox = new Mailbox(this.conn, this.wallet, { mailboxOwner: receiverAddress });
+    const sentToReceiver = await receiverMailbox.fetchMessages();
+    return sentToReceiver;
+  }
+
+
   async fetchIncentiveTokenAccount(messageAccount: MessageAccount) {
     if (!messageAccount.incentiveMint) throw new Error('messageAccount does not have incentive attached');
     const messageAddress = await this.getMessageAddress(messageAccount.messageId, messageAccount.receiver);
