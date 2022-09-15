@@ -2245,6 +2245,7 @@ __metadata:
     process: ^0.11.10
     react: ^17.0.2
     rollup: ^2.79.0
+    superstruct: ^0.16.0
     ts-jest: ^27.1.1
     tslint: ^6.1.3
     tslint-config-prettier: ^1.18.0
@@ -6952,6 +6953,13 @@ __metadata:
   version: 0.14.2
   resolution: "superstruct@npm:0.14.2"
   checksum: c5c4840f432da82125b923ec45faca5113217e83ae416e314d80eae012b8bb603d2e745025d173450758d116348820bc7028157f8c9a72b6beae879f94b837c0
+  languageName: node
+  linkType: hard
+
+"superstruct@npm:^0.16.0":
+  version: 0.16.0
+  resolution: "superstruct@npm:0.16.0"
+  checksum: 1979c287f95f2a9dece537f74f5330b0b831965030fe025e2d52dfb3ecdf8974251371cc22d5cdf36960639b039687e5a236881f6ec7cf33d5c8fdc348f13a46
   languageName: node
   linkType: hard
 
