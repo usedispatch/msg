@@ -16,10 +16,10 @@
     "postversion": "git push && git push --tags"
   },
   "source": "src/index.ts",
-  "module": "dist/index.js",
+  "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "targets": {
-    "module": {
+    "main": {
       "optimize": true
     }
   },
