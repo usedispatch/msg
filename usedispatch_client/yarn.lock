@@ -2156,6 +2156,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/react@npm:^18.0.20":
+  version: 18.0.20
+  resolution: "@types/react@npm:18.0.20"
+  dependencies:
+    "@types/prop-types": "*"
+    "@types/scheduler": "*"
+    csstype: ^3.0.2
+  checksum: f67f5b16efd89e237bf0e40d133218c398cf2a2f81166ce1e9fa32d0df6b869106740983396c51df9708a1b79b2a9d725eda1230cc3064c92d86d9ea6a4b714c
+  languageName: node
+  linkType: hard
+
 "@types/scheduler@npm:*":
   version: 0.16.2
   resolution: "@types/scheduler@npm:0.16.2"
@@ -2235,6 +2246,7 @@ __metadata:
     "@types/jest": ^27.0.3
     "@types/lodash": ^4.14.185
     "@types/node": ^16.11.12
+    "@types/react": ^18.0.20
     assert: ^2.0.0
     bs58: ^4.0.1
     crypto-js: ^4.1.1
