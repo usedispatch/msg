@@ -4,12 +4,14 @@ import { Messaging } from '../../target/types/messaging';
 import messagingProgramIdl from '../../target/idl/messaging.json';
 import { Postbox } from '../../target/types/postbox';
 import postboxProgramIdl from '../../target/idl/postbox.json';
-import { clusterAddresses, defaultCluster, DispatchAddresses, TXN_COMMITMENT, SOLANA_CONNECTION_MAX_RETRIES } from './constants';
 import {
-  WalletInterface,
-  AnchorExpectedWalletInterface,
-  AnchorNodeWalletInterface,
-} from './wallets';
+  clusterAddresses,
+  defaultCluster,
+  DispatchAddresses,
+  TXN_COMMITMENT,
+  SOLANA_CONNECTION_MAX_RETRIES,
+} from './constants';
+import { WalletInterface, AnchorExpectedWalletInterface, AnchorNodeWalletInterface } from './wallets';
 
 export type DispatchConnectionOpts = {
   skipAnchorProvider?: boolean;
