@@ -14,6 +14,7 @@ export const seeds = {
   postboxSeed: Buffer.from('postbox'),
   postSeed: Buffer.from('post'),
   moderatorSeed: Buffer.from('moderator'),
+  voteTrackerSeed: Buffer.from('votes'),
 };
 
 export const eventName = 'DispatchMessage';
@@ -33,3 +34,11 @@ clusterAddresses.set('mainnet-beta', {
 });
 
 export const defaultCluster: web3.Cluster = 'devnet';
+
+export const TXN_COMMITMENT = 'processed';
+
+/**
+ * How many times the dispatch connection should retry sending a
+ * connection if it fails
+ */
+export const SOLANA_CONNECTION_MAX_RETRIES = 6;

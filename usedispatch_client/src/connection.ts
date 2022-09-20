@@ -4,7 +4,7 @@ import { Messaging } from '../../target/types/messaging';
 import messagingProgramIdl from '../../target/idl/messaging.json';
 import { Postbox } from '../../target/types/postbox';
 import postboxProgramIdl from '../../target/idl/postbox.json';
-import { clusterAddresses, defaultCluster, DispatchAddresses } from './constants';
+import { clusterAddresses, defaultCluster, DispatchAddresses, TXN_COMMITMENT, SOLANA_CONNECTION_MAX_RETRIES } from './constants';
 import {
   WalletInterface,
   AnchorExpectedWalletInterface,
@@ -43,16 +43,16 @@ export class DispatchConnection {
   public async sendTransaction(
     tx: web3.Transaction,
     // TODO see if there is a better default than recent
-    commitment: web3.Commitment = 'recent',
+    commitment: web3.Commitment = TXN_COMMITMENT,
   ) {
     let sig: string;
     if ('sendTransaction' in this.wallet) {
       const wallet = this.wallet;
-      sig = await wallet.sendTransaction(tx, this.conn);
+      sig = await wallet.sendTransaction(tx, this.conn, { maxRetries: SOLANA_CONNECTION_MAX_RETRIES });
     } else if ('payer' in this.wallet) {
       const wallet = this.wallet as AnchorNodeWalletInterface;
       const signer = wallet.payer;
-      sig = await this.conn.sendTransaction(tx, [signer]);
+      sig = await this.conn.sendTransaction(tx, [signer], { maxRetries: SOLANA_CONNECTION_MAX_RETRIES });
     } else {
       throw new Error('`wallet` has neither `sendTransaction` nor `payer` so cannot send transaction');
     }

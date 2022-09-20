@@ -1,5 +1,6 @@
 import * as web3 from '@solana/web3.js';
 import { DispatchConnection } from './connection';
+import { TXN_COMMITMENT } from './constants';
 import * as postbox from './postbox';
 
 export type ForumInfo = {
@@ -61,6 +62,12 @@ export interface IForum {
   // Vote a post down
   voteDownForumPost(post: ForumPost): Promise<web3.TransactionSignature>;
 
+  // Get the vote for a post
+  getVote(post: ForumPost): Promise<postbox.VoteType | undefined>;
+
+  // Get all votes for a user in a forum
+  getVotes(): Promise<postbox.ChainVoteEntry[] | undefined>;
+
   // Get a list of the owners of this forum
   getOwners(): Promise<web3.PublicKey[]>;
 
@@ -81,6 +88,8 @@ export interface IForum {
 
   // Delegate the given account as a moderator by giving them a moderator token
   addModeratorIx(newMod: web3.PublicKey): Promise<web3.Transaction>;
+
+  getModeratorMint(): Promise<web3.PublicKey>;
 
   // Get a list of moderators
   getModerators(): Promise<web3.PublicKey[]>;
@@ -216,6 +225,14 @@ export class Forum implements IForum {
     return this._postbox.vote(post, false);
   }
 
+  async getVote(post: ForumPost): Promise<postbox.VoteType | undefined> {
+    return this._postbox.getVote(post);
+  }
+
+  async getVotes(): Promise<postbox.ChainVoteEntry[] | undefined> {
+    return this._postbox.getVotes();
+  }
+
   async addOwners(newOwners: web3.PublicKey[]): Promise<web3.TransactionSignature> {
     const updatedOwners = [...new Set([...(await this.getOwners()), ...newOwners])];
     return this._postbox.setOwners(updatedOwners);
@@ -248,7 +265,7 @@ export class Forum implements IForum {
   async setForumPostRestriction(
     restriction: postbox.PostRestriction,
     // TODO confirm whether recent is a reasonable default
-    commitment: web3.Commitment = 'recent',
+    commitment: web3.Commitment = TXN_COMMITMENT,
   ): Promise<web3.TransactionSignature> {
     return this._postbox.setPostboxPostRestriction(restriction, commitment);
   }
@@ -257,7 +274,7 @@ export class Forum implements IForum {
     return this._postbox.setPostboxPostRestrictionIx(restriction);
   }
 
-  async deleteForumPostRestriction(commitment: web3.Commitment = 'recent'): Promise<web3.TransactionSignature> {
+  async deleteForumPostRestriction(commitment: web3.Commitment = TXN_COMMITMENT): Promise<web3.TransactionSignature> {
     return this._postbox.setPostboxPostRestriction({ null: {} }, commitment);
   }
 
@@ -267,6 +284,10 @@ export class Forum implements IForum {
 
   async addModeratorIx(newMod: web3.PublicKey): Promise<web3.Transaction> {
     return this._postbox.createAddModeratorIx(newMod);
+  }
+
+  async getModeratorMint(): Promise<web3.PublicKey> {
+    return this._postbox.getModeratorMint();
   }
 
   async getModerators(): Promise<web3.PublicKey[]> {

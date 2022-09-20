@@ -3,12 +3,14 @@ use anchor_spl::{token, associated_token};
 use errors::PostboxErrorCode;
 use post_restrictions::AdditionalAccountIndices;
 use settings::{SettingsData, SettingsType};
+use vote_entry::{VoteEntry};
 
 mod errors;
 mod nft_metadata;
 mod post_restrictions;
 mod settings;
 mod treasury;
+mod vote_entry;
 
 #[cfg(feature = "mainnet")]
 declare_id!("DHepkufWDLJ9DCD37nbEDbPSFKjGiziQ6Lbgo1zgGX7S");
@@ -19,6 +21,7 @@ const PROTOCOL_SEED: & str = "dispatch";
 const POSTBOX_SEED: & str = "postbox";
 const POST_SEED: & str = "post";
 const MODERATOR_SEED: & str = "moderator";
+const VOTE_TRACK_SEED: & str = "votes";
 
 #[constant]
 const POSTBOX_GROW_CHILDREN_BY: u32 = 1;
@@ -140,7 +143,7 @@ pub mod postbox {
         Ok(())
     }
 
-    pub fn vote(ctx: Context<Vote>, _post_id: u32, up_vote: bool,
+    pub fn vote(ctx: Context<Vote>, post_id: u32, up_vote: bool,
         additional_account_offsets: Vec<AdditionalAccountIndices>,
     ) -> Result<()> {
         let post_account = &mut ctx.accounts.post;
@@ -152,6 +155,30 @@ pub mod postbox {
             &additional_account_offsets,
             false,
         )?;
+
+        // Check if we already voted
+        let mut relevant_vote_entry: Option<&mut VoteEntry> = None;
+        for vote_entry in &mut ctx.accounts.vote_tracker.votes {
+            if vote_entry.post_id == post_id {
+                relevant_vote_entry = Some(vote_entry);
+            }
+        }
+
+        if let Some(vote_entry) = relevant_vote_entry {
+            require!(vote_entry.up_vote != up_vote, PostboxErrorCode::AlreadyVoted);
+            // If we already voted, we can only change the vote, so back out the old vote
+            let old_vote_count = if vote_entry.up_vote {&mut post_account.up_votes} else {&mut post_account.down_votes};
+            *old_vote_count -= if 0 == *old_vote_count {0} else {1};
+            vote_entry.up_vote = up_vote;
+        } else {
+            // Allow a new vote
+            ctx.accounts.vote_tracker.votes.push(VoteEntry {post_id, up_vote});
+            resize_account(
+                ctx.accounts.vote_tracker.to_account_info().as_ref(),
+                &ctx.accounts.voter,
+                8 + 4 + 5 * ctx.accounts.vote_tracker.votes.len(),
+            )?;
+        }
 
         let vote_count = if up_vote {&mut post_account.up_votes} else {&mut post_account.down_votes};
         *vote_count += if MAX_VOTE == *vote_count {0} else {1};
@@ -203,6 +230,10 @@ pub mod postbox {
             old_data: old_data,
             new_data: new_data,
         });
+        Ok(())
+    }
+
+    pub fn create_vote_tracker(_ctx: Context<CreateVoteTracker>) -> Result<()> {
         Ok(())
     }
 }
@@ -307,6 +338,12 @@ pub struct Vote<'info> {
     pub postbox: Box<Account<'info, Postbox>>,
     #[account(mut)]
     pub voter: Signer<'info>,
+    #[account(
+        mut,
+        seeds = [PROTOCOL_SEED.as_bytes(), VOTE_TRACK_SEED.as_bytes(), postbox.key().as_ref(), voter.key().as_ref()],
+        bump,
+    )]
+    pub vote_tracker: Box<Account<'info, VoteTracker>>,
     /// CHECK: we do not access the data in the treasury other than to transfer lamports to it
     #[account(mut, address = treasury::TREASURY_ADDRESS)]
     pub treasury: UncheckedAccount<'info>,
@@ -367,6 +404,23 @@ pub struct EditPost<'info> {
     pub postbox: Box<Account<'info, Postbox>>,
     #[account(mut)]
     pub poster: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct CreateVoteTracker<'info> {
+    #[account(mut)]
+    pub postbox: Box<Account<'info, Postbox>>,
+    #[account(mut)]
+    pub voter: Signer<'info>,
+    #[account(
+        init,
+        payer = voter,
+        space = 8 + 4,
+        seeds = [PROTOCOL_SEED.as_bytes(), VOTE_TRACK_SEED.as_bytes(), postbox.key().as_ref(), voter.key().as_ref()],
+        bump,
+    )]
+    pub vote_tracker: Box<Account<'info, VoteTracker>>,
     pub system_program: Program<'info, System>,
 }
 
@@ -504,6 +558,12 @@ pub struct Post {
     down_votes: u16,
     reply_to: Option<Pubkey>,
     settings: Vec<SettingsData>,
+}
+
+#[account]
+#[derive(Default)]
+pub struct VoteTracker {
+    votes: Vec<VoteEntry>,
 }
 
 #[event]
