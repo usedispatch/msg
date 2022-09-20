@@ -8,7 +8,6 @@ import { clusterAddresses, defaultCluster, DispatchAddresses, TXN_COMMITMENT, SO
 import {
   WalletInterface,
   AnchorExpectedWalletInterface,
-  WalletAdapterInterface,
   AnchorNodeWalletInterface,
 } from './wallets';
 
@@ -48,7 +47,7 @@ export class DispatchConnection {
   ) {
     let sig: string;
     if ('sendTransaction' in this.wallet) {
-      const wallet = this.wallet as WalletAdapterInterface;
+      const wallet = this.wallet;
       sig = await wallet.sendTransaction(tx, this.conn, { maxRetries: SOLANA_CONNECTION_MAX_RETRIES });
     } else if ('payer' in this.wallet) {
       const wallet = this.wallet as AnchorNodeWalletInterface;
