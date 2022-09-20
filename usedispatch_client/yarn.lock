@@ -1858,6 +1858,30 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@solana/wallet-adapter-base@npm:^0.9.17":
+  version: 0.9.17
+  resolution: "@solana/wallet-adapter-base@npm:0.9.17"
+  dependencies:
+    eventemitter3: ^4.0.0
+  peerDependencies:
+    "@solana/web3.js": ^1.61.0
+  checksum: 05204bbc4cc1fb421dfe0f4e499001e9609c30e77a23ed7ce1f09cc204295c4118fc56acf0a45f9c78897a9b16ce7474bc7bcda77916ef834e0644d11cf4a232
+  languageName: node
+  linkType: hard
+
+"@solana/wallet-adapter-react@npm:^0.15.19":
+  version: 0.15.19
+  resolution: "@solana/wallet-adapter-react@npm:0.15.19"
+  dependencies:
+    "@solana/wallet-adapter-base": ^0.9.17
+  peerDependencies:
+    "@solana/web3.js": ^1.61.0
+    react: "*"
+    react-dom: "*"
+  checksum: 0e894e5bc456e6bb2294f9fc71bfc20b15f4ab4b13623d85261d104fd0047dcdd58184982f60e5742050c0fbee9d279fef364f9d8707f4cabb633d3476ee74eb
+  languageName: node
+  linkType: hard
+
 "@solana/web3.js@npm:1.50.1":
   version: 1.50.1
   resolution: "@solana/web3.js@npm:1.50.1"
@@ -2238,6 +2262,7 @@ __metadata:
     "@project-serum/anchor": ^0.24.2
     "@solana/buffer-layout": ^4.0.0
     "@solana/spl-token": ^0.2.0
+    "@solana/wallet-adapter-react": ^0.15.19
     "@solana/web3.js": ^1.50.1
     "@testing-library/jest-dom": ^5.16.2
     "@testing-library/react": ^12.1.3
@@ -3667,7 +3692,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eventemitter3@npm:^4.0.7":
+"eventemitter3@npm:^4.0.0, eventemitter3@npm:^4.0.7":
   version: 4.0.7
   resolution: "eventemitter3@npm:4.0.7"
   checksum: 1875311c42fcfe9c707b2712c32664a245629b42bb0a5a84439762dd0fd637fc54d078155ea83c2af9e0323c9ac13687e03cfba79b03af9f40c89b4960099374
