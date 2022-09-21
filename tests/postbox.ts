@@ -344,6 +344,40 @@ describe('postbox', () => {
     assert.equal(topicsPostEdit[0].data.subj, "Test Topic Renamed");
   });
 
+  it('UpdateOwner list', async () => {
+    
+    const collectionId = anchor.web3.Keypair.generate().publicKey;
+
+    const owner = new anchor.Wallet(anchor.web3.Keypair.generate());
+    const user = new anchor.Wallet(anchor.web3.Keypair.generate());
+    await conn.confirmTransaction(await conn.requestAirdrop(owner.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
+    await conn.confirmTransaction(await conn.requestAirdrop(user.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
+
+    const forumAsOwner = new Forum(new DispatchConnection(conn, owner), collectionId);
+
+    const descStr = "A forum for the test suite";
+    if (!await forumAsOwner.exists()) {
+      const txs = await forumAsOwner.createForum({
+        collectionId,
+        owners: [owner.publicKey],
+        moderators: [],  
+        title: "Test Forum",
+        description: descStr,
+      });
+      await Promise.all(txs.map((t) => conn.confirmTransaction(t)));
+    }
+
+    let owners = await forumAsOwner.getOwners();
+    assert.equal(owners.length, 1);
+    
+    const tx = await forumAsOwner.addOwners([owner.publicKey, user.publicKey]);
+    await conn.confirmTransaction(tx);
+
+    owners = await forumAsOwner.getOwners();    
+    assert.equal(owners.length, 2);
+    
+  });
+
   it('Sets token post restrictions on a forum', async () => {
     const collectionId = anchor.web3.Keypair.generate().publicKey;
 
