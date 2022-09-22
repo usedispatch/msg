@@ -370,7 +370,7 @@ describe('postbox', () => {
     let owners = await forumAsOwner.getOwners();
     assert.equal(owners.length, 1);
     
-    const tx = await forumAsOwner.addOwners([owner.publicKey, user.publicKey]);
+    const tx = await forumAsOwner.setOwners([owner.publicKey, user.publicKey]);
     await conn.confirmTransaction(tx);
 
     owners = await forumAsOwner.getOwners();    

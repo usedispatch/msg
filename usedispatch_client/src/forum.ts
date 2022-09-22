@@ -233,8 +233,11 @@ export class Forum implements IForum {
     return this._postbox.getVotes();
   }
 
-  async addOwners(newOwners: web3.PublicKey[]): Promise<web3.TransactionSignature> {
-    const updatedOwners = [...new Set([...(await this.getOwners()), ...newOwners])];
+  async setOwners(newOwners: web3.PublicKey[]): Promise<web3.TransactionSignature> {
+    const updatedOwners = newOwners;
+    if (!newOwners.find(elem => elem.equals(this.dispatchConn.wallet.publicKey))) {
+      updatedOwners.push(this.dispatchConn.wallet.publicKey);
+    }
     return this._postbox.setOwners(updatedOwners);
   }
 
