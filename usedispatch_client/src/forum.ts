@@ -235,7 +235,7 @@ export class Forum implements IForum {
 
   async setOwners(newOwners: web3.PublicKey[]): Promise<web3.TransactionSignature> {
     const updatedOwners = newOwners;
-    if (!newOwners.find(elem => elem.equals(this.dispatchConn.wallet.publicKey))) {
+    if (!newOwners.find((elem) => elem.equals(this.dispatchConn.wallet.publicKey))) {
       updatedOwners.push(this.dispatchConn.wallet.publicKey);
     }
     return this._postbox.setOwners(updatedOwners);
