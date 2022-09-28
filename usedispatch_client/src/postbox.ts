@@ -4,6 +4,7 @@ import * as web3 from '@solana/web3.js';
 import { seeds, TXN_COMMITMENT } from './constants';
 import { DispatchConnection } from './connection';
 import { getMetadataForOwner, deriveMetadataAccount } from './utils';
+import { getMaxChildId, getNewChildId, addNewPostbox } from './api';
 
 export type PostboxTarget = {
   key: web3.PublicKey;
@@ -136,7 +137,7 @@ export class Postbox {
   private _address: web3.PublicKey | undefined;
   private _voteTrackerAddress: web3.PublicKey | undefined;
 
-  constructor(public dispatch: DispatchConnection, public target: PostboxTarget) {}
+  constructor(public dispatch: DispatchConnection, public target: PostboxTarget) { }
 
   // Init functions
   async initialize(owners?: web3.PublicKey[], description?: Description): Promise<web3.TransactionSignature> {
@@ -157,6 +158,9 @@ export class Postbox {
         treasury: this.dispatch.addresses.treasuryAddress,
       })
       .transaction();
+      console.log('add new postbox', this.target.key.toBase58() ?? '');
+      const res = await addNewPostbox(this.dispatch.cluster, this.target.key.toBase58());
+      console.log(res);
     return ix;
   }
 
@@ -247,7 +251,7 @@ export class Postbox {
   ): Promise<web3.TransactionSignature> {
     // TODO(mfasman): make this be a better allocation algorithm
     // const growBy = 1; // TODO(mfasman): pull from the IDL
-    const maxId = (await this.getChainPostboxInfo()).maxChildId;
+    const maxId = await getNewChildId(this.dispatch.cluster, this.target.key.toBase58());
     // const addresses = await this.getAddresses(maxId, Math.max(0, maxId - growBy));
     // const infos = await this.dispatch.conn.getMultipleAccountsInfo(addresses);
     const data = await this.postDataToBuffer(input);
@@ -619,7 +623,9 @@ export class Postbox {
   }
 
   async getChainPostboxInfo(): Promise<ChainPostboxInfo> {
-    return this.dispatch.postboxProgram.account.postbox.fetch(await this.getAddress());
+    const postboxInfo = await this.dispatch.postboxProgram.account.postbox.fetch(await this.getAddress());
+    postboxInfo.maxChildId = await getMaxChildId(this.dispatch.cluster, this.target.key.toBase58());
+    return postboxInfo;
   }
 
   async getModeratorMint(): Promise<web3.PublicKey> {

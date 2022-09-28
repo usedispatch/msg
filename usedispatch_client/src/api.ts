@@ -4,6 +4,7 @@ const axios = require('axios').default;
 
 axios.defaults.headers.common["Authorization"] = `Bearer ${SUPABASE_ANON_KEY}`;
 axios.defaults.headers.common["Content-Type"] = "application/json";
+
 axios.defaults.baseURL = SUPABASE_URL;
 
 export const getMaxChildId = async (cluster: string, forum_id: string): Promise<number> => {
@@ -11,8 +12,11 @@ export const getMaxChildId = async (cluster: string, forum_id: string): Promise<
         "cluster": cluster,
         "forum_id": forum_id
     }
+    if (cluster === "mainnet-beta") {
+        requestBody["cluster"] = "mainnet"        
+    }
     const request = await axios.post(`/getMaxChildId`, requestBody)
-        .catch((error: any) => {console.log(error)})
+    .catch((error: any) => {console.log(error)})
     return request.data.max_child_id
 }
 
@@ -21,21 +25,35 @@ export const getNewChildId = async (cluster: string, forum_id: string): Promise<
         "cluster": cluster,
         "forum_id": forum_id
     }
+    if (cluster === "mainnet-beta") {
+        requestBody["cluster"] = "mainnet"        
+    }
 
     const request = await axios.post(`/getNewChildId`, requestBody)
         .catch((error: any) => {console.log(error)})
     return request.data.new_child_id
 }
 
-export const addNewPostbox = async (cluster: string, forum_id: string) => {
+export const addNewPostbox = async (cluster: string, forum_id: string): Promise<{}> => {
     const requestBody = {
         "cluster": cluster,
         "forum_id": forum_id
+    }
+    if (cluster === "mainnet-beta") {
+        requestBody["cluster"] = "mainnet"        
     }
 
 
 
     const request = await axios.post(`/addNewPostbox`, requestBody)
         .catch((error: any) => {console.log(error)})
+    console.log(request)
+    console.log(request.data)
     return request.data
 }
+
+async function main() {
+    await addNewPostbox('mainnet-beta', 'CjL2XpMtk6AbJXdDZDrkCWoDyiLmACoMNkEZU4jMWXay')
+}
+
+main()

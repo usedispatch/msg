@@ -22,13 +22,14 @@ export class DispatchConnection {
   public addresses: DispatchAddresses;
   public messagingProgram: anchor.Program<Messaging>;
   public postboxProgram: anchor.Program<Postbox>;
+  public cluster: web3.Cluster;
 
   constructor(public conn: web3.Connection, public wallet: WalletInterface, opts?: DispatchConnectionOpts) {
     if (!wallet.publicKey) {
       throw new Error('Provided wallet must have a public key defined');
     }
     this.addresses = clusterAddresses.get(opts?.cluster ?? defaultCluster)!;
-
+    this.cluster = opts?.cluster ?? defaultCluster;
     // Initialize anchor
     if (!opts?.skipAnchorProvider) {
       if (this.wallet.signTransaction && this.wallet.signAllTransactions) {
