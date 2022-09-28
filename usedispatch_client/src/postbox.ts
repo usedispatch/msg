@@ -158,9 +158,7 @@ export class Postbox {
         treasury: this.dispatch.addresses.treasuryAddress,
       })
       .transaction();
-      console.log('add new postbox', this.target.key.toBase58() ?? '');
       const res = await addNewPostbox(this.dispatch.cluster, this.target.key.toBase58());
-      console.log(res);
     return ix;
   }
 

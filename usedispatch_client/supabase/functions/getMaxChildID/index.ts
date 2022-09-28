@@ -25,12 +25,12 @@ serve(async (req) => {
     const maxChildId = await getMaxPostID(cluster, forum_id);
 
     return new Response(JSON.stringify({ max_child_id: maxChildId }), {
-      headers: {'Content-Type': 'application/json' },
+      headers: {...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })
   } catch (error) {
     return new Response(JSON.stringify({ error: "Forum ID Doesn't Exist" }), {
-      headers: {'Content-Type': 'application/json' },
+      headers: {...corsHeaders, 'Content-Type': 'application/json' },
       status: 400,
     })
   }

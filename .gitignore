@@ -6,6 +6,7 @@ target
 node_modules
 .vscode
 .env
+.env.local
 
 # Yarn
 .pnp.*

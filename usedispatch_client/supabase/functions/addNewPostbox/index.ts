@@ -29,12 +29,12 @@ serve(async (req) => {
     )
 
     return new Response(JSON.stringify({ data, error }), {
-      headers: {'Content-Type': 'application/json', 'Allow-Control-Allow-Origin': "*" },
+      headers: {...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })
   } catch (error) {
     return new Response(JSON.stringify({ error: error }), {
-      headers: {'Content-Type': 'application/json' },
+      headers: {...corsHeaders, 'Content-Type': 'application/json' },
       status: 400,
     })
   }

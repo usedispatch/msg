@@ -17,7 +17,7 @@ export const getMaxChildId = async (cluster: string, forum_id: string): Promise<
     }
     const request = await axios.post(`/getMaxChildId`, requestBody)
     .catch((error: any) => {console.log(error)})
-    return request.data.max_child_id
+    return request.data["max_child_id"]
 }
 
 export const getNewChildId = async (cluster: string, forum_id: string): Promise<number> => {
@@ -31,7 +31,7 @@ export const getNewChildId = async (cluster: string, forum_id: string): Promise<
 
     const request = await axios.post(`/getNewChildId`, requestBody)
         .catch((error: any) => {console.log(error)})
-    return request.data.new_child_id
+    return request.data["max_child_id"]
 }
 
 export const addNewPostbox = async (cluster: string, forum_id: string): Promise<{}> => {
@@ -43,17 +43,7 @@ export const addNewPostbox = async (cluster: string, forum_id: string): Promise<
         requestBody["cluster"] = "mainnet"        
     }
 
-
-
     const request = await axios.post(`/addNewPostbox`, requestBody)
         .catch((error: any) => {console.log(error)})
-    console.log(request)
-    console.log(request.data)
     return request.data
 }
-
-async function main() {
-    await addNewPostbox('mainnet-beta', 'CjL2XpMtk6AbJXdDZDrkCWoDyiLmACoMNkEZU4jMWXay')
-}
-
-main()

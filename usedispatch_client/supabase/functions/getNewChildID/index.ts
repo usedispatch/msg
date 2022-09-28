@@ -22,20 +22,20 @@ serve(async (req) => {
     // Set the Auth context of the user that called the function.
     // This way your row-level-security (RLS) policies are applied.
     supabaseClient.auth.setAuth(req.headers.get('Authorization')!.replace('Bearer ', ''))
-    const result = await getMaxPostID(cluster, forum_id);
+    const result = await getMaxPostID(cluster, forum_id) + 1;
 
     const { data, error } = await supabaseClient.from(`postbox_post_id_${cluster}`).update(
-      { max_child_id: result + 1}
+      { max_child_id: result}
     ).match({ forum_id: forum_id })
     .single()
 
     return new Response(JSON.stringify({ max_child_id: result, error }), {
-      headers: {'Content-Type': 'application/json' },
+      headers: {...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })
   } catch (error) {
     return new Response(JSON.stringify({ error: "Forum ID Doesn't Exist" }), {
-      headers: {'Content-Type': 'application/json' },
+      headers: {...corsHeaders, 'Content-Type': 'application/json' },
       status: 400,
     })
   }
