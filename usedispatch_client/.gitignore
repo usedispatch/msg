@@ -3,6 +3,7 @@ lib
 .parcel-cache
 dist
 .vim
+.history
 
 # Yarn
 .pnp.*
