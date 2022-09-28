@@ -5,8 +5,13 @@
 import { serve } from "https://deno.land/std@0.131.0/http/server.ts"
 import { getMaxPostID } from '../_shared/getMaxPostID.ts'
 import { supabaseClient } from '../_shared/supabaseClient.ts'
+import { corsHeaders } from '../_shared/cors.ts'
+
 
 serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
   const { cluster, forum_id } = await req.json()
   const data = {
     message: `Hello ${cluster}! ${forum_id}`,
