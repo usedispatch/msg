@@ -1,6 +1,6 @@
 {
   "name": "@usedispatch/client",
-  "version": "0.14.1",
+  "version": "0.15.0",
   "description": "Client for Dispatch Protocol",
   "scripts": {
     "test": "jest --config jestconfig.json",
@@ -11,8 +11,8 @@
     "lint": "tslint -p tsconfig.json",
     "prepare": "yarn build && echo 'Please run the tests manually before publish'",
     "prepublishOnly": "yarn lint",
-    "preversion": "yarn lint",
     "version": "yarn format && git add -A src",
+    "preversion": "yarn lint",
     "postversion": "git push && git push --tags"
   },
   "source": "src/index.ts",
