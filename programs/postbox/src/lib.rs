@@ -15,7 +15,7 @@ mod vote_entry;
 #[cfg(feature = "mainnet")]
 declare_id!("DHepkufWDLJ9DCD37nbEDbPSFKjGiziQ6Lbgo1zgGX7S");
 #[cfg(not(feature = "mainnet"))]
-declare_id!("Fs5wSa7GYtTqivXGqHyx673v5oPuD5Cb7ij9utsFKdLb");
+declare_id!("HomrJ8vvXe5FpqN6zfUSYK9JLnMyDmbJvZJYDnhoZhWE");
 
 const PROTOCOL_SEED: & str = "dispatch";
 const POSTBOX_SEED: & str = "postbox";

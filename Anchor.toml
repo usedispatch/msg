@@ -1,10 +1,10 @@
 [programs.localnet]
 messaging = "BHJ4tRcogS88tUhYotPfYWDjR4q7MGdizdiguY3N54rb"
-postbox = "Fs5wSa7GYtTqivXGqHyx673v5oPuD5Cb7ij9utsFKdLb"
+postbox = "HomrJ8vvXe5FpqN6zfUSYK9JLnMyDmbJvZJYDnhoZhWE"
 
 [programs.devnet]
 messaging = "BHJ4tRcogS88tUhYotPfYWDjR4q7MGdizdiguY3N54rb"
-postbox = "Fs5wSa7GYtTqivXGqHyx673v5oPuD5Cb7ij9utsFKdLb"
+postbox = "HomrJ8vvXe5FpqN6zfUSYK9JLnMyDmbJvZJYDnhoZhWE"
 
 [programs.mainnet]
 messaging = "BHJ4tRcogS88tUhYotPfYWDjR4q7MGdizdiguY3N54rb"
