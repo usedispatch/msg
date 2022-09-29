@@ -53,5 +53,5 @@ export const addNewPostbox = async (cluster: string, forum_id: string): Promise<
   const request = await axios.post(`/addNewPostbox`, requestBody).catch((error: any) => {
     console.log(error);
   });
-  return request.data;
+  return request;
 };
