@@ -78,11 +78,15 @@ pub mod postbox {
         settings: Vec<SettingsData>,
         additional_account_offsets: Vec<AdditionalAccountIndices>,
     ) -> Result<()> {
-        let postbox_account = &mut ctx.accounts.postbox;
-        require!(post_id <= postbox_account.max_child_id + POSTBOX_GROW_CHILDREN_BY, PostboxErrorCode::PostIdTooLarge);
-        if post_id >= postbox_account.max_child_id {
-            postbox_account.max_child_id += POSTBOX_GROW_CHILDREN_BY;
-        }
+        // Lines commented to allow for arbitary post_id
+        // to be used, enabling multiple posts to be created 
+        // simultaneously using off-chain ID assignment
+
+        // let postbox_account = &mut ctx.accounts.postbox;
+        // require!(post_id <= postbox_account.max_child_id + POSTBOX_GROW_CHILDREN_BY, PostboxErrorCode::PostIdTooLarge);
+        // if post_id >= postbox_account.max_child_id {
+        //     postbox_account.max_child_id += POSTBOX_GROW_CHILDREN_BY;
+        // }
 
         let post_account = &mut ctx.accounts.post;
         post_account.poster = ctx.accounts.poster.key();
