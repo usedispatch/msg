@@ -137,7 +137,7 @@ export class Postbox {
   private _address: web3.PublicKey | undefined;
   private _voteTrackerAddress: web3.PublicKey | undefined;
 
-  constructor(public dispatch: DispatchConnection, public target: PostboxTarget) { }
+  constructor(public dispatch: DispatchConnection, public target: PostboxTarget) {}
 
   // Init functions
   async initialize(owners?: web3.PublicKey[], description?: Description): Promise<web3.TransactionSignature> {
@@ -158,7 +158,7 @@ export class Postbox {
         treasury: this.dispatch.addresses.treasuryAddress,
       })
       .transaction();
-      const res = await addNewPostbox(this.dispatch.cluster, this.target.key.toBase58());
+    const res = await addNewPostbox(this.dispatch.cluster, this.target.key.toBase58());
     return ix;
   }
 
