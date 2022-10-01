@@ -11,20 +11,20 @@ import {createClient} from "@supabase/supabase-js";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-export const getMaxChildId = async (cluster: string, forum_id: string): Promise<number> => {
+export const getMaxChildId = async (cluster: string, forumID: string): Promise<number> => {
   const requestBody = {
-    cluster: cluster,
-    forum_id: forum_id,
+    clusterName: cluster,
+    forum_id: forumID,
   };
   
   if (cluster === 'mainnet-beta') {
-    requestBody['cluster'] = 'mainnet';
+    requestBody.clusterName = 'mainnet';
   }
 
 
-  const {data, error} = await supabase.from(`postbox_post_id_${requestBody.cluster}`)
+  const {data, error} = await supabase.from(`postbox_post_id_${requestBody.clusterName}`)
     .select("*")
-    .eq('forum_id', forum_id)
+    .eq('forum_id', forumID)
     .limit(1)
     .single()
   
@@ -37,16 +37,16 @@ export const getMaxChildId = async (cluster: string, forum_id: string): Promise<
   // return request.data['max_child_id'];
 };
 
-export const updateAndGetNewChildId = async (cluster: string, forum_id: string): Promise<number> => {
+export const updateAndGetNewChildId = async (cluster: string, forumID: string): Promise<number> => {
   const requestBody = {
-    cluster: cluster,
-    forum_id: forum_id,
+    clusterName: cluster,
+    forum_id: forumID,
   };
 
   if (cluster === 'mainnet-beta') {
-    requestBody['cluster'] = 'mainnet';
+    requestBody.clusterName = 'mainnet';
   }
-  const { data, error } = await supabase.rpc(`increment_${requestBody.cluster}`, { forum_id_key: forum_id })
+  const { data, error } = await supabase.rpc(`increment_${requestBody.clusterName}`, { forum_id_key: forumID })
   return data;
   // const request = await axios.post(`/getNewChildId`, requestBody).catch((error: any) => {
   //   console.log(error);
@@ -54,18 +54,18 @@ export const updateAndGetNewChildId = async (cluster: string, forum_id: string):
   // return request.data['max_child_id'];
 };
 
-export const addNewPostbox = async (cluster: string, forum_id: string): Promise<void> => {
+export const addNewPostbox = async (cluster: string, forumID: string): Promise<void> => {
   const requestBody = {
-    cluster: cluster,
-    forum_id: forum_id,
+    clusterName: cluster,
+    forum_id: forumID,
   };
 
   if (cluster === 'mainnet-beta') {
-    requestBody['cluster'] = 'mainnet';
+    requestBody.clusterName = 'mainnet';
   }
-  const { data, error } = await supabase.from(`postbox_post_id_${requestBody.cluster}`).insert(
+  const { data, error } = await supabase.from(`postbox_post_id_${requestBody.clusterName}`).insert(
     [{ 
-      forum_id: forum_id,
+      forum_id: forumID,
       max_child_id: 0
     }]
   )
