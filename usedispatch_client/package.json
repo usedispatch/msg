@@ -65,7 +65,7 @@
     "@solana/buffer-layout": "^4.0.0",
     "@solana/spl-token": "^0.2.0",
     "@solana/web3.js": "^1.50.1",
-    "axios": "^0.27.2",
+    "@supabase/supabase-js": "^1.35.7",
     "crypto-js": "^4.1.1",
     "lodash": "^4.17.21"
   },
