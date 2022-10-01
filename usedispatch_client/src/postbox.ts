@@ -158,7 +158,7 @@ export class Postbox {
         treasury: this.dispatch.addresses.treasuryAddress,
       })
       .transaction();
-    addNewPostbox(this.dispatch.cluster, this.target.key.toBase58());
+    addNewPostbox(this.dispatch.cluster, this.target.key);
     return ix;
   }
 
@@ -247,11 +247,7 @@ export class Postbox {
     replyTo?: InteractablePost,
     postRestriction?: PostRestriction,
   ): Promise<web3.TransactionSignature> {
-    // TODO(mfasman): make this be a better allocation algorithm
-    // const growBy = 1; // TODO(mfasman): pull from the IDL
-    const maxId = await updateAndGetNewChildId(this.dispatch.cluster, this.target.key.toBase58());
-    // const addresses = await this.getAddresses(maxId, Math.max(0, maxId - growBy));
-    // const infos = await this.dispatch.conn.getMultipleAccountsInfo(addresses);
+    const maxId = await updateAndGetNewChildId(this.dispatch.cluster, this.target.key);
     const data = await this.postDataToBuffer(input);
     const postRestrictions = await this._getPostRestrictionAccounts(replyTo);
     const ix = await this.dispatch.postboxProgram.methods
@@ -622,7 +618,7 @@ export class Postbox {
 
   async getChainPostboxInfo(): Promise<ChainPostboxInfo> {
     const postboxInfo = await this.dispatch.postboxProgram.account.postbox.fetch(await this.getAddress());
-    postboxInfo.maxChildId = await getMaxChildId(this.dispatch.cluster, this.target.key.toBase58());
+    postboxInfo.maxChildId = await getMaxChildId(this.dispatch.cluster, this.target.key);
     return postboxInfo;
   }
 
