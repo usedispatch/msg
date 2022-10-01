@@ -24,7 +24,7 @@ export const clusterAddresses = new Map<web3.Cluster, DispatchAddresses>();
 clusterAddresses.set('devnet', {
   programAddress: new web3.PublicKey('BHJ4tRcogS88tUhYotPfYWDjR4q7MGdizdiguY3N54rb'),
   treasuryAddress: new web3.PublicKey('G2GGDc89qpuk21WgRUVPDY517uc6qR5yT4KX7AakyVR1'),
-  postboxAddress: new web3.PublicKey('HomrJ8vvXe5FpqN6zfUSYK9JLnMyDmbJvZJYDnhoZhWE'),
+  postboxAddress: new web3.PublicKey('Fs5wSa7GYtTqivXGqHyx673v5oPuD5Cb7ij9utsFKdLb'),
 });
 
 clusterAddresses.set('mainnet-beta', {
