@@ -11,7 +11,7 @@ const getNormalizedCluster = (cluster: web3.Cluster) => {
 }
 
 export const getMaxChildId = async (cluster: web3.Cluster, forumID: web3.PublicKey): Promise<number> => {
-  const {data, error} = await supabase.from(`postbox_post_id_${getNormalizedCluster(cluster)}`)
+  const {data, error} = await supabase.from(`ro_view_postbox_post_id_${getNormalizedCluster(cluster)}`)
     .select("*")
     .eq('forum_id', forumID.toBase58())
     .limit(1)
@@ -20,15 +20,10 @@ export const getMaxChildId = async (cluster: web3.Cluster, forumID: web3.PublicK
 };
 
 export const updateAndGetNewChildId = async (cluster: web3.Cluster, forumID: web3.PublicKey): Promise<number> => {
-  const {data, error} = await supabase.rpc(`increment_${getNormalizedCluster(cluster)}`, {
-    forum_id_key: forumID.toBase58()
-  });
+  const { data, error } = await supabase.rpc(`increment_max_child_${getNormalizedCluster(cluster)}`, { forum_id_key: forumID.toBase58() });
   return data;
 };
 
 export const addNewPostbox = async (cluster: web3.Cluster, forumID: web3.PublicKey): Promise<void> => {
-  await supabase.from(`postbox_post_id_${getNormalizedCluster(cluster)}`).insert([{
-    forum_id: forumID.toBase58(),
-    max_child_id: 0
-  }]);
+  await supabase.rpc(`add_postbox_${getNormalizedCluster(cluster)}`, { forum_id_key: forumID.toBase58() });
 };
