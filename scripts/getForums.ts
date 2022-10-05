@@ -2,8 +2,8 @@ import * as anchor from '@project-serum/anchor';
 import { DispatchConnection, WalletInterface  } from '../usedispatch_client/src';
 // import { PublicKey } from '@solana/web3.js';
 import { Postbox } from '../target/types/postbox';
-// import postboxProgramIdl from '../target/idl/postbox.json';
-import postboxProgramIdl from '../postbox.json';
+import postboxProgramIdl from '../target/idl/postbox.json';
+// import postboxProgramIdl from '../postbox.json';
 import { createClient } from '@supabase/supabase-js'
 //uncomment when forumMapping.json is ready
 import forumMapping from '../forumMapping.json';
@@ -13,7 +13,8 @@ import forumMappingWithMaxChildId from '../forumMappingWithMaxChildId.json';
 
 const SUPABASE_URL = 'https://aiqrzujttjxgjhumjcky.supabase.co';
 const SUPABASE_ANON_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpcXJ6dWp0dGp4Z2podW1qY2t5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE2NjE0NzA5NjgsImV4cCI6MTk3NzA0Njk2OH0.qyDrAwwq1pyys4t12Klp7YWHCV05YRMj29Du2xRLKe8';
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpcXJ6dWp0dGp4Z2podW1qY2t5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTY2MTQ3MDk2OCwiZXhwIjoxOTc3MDQ2OTY4fQ.mRlv8Yih9mbKSNr3PAEm60bwq2RDTkAKTzZ-ScPYdWg';
+  
 const connection = new anchor.web3.Connection("https://special-quaint-needle.solana-mainnet.quiknode.pro/e595d0072cc6ba40bc075ed8e030b7a4c53b3ff1/", "confirmed"); 
 const anchorWallet = new anchor.Wallet(anchor.web3.Keypair.generate());
 anchor.setProvider(new anchor.AnchorProvider(connection, anchorWallet, { preflightCommitment: 'confirmed' }));
@@ -81,7 +82,7 @@ async function getMaxChildId() {
       }
       // console.log(accounts);
     } catch (error) {
-      console.log(forum.postboxID)
+      // console.log(forum.postboxID)
       return false;
     }
     return new anchor.web3.PublicKey(forum.postboxID)
@@ -89,21 +90,22 @@ async function getMaxChildId() {
   const filteredPostboxes = postboxIDs.filter((postbox) => {
     return postbox !== false
   })
-  console.log(filteredPostboxes.length)
+  // console.log(filteredPostboxes.length)
   return JSON.stringify(filteredPostboxes);
 }
 
 async function uploadToSupabase() {
   
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {schema: 'protected'})
 
-  const test = await supabase.from('postbox_post_id_mainnet').insert([ { postbox_id: 'test', forum_id: 'test', max_child_id: 0 } ]).then((res) => {
-    console.log(res.body)
-  })
-
+  // const test = await supabase.from('postbox_post_id_mainnet').insert([ { postbox_id: 'test', forum_id: 'test', max_child_id: 0 } ]).then((res) => {
+  //   console.log(res.body)
+  // })
   forumMappingWithMaxChildId.map(async (forum: {postboxID: string, forumID: string, maxChildID: number}) => {
-    await supabase.from('postbox_post_id_mainnet').insert([ { postbox_id: forum.postboxID, forum_id: forum.forumID, max_child_id: forum.maxChildID } ]).then((res) => {
-      console.log(res.body)
+    await supabase.from('postbox_post_id_mainnet').update([ { max_child_id: forum.maxChildID } ]).match({ forum_id: forum.forumID }).then((res) => {
+      if (res.error) {
+        console.log(forum.forumID)
+      }
     })
   })
   // console.log(test)
@@ -115,7 +117,7 @@ async function main() {
   // console.log(map.length)
   // run yarn ts-node > forumMaxChildID.json
   // const maxChildID = await getMaxChildId();
-  // console.log(maxChildID.length);
+  // console.log(maxChildID);
   await uploadToSupabase();
 }
 main();     

@@ -55,3 +55,4 @@ export const addNewPostbox = async (cluster: string, forum_id: string): Promise<
   });
   return request;
 };
+
