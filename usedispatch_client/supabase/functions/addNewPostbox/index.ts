@@ -7,8 +7,12 @@ import { supabaseClient } from '../_shared/supabaseClient.ts'
 import { corsHeaders } from '../_shared/cors.ts'
 
 serve(async (req) => {
+  const options_response = {
+    status: 200,
+    data: 'OK',
+  }
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response(JSON.stringify(options_response), { headers: corsHeaders })
   }
   const { cluster, forum_id } = await req.json()
   const data = {

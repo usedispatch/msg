@@ -24,7 +24,7 @@ const MODERATOR_SEED: & str = "moderator";
 const VOTE_TRACK_SEED: & str = "votes";
 
 #[constant]
-const POSTBOX_GROW_CHILDREN_BY: u32 = 1;
+const POSTBOX_GROW_CHILDREN_BY: u32 = 1_000;
 
 #[constant]
 const FEE_NEW_POSTBOX: u64 = 100_000;
@@ -78,15 +78,11 @@ pub mod postbox {
         settings: Vec<SettingsData>,
         additional_account_offsets: Vec<AdditionalAccountIndices>,
     ) -> Result<()> {
-        // Lines commented to allow for arbitary post_id
-        // to be used, enabling multiple posts to be created 
-        // simultaneously using off-chain ID assignment
-
-        // let postbox_account = &mut ctx.accounts.postbox;
-        // require!(post_id <= postbox_account.max_child_id + POSTBOX_GROW_CHILDREN_BY, PostboxErrorCode::PostIdTooLarge);
-        // if post_id >= postbox_account.max_child_id {
-        //     postbox_account.max_child_id += POSTBOX_GROW_CHILDREN_BY;
-        // }
+        let postbox_account = &mut ctx.accounts.postbox;
+        require!(post_id <= postbox_account.max_child_id + POSTBOX_GROW_CHILDREN_BY, PostboxErrorCode::PostIdTooLarge);
+        if post_id >= postbox_account.max_child_id {
+            postbox_account.max_child_id += POSTBOX_GROW_CHILDREN_BY;
+        }
 
         let post_account = &mut ctx.accounts.post;
         post_account.poster = ctx.accounts.poster.key();
