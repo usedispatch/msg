@@ -42,3 +42,5 @@ export const TXN_COMMITMENT = 'processed';
  * connection if it fails
  */
 export const SOLANA_CONNECTION_MAX_RETRIES = 6;
+
+export const FORUM_IMAGE_URL = 'https://aiqrzujttjxgjhumjcky.supabase.co/storage/v1/object/public/forum-images/dispatch_header.png';

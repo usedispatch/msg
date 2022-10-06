@@ -1,4 +1,5 @@
 import * as web3 from '@solana/web3.js';
+import { createNewForum } from './api';
 import { DispatchConnection } from './connection';
 import { TXN_COMMITMENT } from './constants';
 import * as postbox from './postbox';
@@ -118,6 +119,8 @@ export class Forum implements IForum {
   async createForum(info: ForumInfo): Promise<web3.TransactionSignature[]> {
     const forumIx = await this.createForumIx(info);
     const tx = await this.dispatchConn.sendTransaction(forumIx);
+    console.log('Forum created', tx);
+    await createNewForum(this.dispatchConn.cluster, info);
     await this._postbox.dispatch.conn.confirmTransaction(tx);
     return [tx];
   }
