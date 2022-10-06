@@ -90,11 +90,24 @@ export type NftListAnyPostRestriction = {
   collectionIds: web3.PublicKey[];
 };
 
+export type QuantifiedMint = {
+  quantifiedMint: {
+    mint: web3.PublicKey;
+    amount: number;
+  };
+};
+
+export type TokenOrNftListAnyPostRestriction = {
+  mints: QuantifiedMint[];
+  collectionIds: web3.PublicKey[];
+};
+
 export type PostRestriction = {
   tokenOwnership?: TokenPostRestriction;
   nftOwnership?: NftPostRestriction;
-  nftListAnyOwnership?: NftListAnyPostRestriction;
   null?: {};
+  nftListAnyOwnership?: NftListAnyPostRestriction;
+  tokenOrNftAnyOwnership?: TokenOrNftListAnyPostRestriction;
 };
 
 type SettingsAccountData = {
@@ -177,10 +190,15 @@ export class Postbox {
 
   async _getTokenPostRestrictionAccounts(tokenPostRestriction: TokenPostRestriction) {
     const ata = await splToken.getAssociatedTokenAddress(tokenPostRestriction.mint, this.dispatch.wallet.publicKey!);
-    return {
-      pra: [{ pubkey: ata, isWritable: false, isSigner: false }],
-      praIdxs: { tokenOwnership: { tokenIdx: 0 } },
-    };
+    const info = await this.dispatch.conn.getAccountInfo(ata);
+    const balance = info?.data ? splToken.AccountLayout.decode(info?.data).amount : 0;
+    if (balance >= tokenPostRestriction.amount) {
+      return {
+        pra: [{ pubkey: ata, isWritable: false, isSigner: false }],
+        praIdxs: { tokenOwnership: { tokenIdx: 0 } },
+      };
+    }
+    return { pra: [], praIdxs: null };
   }
 
   async _getNftPostRestrictionAccounts(collectionIds: web3.PublicKey[]) {
@@ -204,6 +222,20 @@ export class Postbox {
     }
     return { pra: [], praIdxs: null };
   }
+  
+  async _getEitherTokenOrNftPostRestrictionAccounts(tokenRestrs: QuantifiedMint[], collectionIds: web3.PublicKey[]) {
+    const nftRet = await this._getNftPostRestrictionAccounts(collectionIds);
+    if (nftRet.pra.length > 0) {
+      return nftRet;
+    }
+    for (const tokenRestr of tokenRestrs) {
+      const tokenRet = await this._getTokenPostRestrictionAccounts(tokenRestr.quantifiedMint);
+      if (tokenRet.pra.length > 0) {
+        return tokenRet;
+      }
+    }
+    return { pra: [], praIdxs: null };
+  }
 
   async _getPostRestrictionAccounts(replyTo?: InteractablePost) {
     const restrictions = (replyTo?.settings ?? []).map(
@@ -220,6 +252,12 @@ export class Postbox {
       }
       if (restriction?.nftListAnyOwnership) {
         return this._getNftPostRestrictionAccounts(restriction.nftListAnyOwnership.collectionIds);
+      }
+      if (restriction?.tokenOrNftAnyOwnership) {
+        return this._getEitherTokenOrNftPostRestrictionAccounts(
+          restriction.tokenOrNftAnyOwnership.mints,
+          restriction.tokenOrNftAnyOwnership.collectionIds,
+        );
       }
     }
     return { pra: [], praIdxs: null };

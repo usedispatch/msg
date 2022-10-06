@@ -9,11 +9,24 @@ use crate::errors::PostboxErrorCode;
     PartialEq,
     Eq
 )]
+pub struct QuantifiedMint {
+    mint: Pubkey,
+    amount: u64,
+}
+
+#[derive(
+    AnchorSerialize,
+    AnchorDeserialize,
+    Clone,
+    PartialEq,
+    Eq
+)]
 pub enum PostRestrictionRule {
     TokenOwnership { mint: Pubkey, amount: u64 },
     NftOwnership { collection_id: Pubkey },
     Null,
     NftListAnyOwnership { collection_ids: Vec<Pubkey> },
+    TokenOrNftAnyOwnership { mints: Vec<QuantifiedMint>, collection_ids: Vec<Pubkey> },
 }
 
 #[derive(
@@ -73,6 +86,29 @@ impl PostRestrictionRule {
         Ok(())
     }
 
+    fn validate_token_ownership(&self,
+        poster: &Pubkey,
+        extra_accounts: &[AccountInfo],
+        account_indices_vec: &Vec<AdditionalAccountIndices>,
+        mint: &Pubkey,
+        amount: &u64,
+    ) -> Result<()> {
+        let mut checked: bool = false;
+        for account_indices in account_indices_vec {
+            if let AdditionalAccountIndices::TokenOwnership { token_idx } = account_indices {
+                let membership_token = &extra_accounts[usize::from(*token_idx)];
+                let token = Account::<anchor_spl::token::TokenAccount>::try_from(membership_token).map_err(
+                    |_| Error::from(PostboxErrorCode::InvalidRestrictionExtraAccounts).with_source(source!())
+                )?;
+                let has_token = token.owner == *poster && token.mint == *mint && token.amount >= *amount;
+                require!(has_token, PostboxErrorCode::MissingTokenRestriction);
+                checked = true;
+            }
+        }
+        require!(checked, PostboxErrorCode::MissingRequiredOffsets);
+        Ok(())
+    }
+
     pub fn validate_reply_allowed(&self,
         poster: &Pubkey,
         extra_accounts: &[AccountInfo],
@@ -80,19 +116,7 @@ impl PostRestrictionRule {
     ) -> Result<()> {
         match self {
             PostRestrictionRule::TokenOwnership { mint, amount } => {
-                let mut checked: bool = false;
-                for account_indices in account_indices_vec {
-                    if let AdditionalAccountIndices::TokenOwnership { token_idx } = account_indices {
-                        let membership_token = &extra_accounts[usize::from(*token_idx)];
-                        let token = Account::<anchor_spl::token::TokenAccount>::try_from(membership_token).map_err(
-                            |_| Error::from(PostboxErrorCode::InvalidRestrictionExtraAccounts).with_source(source!())
-                        )?;
-                        let has_token = token.owner == *poster && token.mint == *mint && token.amount >= *amount;
-                        require!(has_token, PostboxErrorCode::MissingTokenRestriction);
-                        checked = true;
-                    }
-                }
-                require!(checked, PostboxErrorCode::MissingRequiredOffsets);
+                self.validate_token_ownership(poster, extra_accounts, account_indices_vec, &mint, &amount)?;
             },
 
             PostRestrictionRule::NftOwnership { collection_id } => {
@@ -106,6 +130,16 @@ impl PostRestrictionRule {
                     poster, extra_accounts, account_indices_vec, &collection_id
                 )).any(|r| r.is_ok());
                 require!(valid, PostboxErrorCode::MissingCollectionNftRestriction);
+            },
+
+            PostRestrictionRule::TokenOrNftAnyOwnership { mints, collection_ids } => {
+                let token_valid = mints.iter().map(|qmint| self.validate_token_ownership(
+                    poster, extra_accounts, account_indices_vec, &qmint.mint, &qmint.amount
+                )).any(|r| r.is_ok());
+                let nft_valid = collection_ids.iter().map(|collection_id| self.validate_nft_ownership(
+                    poster, extra_accounts, account_indices_vec, &collection_id
+                )).any(|r| r.is_ok());
+                require!(token_valid || nft_valid, PostboxErrorCode::MissingCredentials);
             },
         }
 

@@ -212,7 +212,7 @@ describe('postbox', () => {
       await postboxAsOwner.vote(topic, true);
       assert.fail();
     } catch(e) {
-      const expectedError = "custom program error: 0x183f";
+      const expectedError = "custom program error: 0x1840";
       assert.ok(e instanceof Error);
       assert.ok(e.message.includes(expectedError));
     }
@@ -224,7 +224,7 @@ describe('postbox', () => {
       await postboxAsOwner.replyToPost(replyPost2, topic);
       assert.fail();
     } catch(e) {
-      const expectedError = "custom program error: 0x183f";
+      const expectedError = "custom program error: 0x1840";
       assert.ok(e instanceof Error);
       assert.ok(e.message.includes(expectedError));
     }
