@@ -47,23 +47,28 @@ export const createNewForum = async (cluster: web3.Cluster, forumInfo: ForumInfo
 }
 
 export const addSolanartMap = async (cluster: web3.Cluster, solanart_id: string, forumID: web3.PublicKey): Promise<void> => {
-  await supabase.rpc(`add_solanart_${getNormalizedCluster(cluster)}`, { solanart_id_key: solanart_id, forum_id_key: forumID.toBase58() });
+  const {data, error} = await supabase.rpc(`create_solanart_${getNormalizedCluster(cluster)}_map`, { solanart_id_key: solanart_id, forum_id_key: forumID.toBase58() });
+  if (error.code = "23505") {
+    return;
+  }
 }
 
 export const getForumIdFromSolanartId = async (cluster: web3.Cluster, solanart_id: string): Promise<string> => {
-  try {
-  const { data, error } = await supabase
-    .from(`ro_view_solanart_${getNormalizedCluster(cluster)}`)
-    .select('*')
-    .eq('solanart_id', solanart_id)
-    .limit(1)
-    .single();
-  return data.forum_id;
-  } catch (e) {
-    // add new ID if not found
-    if (e.code == 406) {
-      await addSolanartMap(cluster, solanart_id, new web3.PublicKey(solanart_id));
+    const { data, error } = await supabase
+      .from(`ro_view_solanart_${getNormalizedCluster(cluster)}`)
+      .select('*')
+      .eq('solanart_id', solanart_id)
+      .limit(1)
+      .single();
+
+    if (data != undefined) {
+      return data.forum_id;
+    } else if (error.code === "PGRST116") {
+      const forumID = new web3.PublicKey(web3.Keypair.generate().publicKey.toBase58());
+      await addSolanartMap(cluster, solanart_id, forumID);
+      return forumID;
+    } else {
+      return "something went wrong";
     }
-  }
 
 }
