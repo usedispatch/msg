@@ -33,7 +33,7 @@ export const addNewPostbox = async (cluster: web3.Cluster, forumID: web3.PublicK
   await supabase.rpc(`add_postbox_${getNormalizedCluster(cluster)}`, { forum_id_key: forumID.toBase58() });
 };
 
-export const createNewForum = async (cluster: web3.Cluster, forumInfo: ForumInfo ): Promise<void> => {
+export const createNewForum = async (cluster: web3.Cluster, forumInfo: ForumInfo): Promise<void> => {
   const info = {
     forum_id_key: forumInfo.collectionId.toBase58(),
     vanity_url_key: forumInfo.collectionId.toBase58(),
@@ -42,30 +42,36 @@ export const createNewForum = async (cluster: web3.Cluster, forumInfo: ForumInfo
     forum_image_url_key: FORUM_IMAGE_URL,
     show_forum_key: true,
     featured_forum_key: false,
-  }
+  };
   await supabase.rpc(`create_new_forum_${getNormalizedCluster(cluster)}`, info);
-}
+};
 
-export const addSolanartMap = async (cluster: web3.Cluster, solanart_id: string, forumID: web3.PublicKey): Promise<void> => {
-  await supabase.rpc(`create_solanart_${getNormalizedCluster(cluster)}_map`, { solanart_id_key: solanart_id, forum_id_key: forumID.toBase58() });
-}
+export const addSolanartMap = async (
+  cluster: web3.Cluster,
+  solanartID: string,
+  forumID: web3.PublicKey,
+): Promise<void> => {
+  await supabase.rpc(`create_solanart_${getNormalizedCluster(cluster)}_map`, {
+    solanart_id_key: solanartID,
+    forum_id_key: forumID.toBase58(),
+  });
+};
 
-export const getForumIdFromSolanartId = async (cluster: web3.Cluster, solanart_id: string): Promise<string> => {
-    const { data, error } = await supabase
-      .from(`ro_view_solanart_${getNormalizedCluster(cluster)}`)
-      .select('*')
-      .eq('solanart_id', solanart_id)
-      .limit(1)
-      .single();
+export const getForumIdFromSolanartId = async (cluster: web3.Cluster, solanartID: string): Promise<string> => {
+  const { data, error } = await supabase
+    .from(`ro_view_solanart_${getNormalizedCluster(cluster)}`)
+    .select('*')
+    .eq('solanart_id', solanartID)
+    .limit(1)
+    .single();
 
-    if (data != undefined) {
-      return data.forum_id;
-    } else if (error.code === "PGRST116") {
-      const forumID = web3.Keypair.generate().publicKey;
-      await addSolanartMap(cluster, solanart_id, forumID);
-      return forumID.toBase58();
-    } else {
-      return web3.Keypair.generate().publicKey.toBase58();
-    }
-
-}
+  if (data !== undefined) {
+    return data.forum_id;
+  } else if (error.code === 'PGRST116') {
+    const forumID = web3.Keypair.generate().publicKey;
+    await addSolanartMap(cluster, solanartID, forumID);
+    return forumID.toBase58();
+  } else {
+    return web3.Keypair.generate().publicKey.toBase58();
+  }
+};
