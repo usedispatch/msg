@@ -65,7 +65,7 @@ export const getForumIdFromSolanartId = async (cluster: web3.Cluster, solanartID
     .limit(1)
     .single();
 
-  if (data !== undefined) {
+  if (data !== undefined && data !== null) {
     return data.forum_id;
   } else if (error.code === 'PGRST116') {
     const forumID = web3.Keypair.generate().publicKey;
