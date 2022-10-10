@@ -158,7 +158,7 @@ export class Postbox {
         treasury: this.dispatch.addresses.treasuryAddress,
       })
       .transaction();
-    addNewPostbox(this.dispatch.cluster, this.target.key);
+    await addNewPostbox(this.dispatch.cluster, this.target.key);
     return ix;
   }
 
