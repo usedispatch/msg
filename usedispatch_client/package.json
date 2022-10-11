@@ -1,6 +1,6 @@
 {
   "name": "@usedispatch/client",
-  "version": "0.15.6",
+  "version": "0.15.7",
   "description": "Client for Dispatch Protocol",
   "scripts": {
     "test": "jest --config jestconfig.json",

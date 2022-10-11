@@ -70,5 +70,4 @@ export const getForumIdFromSolanartId = async (cluster: web3.Cluster, solanartID
   } else if (error !== undefined && error !== null) {
     return error.message;
   }
-  
 };
