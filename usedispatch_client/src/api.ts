@@ -67,11 +67,8 @@ export const getForumIdFromSolanartId = async (cluster: web3.Cluster, solanartID
 
   if (data !== undefined && data !== null) {
     return data.forum_id;
-  } else if (error.code === 'PGRST116') {
-    const forumID = web3.Keypair.generate().publicKey;
-    await addSolanartMap(cluster, solanartID, forumID);
-    return forumID.toBase58();
-  } else {
-    return web3.Keypair.generate().publicKey.toBase58();
+  } else if (error !== undefined && error !== null) {
+    return error.message;
   }
+  
 };
