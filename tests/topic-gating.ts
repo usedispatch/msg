@@ -196,7 +196,7 @@ describe('Topic gating', () => {
       body: 'restricted body'
     }, {
       tokenOrNftAnyOwnership: {
-        mints: [{quantifiedMint: {mint: await forumAsUser.getModeratorMint(), amount: 2}}],
+        mints: [{mint: await forumAsUser.getModeratorMint(), amount: 2}],
         collectionIds: [new PublicKey('GcMPukzjZWfY4y4KVM3HNdqtZTf5WyTWPvL4YXznoS9c')],
       }
     });
@@ -221,5 +221,14 @@ describe('Topic gating', () => {
       assert.ok(e instanceof Error);
       assert.ok(e.message.includes(expectedError));
     }
+
+    await forumAsOwner.setForumPostRestriction({
+      tokenOrNftAnyOwnership: {
+        mints: [{mint: await forumAsUser.getModeratorMint(), amount: 2}],
+        collectionIds: [new PublicKey('GcMPukzjZWfY4y4KVM3HNdqtZTf5WyTWPvL4YXznoS9c')],
+      }
+    });
+    const restriction = await forumAsOwner.getForumPostRestriction();
+    assert.equal(restriction.tokenOrNftAnyOwnership.mints[0].amount, 2);
   });
 });
