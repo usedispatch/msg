@@ -1,30 +1,14 @@
 import {
   Connection,
   Keypair,
-  LAMPORTS_PER_SOL,
   PublicKey,
-  clusterApiUrl
 } from '@solana/web3.js';
-import { Amman } from '@metaplex-foundation/amman';
-import { PROGRAM_ADDRESS } from '@metaplex-foundation/mpl-token-metadata';
-import {
-  createMint
-} from '@solana/spl-token';
-import {
-  Metaplex,
-  keypairIdentity,
-  mockStorage
-} from '@metaplex-foundation/js';
 import { strict as assert } from 'assert';
 import { decode } from 'bs58';
 import { config } from 'dotenv';
-import { readFileSync } from 'fs';
 import {
-  Postbox,
   DispatchConnection,
   Forum,
-  clusterAddresses,
-  PostRestriction,
   KeyPairWallet,
   ForumPost
 } from '../usedispatch_client/src';
