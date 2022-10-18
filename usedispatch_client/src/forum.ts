@@ -275,6 +275,12 @@ export class Forum implements IForum {
     return this._postbox.setPostboxPostRestriction(restriction, commitment);
   }
 
+  async setPostSpecificRestriction(
+    post: postbox.InteractablePost, restriction: postbox.PostRestriction
+    ): Promise<web3.TransactionSignature> {
+    return this._postbox.setPostSpecificRestriction(post, restriction);
+  }
+
   async setForumPostRestrictionIx(restriction: postbox.PostRestriction): Promise<web3.Transaction> {
     return this._postbox.setPostboxPostRestrictionIx(restriction);
   }

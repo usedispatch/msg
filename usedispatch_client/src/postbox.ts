@@ -513,6 +513,30 @@ export class Postbox {
     return this.innerSetSettingIx(this._formatPostRestrictionSetting(postRestriction));
   }
 
+  async setPostSpecificRestriction(
+    post: InteractablePost,
+    postRestriction: PostRestriction
+  ): Promise<web3.TransactionSignature> {
+    const formattedRestriction = this._formatPostRestrictionSetting(postRestriction);
+    let potentiallyModeratorAta: web3.PublicKey;
+    if (post.poster == this.dispatch.wallet.publicKey) {
+      potentiallyModeratorAta = web3.PublicKey.default;
+    } else {
+      const moderatorMint = await this.getModeratorMint();
+      const ata = await splToken.getAssociatedTokenAddress(moderatorMint, this.dispatch.wallet.publicKey!);
+      potentiallyModeratorAta = ata;
+    }
+    const ix = await this.dispatch.postboxProgram.methods
+      .changePostSetting(post.postId, formattedRestriction)
+      .accounts({
+        postbox: await this.getAddress(),
+        post: post.address,
+        potentiallyModeratorAta,
+      })
+      .transaction();
+    return this.dispatch.sendTransaction(ix);
+  }
+
   async innerGetSetting(settingsType: SettingsType): Promise<SettingsAccountData | undefined> {
     const info = await this.getChainPostboxInfo();
     for (const setting of info.settings) {

@@ -231,4 +231,12 @@ describe('Topic gating', () => {
     const restriction = await forumAsOwner.getForumPostRestriction();
     assert.equal(restriction.tokenOrNftAnyOwnership.mints[0].amount, 2);
   });
+
+  it('Allows moderator to edit post restrictions on another user\'s post', async () => {
+    assert.equal(topic.settings.length, 1);
+    await forumAsOwner.setPostSpecificRestriction(topic, {null: {}});
+    const topicAgain = (await forumAsUser.getTopicsForForum())[0];
+    assert.equal(topicAgain.settings.length, 1);
+    assert.ok(topicAgain.settings[0].postRestriction.postRestriction.null);
+  });
 });
