@@ -41,4 +41,6 @@ pub enum PostboxErrorCode {
     TestError,
     #[msg("Already voted on this post")]
     AlreadyVoted,
+    #[msg("Missing a required credential for post restriction")]
+    MissingCredentials,
 }

@@ -90,11 +90,17 @@ export type NftListAnyPostRestriction = {
   collectionIds: web3.PublicKey[];
 };
 
+export type TokenOrNftListAnyPostRestriction = {
+  mints: TokenPostRestriction[];
+  collectionIds: web3.PublicKey[];
+};
+
 export type PostRestriction = {
   tokenOwnership?: TokenPostRestriction;
   nftOwnership?: NftPostRestriction;
-  nftListAnyOwnership?: NftListAnyPostRestriction;
   null?: {};
+  nftListAnyOwnership?: NftListAnyPostRestriction;
+  tokenOrNftAnyOwnership?: TokenOrNftListAnyPostRestriction;
 };
 
 type SettingsAccountData = {
@@ -177,10 +183,15 @@ export class Postbox {
 
   async _getTokenPostRestrictionAccounts(tokenPostRestriction: TokenPostRestriction) {
     const ata = await splToken.getAssociatedTokenAddress(tokenPostRestriction.mint, this.dispatch.wallet.publicKey!);
-    return {
-      pra: [{ pubkey: ata, isWritable: false, isSigner: false }],
-      praIdxs: { tokenOwnership: { tokenIdx: 0 } },
-    };
+    const info = await this.dispatch.conn.getAccountInfo(ata);
+    const balance = info?.data ? splToken.AccountLayout.decode(info?.data).amount : 0;
+    if (balance >= tokenPostRestriction.amount) {
+      return {
+        pra: [{ pubkey: ata, isWritable: false, isSigner: false }],
+        praIdxs: { tokenOwnership: { tokenIdx: 0 } },
+      };
+    }
+    return { pra: [], praIdxs: null };
   }
 
   async _getNftPostRestrictionAccounts(collectionIds: web3.PublicKey[]) {
@@ -204,6 +215,20 @@ export class Postbox {
     }
     return { pra: [], praIdxs: null };
   }
+  
+  async _getEitherTokenOrNftPostRestrictionAccounts(tokenRestrs: TokenPostRestriction[], collectionIds: web3.PublicKey[]) {
+    const nftRet = await this._getNftPostRestrictionAccounts(collectionIds);
+    if (nftRet.pra.length > 0) {
+      return nftRet;
+    }
+    for (const tokenRestr of tokenRestrs) {
+      const tokenRet = await this._getTokenPostRestrictionAccounts(tokenRestr);
+      if (tokenRet.pra.length > 0) {
+        return tokenRet;
+      }
+    }
+    return { pra: [], praIdxs: null };
+  }
 
   async _getPostRestrictionAccounts(replyTo?: InteractablePost) {
     const restrictions = (replyTo?.settings ?? []).map(
@@ -221,8 +246,21 @@ export class Postbox {
       if (restriction?.nftListAnyOwnership) {
         return this._getNftPostRestrictionAccounts(restriction.nftListAnyOwnership.collectionIds);
       }
+      if (restriction?.tokenOrNftAnyOwnership) {
+        return this._getEitherTokenOrNftPostRestrictionAccounts(
+          restriction.tokenOrNftAnyOwnership.mints,
+          restriction.tokenOrNftAnyOwnership.collectionIds,
+        );
+      }
     }
     return { pra: [], praIdxs: null };
+  }
+
+  _formatTokenRestriction(tokenRestriction: TokenPostRestriction) {
+    return {
+      mint: tokenRestriction.mint,
+      amount: new anchor.BN(tokenRestriction.amount),
+    };
   }
 
   _formatPostRestrictionSetting(postRestriction: PostRestriction) {
@@ -230,9 +268,13 @@ export class Postbox {
     let normalizedRestriction;
     if (postRestriction?.tokenOwnership) {
       normalizedRestriction = {
-        tokenOwnership: {
-          mint: postRestriction.tokenOwnership.mint,
-          amount: new anchor.BN(postRestriction.tokenOwnership.amount),
+        tokenOwnership: this._formatTokenRestriction(postRestriction.tokenOwnership),
+      };
+    } else if(postRestriction?.tokenOrNftAnyOwnership) {
+      normalizedRestriction = {
+        tokenOrNftAnyOwnership: {
+          mints: postRestriction.tokenOrNftAnyOwnership.mints.map(this._formatTokenRestriction),
+          collectionIds: postRestriction.tokenOrNftAnyOwnership.collectionIds,
         },
       };
     } else {
@@ -431,15 +473,26 @@ export class Postbox {
     return this.innerSetSetting({ images: { json: JSON.stringify(images) } });
   }
 
+  _formatChainTokenRestriction(tokenRestriction: TokenPostRestriction) {
+    return {
+      mint: tokenRestriction.mint,
+      amount: (tokenRestriction.amount as any as anchor.BN).toNumber(),
+    };
+  }
+
   async getPostboxPostRestriction(): Promise<PostRestriction | null> {
     const inner = await this.innerGetSetting(SettingsType.postRestrictions);
     const restriction = inner?.postRestriction?.postRestriction ?? null;
     if (restriction?.tokenOwnership) {
       return {
-        tokenOwnership: {
-          mint: restriction.tokenOwnership.mint,
-          amount: (restriction.tokenOwnership.amount as any as anchor.BN).toNumber(),
-        },
+        tokenOwnership: this._formatChainTokenRestriction(restriction.tokenOwnership),
+      };
+    } else if(restriction?.tokenOrNftAnyOwnership) {
+      return {
+        tokenOrNftAnyOwnership: {
+          mints: restriction.tokenOrNftAnyOwnership.mints.map(this._formatChainTokenRestriction),
+          collectionIds: restriction.tokenOrNftAnyOwnership.collectionIds,
+        }
       };
     }
     return restriction;

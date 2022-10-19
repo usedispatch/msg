@@ -186,4 +186,49 @@ describe('Topic gating', () => {
       assert.ok(e.message.includes(expectedError));
     }
   });
+
+  it('Uses or restrictions', async () => {
+
+    assert.equal(await forumAsUser.canPost(topic), true);
+    assert.equal(await forumAsUnauthorizedUser.canPost(topic), false);
+    await forumAsUser.createTopic({
+      subj: 'restricted subject',
+      body: 'restricted body'
+    }, {
+      tokenOrNftAnyOwnership: {
+        mints: [{mint: await forumAsUser.getModeratorMint(), amount: 2}],
+        collectionIds: [new PublicKey('GcMPukzjZWfY4y4KVM3HNdqtZTf5WyTWPvL4YXznoS9c')],
+      }
+    });
+
+    const topics = await forumAsUser.getTopicsForForum();
+    assert.equal(topics.length, 2);
+    topic = topics[1];
+
+    await forumAsUser.createForumPost({
+      subj: 'reply',
+      body: 'authorized reply to topic'
+    }, topic);
+
+    try {
+      await forumAsUnauthorizedUser.createForumPost({
+        subj: 'reply',
+        body: 'unauthorized reply to topic'
+      }, topic);
+      assert.fail();
+    } catch (e) {
+      const expectedError = 'custom program error: 0x1840';
+      assert.ok(e instanceof Error);
+      assert.ok(e.message.includes(expectedError));
+    }
+
+    await forumAsOwner.setForumPostRestriction({
+      tokenOrNftAnyOwnership: {
+        mints: [{mint: await forumAsUser.getModeratorMint(), amount: 2}],
+        collectionIds: [new PublicKey('GcMPukzjZWfY4y4KVM3HNdqtZTf5WyTWPvL4YXznoS9c')],
+      }
+    });
+    const restriction = await forumAsOwner.getForumPostRestriction();
+    assert.equal(restriction.tokenOrNftAnyOwnership.mints[0].amount, 2);
+  });
 });

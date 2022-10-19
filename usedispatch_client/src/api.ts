@@ -25,8 +25,8 @@ export const getMaxChildId = async (cluster: web3.Cluster, forumID: web3.PublicK
 export const updateAndGetNewChildId = async (cluster: web3.Cluster, forumID: web3.PublicKey): Promise<number> => {
   const { data, error } = await supabase.rpc(`increment_max_child_${getNormalizedCluster(cluster)}`, {
     forum_id_key: forumID.toBase58(),
-  });
-  return data;
+  }).single();
+  return data as number;
 };
 
 export const addNewPostbox = async (cluster: web3.Cluster, forumID: web3.PublicKey): Promise<void> => {
