@@ -338,8 +338,7 @@ export class Postbox {
   }
 
   async deletePostAsModerator(post: InteractablePost): Promise<web3.TransactionSignature> {
-    const moderatorMint = await this.getModeratorMint();
-    const ata = await splToken.getAssociatedTokenAddress(moderatorMint, this.dispatch.wallet.publicKey!);
+    const ata = await this.getModeratorAta(this.dispatch.wallet.publicKey!);
     const ix = await this.dispatch.postboxProgram.methods
       .deletePostByModerator(post.postId)
       .accounts({
@@ -427,8 +426,7 @@ export class Postbox {
 
   // Admin functions
   async createAddModeratorIx(newModerator: web3.PublicKey): Promise<web3.Transaction> {
-    const moderatorMint = await this.getModeratorMint();
-    const ata = await splToken.getAssociatedTokenAddress(moderatorMint, newModerator);
+    const ata = await this.getModeratorAta(newModerator);
     const ix = await this.dispatch.postboxProgram.methods
       .designateModerator(this.target.str ?? '')
       .accounts({
@@ -522,9 +520,7 @@ export class Postbox {
     if (post.poster == this.dispatch.wallet.publicKey) {
       potentiallyModeratorAta = web3.PublicKey.default;
     } else {
-      const moderatorMint = await this.getModeratorMint();
-      const ata = await splToken.getAssociatedTokenAddress(moderatorMint, this.dispatch.wallet.publicKey!);
-      potentiallyModeratorAta = ata;
+      potentiallyModeratorAta = await this.getModeratorAta(this.dispatch.wallet.publicKey!);
     }
     const ix = await this.dispatch.postboxProgram.methods
       .changePostSetting(post.postId, formattedRestriction)
@@ -573,8 +569,7 @@ export class Postbox {
   }
 
   async isModerator(): Promise<boolean> {
-    const moderatorMint = await this.getModeratorMint();
-    const ata = await splToken.getAssociatedTokenAddress(moderatorMint, this.dispatch.wallet.publicKey!);
+    const ata = await this.getModeratorAta(this.dispatch.wallet.publicKey!);
     try {
       const tokenAccount = await splToken.getAccount(this.dispatch.conn, ata);
       if (tokenAccount.amount > 0) {
@@ -706,6 +701,10 @@ export class Postbox {
       this.dispatch.postboxProgram.programId,
     );
     return modMint;
+  }
+
+  async getModeratorAta(moderator: web3.PublicKey): Promise<web3.PublicKey> {
+    return await splToken.getAssociatedTokenAddress(await this.getModeratorMint(), moderator);
   }
 
   async getModerators(): Promise<web3.PublicKey[]> {
