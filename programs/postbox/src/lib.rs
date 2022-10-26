@@ -236,6 +236,14 @@ pub mod postbox {
     pub fn create_vote_tracker(_ctx: Context<CreateVoteTracker>) -> Result<()> {
         Ok(())
     }
+
+    pub fn change_post_setting(ctx: Context<ChangePostSetting>, _post_id: u32,
+        new_restriction: SettingsData
+    ) -> Result<()> {
+        let post = &mut ctx.accounts.post;
+        post.set_setting(&new_restriction)?;
+        Ok(())
+    }
 }
 
 #[derive(Accounts)]
@@ -424,6 +432,24 @@ pub struct CreateVoteTracker<'info> {
     pub system_program: Program<'info, System>,
 }
 
+#[derive(Accounts)]
+#[instruction(post_id: u32)]
+pub struct ChangePostSetting<'info> {
+    #[account(mut,
+        seeds=[PROTOCOL_SEED.as_bytes(), POST_SEED.as_bytes(), postbox.key().as_ref(), &post_id.to_le_bytes()],
+        bump,
+    )]
+    pub post: Box<Account<'info, Post>>,
+    pub postbox: Box<Account<'info, Postbox>>,
+    #[account(mut,
+        constraint=post.user_can_edit_settings(&postbox, &editor, &potentially_moderator_ata)
+    )]
+    pub editor: Signer<'info>,
+    /// CHECK: we allow passing default or a token account, checked in post.user_can_edit_settings
+    pub potentially_moderator_ata: UncheckedAccount<'info>,
+    pub system_program: Program<'info, System>,
+}
+
 impl Postbox {
     pub fn has_owner(&self, potential_owner: & Pubkey) -> bool {
         match self.get_setting(SettingsType::OwnerInfo) {
@@ -504,6 +530,25 @@ impl Post {
         self.settings.retain(|s| s.get_type() != new_setting.get_type());
         self.settings.push(new_setting.clone());
         Ok(())
+    }
+
+    pub fn user_can_edit_settings(& self,
+        postbox: &Box<Account<Postbox>>,
+        editor: &Signer,
+        potentially_moderator_ata: &UncheckedAccount,
+    ) -> bool {
+        // Never on a reply
+        if self.reply_to.is_some() { return false; }
+        // The original poster can edit the restrictions
+        if self.poster == editor.key() { return true; }
+        // Otherwise, check that it's a moderator
+        if potentially_moderator_ata.key() == Pubkey::default() { return false; }
+        return Account::<token::TokenAccount>::try_from(potentially_moderator_ata).map_or(false,
+            |moderator_ata|
+            moderator_ata.mint == postbox.moderator_mint
+            && moderator_ata.owner == editor.key()
+            && moderator_ata.amount > 0
+        );
     }
 }
 
