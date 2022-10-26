@@ -235,7 +235,7 @@ describe('Topic gating', () => {
   it('Allows moderator to edit post restrictions on another user\'s post', async () => {
     assert.equal(topic.settings.length, 1);
     await forumAsOwner.setPostSpecificRestriction(topic, {null: {}});
-    const topicAgain = (await forumAsUser.getTopicsForForum())[0];
+    const topicAgain = (await forumAsUser.getTopicsForForum())[1];
     assert.equal(topicAgain.settings.length, 1);
     assert.ok(topicAgain.settings[0].postRestriction.postRestriction.null);
   });
