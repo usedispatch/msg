@@ -215,8 +215,11 @@ export class Postbox {
     }
     return { pra: [], praIdxs: null };
   }
-  
-  async _getEitherTokenOrNftPostRestrictionAccounts(tokenRestrs: TokenPostRestriction[], collectionIds: web3.PublicKey[]) {
+
+  async _getEitherTokenOrNftPostRestrictionAccounts(
+    tokenRestrs: TokenPostRestriction[],
+    collectionIds: web3.PublicKey[],
+  ) {
     const nftRet = await this._getNftPostRestrictionAccounts(collectionIds);
     if (nftRet.pra.length > 0) {
       return nftRet;
@@ -270,7 +273,7 @@ export class Postbox {
       normalizedRestriction = {
         tokenOwnership: this._formatTokenRestriction(postRestriction.tokenOwnership),
       };
-    } else if(postRestriction?.tokenOrNftAnyOwnership) {
+    } else if (postRestriction?.tokenOrNftAnyOwnership) {
       normalizedRestriction = {
         tokenOrNftAnyOwnership: {
           mints: postRestriction.tokenOrNftAnyOwnership.mints.map(this._formatTokenRestriction),
@@ -485,12 +488,12 @@ export class Postbox {
       return {
         tokenOwnership: this._formatChainTokenRestriction(restriction.tokenOwnership),
       };
-    } else if(restriction?.tokenOrNftAnyOwnership) {
+    } else if (restriction?.tokenOrNftAnyOwnership) {
       return {
         tokenOrNftAnyOwnership: {
           mints: restriction.tokenOrNftAnyOwnership.mints.map(this._formatChainTokenRestriction),
           collectionIds: restriction.tokenOrNftAnyOwnership.collectionIds,
-        }
+        },
       };
     }
     return restriction;
@@ -498,26 +501,22 @@ export class Postbox {
 
   async setPostboxPostRestriction(
     postRestriction: PostRestriction,
-    // TODO see if there is a better default than recent
     commitment: web3.Commitment = TXN_COMMITMENT,
   ): Promise<web3.TransactionSignature> {
     return this.innerSetSetting(this._formatPostRestrictionSetting(postRestriction), commitment);
   }
 
-  async setPostboxPostRestrictionIx(
-    postRestriction: PostRestriction,
-    // TODO see if there is a better default than recent
-  ): Promise<web3.Transaction> {
+  async setPostboxPostRestrictionIx(postRestriction: PostRestriction): Promise<web3.Transaction> {
     return this.innerSetSettingIx(this._formatPostRestrictionSetting(postRestriction));
   }
 
   async setPostSpecificRestriction(
     post: InteractablePost,
-    postRestriction: PostRestriction
+    postRestriction: PostRestriction,
   ): Promise<web3.TransactionSignature> {
     const formattedRestriction = this._formatPostRestrictionSetting(postRestriction);
     let potentiallyModeratorAta: web3.PublicKey;
-    if (post.poster == this.dispatch.wallet.publicKey) {
+    if (post.poster === this.dispatch.wallet.publicKey) {
       potentiallyModeratorAta = web3.PublicKey.default;
     } else {
       potentiallyModeratorAta = await this.getModeratorAta(this.dispatch.wallet.publicKey!);
@@ -545,7 +544,6 @@ export class Postbox {
 
   async innerSetSetting(
     settingsData: any,
-    // TODO see if there is a better default than recent
     commitment: web3.Commitment = TXN_COMMITMENT,
   ): Promise<web3.TransactionSignature> {
     const ix = await this.innerSetSettingIx(settingsData);

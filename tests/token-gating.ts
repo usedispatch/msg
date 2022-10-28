@@ -172,7 +172,7 @@ describe('Token gating', () => {
     });
 
     const topics = await forumAsUser.getTopicsForForum();
-    const topic = topics.find(topic => topic.data.subj === 'Topic without permissions');
+    const topic = topics.find(topicI => topicI.data.subj === 'Topic without permissions');
 
     assert.notEqual(topic, null);
 
@@ -211,7 +211,7 @@ describe('Token gating', () => {
       body: 'body'
     });
     const topics = await forumAsUser.getTopicsForForum();
-    const topic = topics.find(topic => topic.data.subj === 'Topic without permissions');
+    const topic = topics.find(topicI => topicI.data.subj === 'Topic without permissions');
     assert.notEqual(topic, null);
 
     const authorizedUserCanCreateTopic = await forumAsUser.canCreateTopic();

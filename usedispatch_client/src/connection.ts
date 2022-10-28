@@ -43,15 +43,10 @@ export class DispatchConnection {
     this.postboxProgram = new anchor.Program<Postbox>(postboxProgramIdl as any, this.addresses.postboxAddress);
   }
 
-  public async sendTransaction(
-    tx: web3.Transaction,
-    // TODO see if there is a better default than recent
-    commitment: web3.Commitment = TXN_COMMITMENT,
-  ) {
+  public async sendTransaction(tx: web3.Transaction, commitment: web3.Commitment = TXN_COMMITMENT) {
     let sig: string;
-    if ('sendTransaction' in this.wallet) {
-      const wallet = this.wallet;
-      sig = await wallet.sendTransaction(tx, this.conn, { maxRetries: SOLANA_CONNECTION_MAX_RETRIES });
+    if ('sendTransaction' in this.wallet && this.wallet.sendTransaction) {
+      sig = await this.wallet.sendTransaction(tx, this.conn, { maxRetries: SOLANA_CONNECTION_MAX_RETRIES });
     } else if ('payer' in this.wallet) {
       const wallet = this.wallet as AnchorNodeWalletInterface;
       const signer = wallet.payer;

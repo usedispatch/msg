@@ -192,7 +192,7 @@ describe('postbox', () => {
     await conn.confirmTransaction(tx1);
 
     const testPost = {subj: "Test", body: "This is a test post"};
-    const tx2 = await postboxAsOwner.createPost(testPost, undefined, {tokenOwnership: {mint: mint, amount: 1}});
+    const tx2 = await postboxAsOwner.createPost(testPost, undefined, {tokenOwnership: {mint, amount: 1}});
     await conn.confirmTransaction(tx2);
 
     const topics = await postboxAsOwner.fetchPosts();
@@ -547,9 +547,6 @@ describe('postbox', () => {
 
     const iterations = 1500;
     for (let i = 0; i < iterations; ++i) {
-      if (i % 100 == 0) {
-        console.log("Doing vote", i);
-      }
       const testPost = { subj: String(i), body: "T" };
       await conn.confirmTransaction(await postboxAsVoter.createPost(testPost));
       const topLevelPosts = await postboxAsVoter.fetchPosts();

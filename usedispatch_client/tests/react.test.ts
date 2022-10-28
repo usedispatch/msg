@@ -7,17 +7,14 @@ import * as tlr from '@testing-library/react';
 import { Mailbox, KeyPairWallet } from "../src/";
 import '@testing-library/jest-dom';
 
-interface IProps {
-}
-
 interface IState {
   receiverMailbox?: Mailbox;
 }
 
 const keypair: web3.Keypair = web3.Keypair.generate();
 
-class WalletComponent extends React.Component<IProps, IState> {
-  constructor(props: IProps) {
+class WalletComponent extends React.Component<{}, IState> {
+  constructor(props: {}) {
     super(props);
     const conn = new web3.Connection(web3.clusterApiUrl('devnet'));
     const receiver = keypair;

@@ -1,6 +1,5 @@
 import * as web3 from '@solana/web3.js';
-import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
-import { Key, Metadata, TokenStandard } from '@metaplex-foundation/mpl-token-metadata';
+import { Key, Metadata } from '@metaplex-foundation/mpl-token-metadata';
 import { Error } from '../src/types';
 import {
   getMintsForOwner,

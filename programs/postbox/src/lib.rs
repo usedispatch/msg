@@ -209,7 +209,6 @@ pub mod postbox {
 
     pub fn add_or_update_setting(ctx: Context<AddOrUpdateSetting>, settings_data: SettingsData) -> Result<()> {
         let postbox = & mut ctx.accounts.postbox;
-        // TODO: can we do this more efficiently?
         postbox.settings.retain(|s| s.get_type() != settings_data.get_type());
         postbox.settings.push(settings_data);
         resize_account(postbox.to_account_info().as_ref(), & ctx.accounts.owner, postbox.get_size())?;
@@ -581,7 +580,7 @@ pub fn resize_account<'info>(data_account: &dyn ToAccountInfo<'info>, funding_ac
     if new_minimum_balance > data_info.lamports() {
         let lamports_diff = new_minimum_balance.saturating_sub(data_info.lamports());
         treasury::transfer_lamports(funding_account, data_account, lamports_diff)?;
-    } // TODO(mfasman): free up lamports when reducing size (need to sign as PDA in transfer)
+    }
     data_info.realloc(new_size, false)?;
     Ok(())
 }

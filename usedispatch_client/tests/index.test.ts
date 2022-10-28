@@ -4,7 +4,6 @@ import * as path from 'path';
 import * as web3 from '@solana/web3.js';
 import * as bs58 from 'bs58';
 import { Mailbox, KeyPairWallet } from "../src/";
-import { getMintsForOwner, getMetadataForOwner } from '../src/utils';
 
 const getPayer = () : web3.Keypair => {
   if (process.env.WALLET_SECRET_KEY) {
@@ -37,9 +36,6 @@ const OTReceiverMailboxAsSender = new Mailbox(conn, OTSenderWallet, {
   mailboxOwner: OTReceiver.publicKey
 })
 
-console.log('receiver', receiver.publicKey.toBase58());
-console.log('payer', payer.publicKey.toBase58());
-
 describe("Test for initial Mailbox setup.", () => {
   describe("mailboxTest", () => {
     test("Obfuscated mailbox send and receive", async () => {
@@ -50,13 +46,9 @@ describe("Test for initial Mailbox setup.", () => {
       const txSig0 = await OTSenderMailbox.send("obftext0", OTReceiver.publicKey);
       await conn.confirmTransaction(txSig0, 'finalized');
 
-      console.log('Fetch messages from Receivers mailbox as sender');
-      let messages = await OTReceiverMailboxAsSender.fetch();
-      console.log(messages);
+      const messages = await OTReceiverMailboxAsSender.fetch();
       expect(messages.length).toEqual(1);
       expect(messages[0].data).toEqual("obftext0");
-
-
     });
 
     test("Mailbox Send, receive, pop test", async () => {
@@ -70,8 +62,7 @@ describe("Test for initial Mailbox setup.", () => {
       const txSig1 = await senderMailbox.send("text1", receiver.publicKey);
       await conn.confirmTransaction(txSig1, 'finalized');
 
-      console.log('Fetch messages from mailbox');
-      let messages = await receiverMailbox.fetch();
+      const messages = await receiverMailbox.fetch();
       expect(messages.length).toEqual(2);
 
       expect(messages[0].sender.equals(payer.publicKey))
@@ -84,19 +75,18 @@ describe("Test for initial Mailbox setup.", () => {
       const txSig2 = await receiverMailbox.pop();
       await conn.confirmTransaction(txSig2, 'finalized');
 
-      let _messages = await receiverMailbox.fetch();
-      expect(_messages.length).toEqual(1);
+      const messages2 = await receiverMailbox.fetch();
+      expect(messages2.length).toEqual(1);
 
-      expect(_messages[0].sender).toEqual(payer.publicKey);
-      expect(_messages[0].data).toEqual("text1");
+      expect(messages2[0].sender).toEqual(payer.publicKey);
+      expect(messages2[0].data).toEqual("text1");
 
       console.log('Pop 1 message from mailbox');
       const txSig3 = await receiverMailbox.pop();
       await conn.confirmTransaction(txSig3, 'finalized');
 
-      let __messages = await receiverMailbox.fetch();
-      expect(__messages.length).toEqual(0);
-
+      const messages3 = await receiverMailbox.fetch();
+      expect(messages3.length).toEqual(0);
     });
   });
 });

@@ -53,13 +53,13 @@ async function main() {
     console.log('Start Posts')
     for (let i = 0; i < 100; i++) {
         const postData = {body: `p${i}`}
-        let postTxn = await dispatchForum.createForumPost(postData, TOPIC_POST);
+        const postTxn = await dispatchForum.createForumPost(postData, TOPIC_POST);
         console.log("created post", postData, postTxn)
-        let posts = await dispatchForum.getTopicMessages(TOPIC_POST);
-        let lastPost = posts[posts.length - 1]
+        const posts = await dispatchForum.getTopicMessages(TOPIC_POST);
+        const lastPost = posts[posts.length - 1]
         await new Promise(f => setTimeout(f, TRANSACTION_TIMEOUT));
         const replyData = {body: `r1`}
-        let replyTxn = await dispatchForum.replyToForumPost(lastPost, replyData);
+        const replyTxn = await dispatchForum.replyToForumPost(lastPost, replyData);
         console.log("created reply", replyData, replyTxn)
         await new Promise(f => setTimeout(f, TRANSACTION_TIMEOUT));
     }

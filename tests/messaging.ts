@@ -5,7 +5,6 @@ import { Program } from '@project-serum/anchor';
 import { Messaging } from '../target/types/messaging';
 
 import { Mailbox, clusterAddresses, seeds } from '../usedispatch_client/src';
-import { lookupDotSol } from '../usedispatch_client/src';
 
 describe('messaging', () => {
 
@@ -43,7 +42,7 @@ describe('messaging', () => {
 
     const tx0 = await program.rpc.sendMessage("text0", {
       accounts: {
-        mailbox: mailbox,
+        mailbox,
         receiver: receiver.publicKey,
         message: message0,
         payer: payer.publicKey,
@@ -69,7 +68,7 @@ describe('messaging', () => {
 
     const tx1 = await program.rpc.sendMessage("text1", {
       accounts: {
-        mailbox: mailbox,
+        mailbox,
         receiver: receiver.publicKey,
         message: message1,
         payer: payer.publicKey,
@@ -100,7 +99,7 @@ describe('messaging', () => {
     // delete messages
     const tx2 = await program.rpc.deleteMessage(0, {
       accounts: {
-        mailbox: mailbox,
+        mailbox,
         receiver: receiver.publicKey,
         authorizedDeleter: receiver.publicKey,
         message: message0,
@@ -115,7 +114,7 @@ describe('messaging', () => {
 
     const tx3 = await program.rpc.deleteMessage(1, {
       accounts: {
-        mailbox: mailbox,
+        mailbox,
         receiver: receiver.publicKey,
         authorizedDeleter: receiver.publicKey,
         message: message1,
@@ -169,7 +168,7 @@ describe('messaging', () => {
     assert.ok(fullCountEx1.messageCount === 2);
     assert.ok(fullCountEx1.readMessageCount === 0);
 
-    let firstMessage = await receiverMailbox.fetchMessageById(1);
+    const firstMessage = await receiverMailbox.fetchMessageById(1);
     assert.ok(firstMessage.messageId === 1);
     assert.ok(firstMessage.data.body === "text1");
     assert.ok(firstMessage.incentiveMint === undefined);
@@ -264,7 +263,7 @@ describe('messaging', () => {
 
     const tx0 = await program.rpc.sendMessage("text0", {
       accounts: {
-        mailbox: mailbox,
+        mailbox,
         receiver: receiver.publicKey,
         message: message0,
         payer: payer.publicKey,
@@ -286,7 +285,7 @@ describe('messaging', () => {
     try {
       const tx1 = await program.rpc.deleteMessage(0, {
         accounts: {
-          mailbox: mailbox,
+          mailbox,
           receiver: receiver.publicKey,
           authorizedDeleter: receiver.publicKey,
           message: message0,
@@ -339,7 +338,7 @@ describe('messaging', () => {
 
     const tx0 = await program.rpc.sendMessage("text0", {
       accounts: {
-        mailbox: mailbox,
+        mailbox,
         receiver: receiver.publicKey,
         message: message0,
         payer: payer.publicKey,
@@ -450,8 +449,6 @@ describe('messaging', () => {
     const {messageCount, readMessageCount} = await receiverMailbox.countEx();
     assert.equal(messageCount, 6);
     assert.equal(readMessageCount, 2);
-
-    // TODO(mfasman): set the read messages and check them
   });
 
   it('Sends a message with incentive and accepts it', async () => {
@@ -524,12 +521,6 @@ describe('messaging', () => {
     assert.deepEqual(sentMessages2Text, ["msg0", "msg1", "msg3"]);
   });
 
-  // it("Tests bonfida naming", async () => {
-  //   const connMainnet = new anchor.web3.Connection(anchor.web3.clusterApiUrl('mainnet-beta'));
-  //   let a = await lookupDotSol(connMainnet, "viksit");
-  //   assert.equal(a.ownerPubKey.toBase58(), "EuoVktg82q5oxEA6LvLXF4Xi9rKT1ZrjYqwcd9JA7X1B");
-  // });
-
   it('Sends an enhanced message and fetches it', async () => {
     const receiver = new anchor.Wallet(anchor.web3.Keypair.generate());
     const sender = new anchor.Wallet(anchor.web3.Keypair.generate());
@@ -549,25 +540,6 @@ describe('messaging', () => {
     assert.equal(innerData.body, testBody);
     assert.ok(innerData.ts.getTime() >= testNow && innerData.ts.getTime() < testNow + 10);
     assert.deepEqual(innerData.meta, testMeta);
-  });
-
-  it('Sends a solanart-style message and fetches it', async () => {
-    const receiver = new anchor.Wallet(anchor.web3.Keypair.generate());
-    const sender = new anchor.Wallet(anchor.web3.Keypair.generate());
-    await conn.confirmTransaction(await conn.requestAirdrop(sender.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
-
-    const senderMailbox = new Mailbox(conn, sender);
-
-    const message = `{"message":{"event":"directMessage","subject":"dm","message":"Hello there","timestamp":"1646419739"},"id":0,"senderName":"${
-      senderMailbox.mailboxOwner.toBase58()
-    }","ns":"solanart"}`;
-    await senderMailbox.send(message, receiver.publicKey);
-
-    const sentMessage = (await senderMailbox.fetchSentMessagesTo(receiver.publicKey))[0];
-    const innerData = sentMessage.data;
-    assert.equal(innerData.subj, "dm");
-    assert.equal(innerData.body, "Hello there");
-    assert.equal(innerData.ts.getTime(), 1646419739000);
   });
 
   it('Sends a message with sol incentive and accepts it', async () => {

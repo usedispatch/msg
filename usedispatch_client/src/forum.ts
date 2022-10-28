@@ -269,15 +269,15 @@ export class Forum implements IForum {
 
   async setForumPostRestriction(
     restriction: postbox.PostRestriction,
-    // TODO confirm whether recent is a reasonable default
     commitment: web3.Commitment = TXN_COMMITMENT,
   ): Promise<web3.TransactionSignature> {
     return this._postbox.setPostboxPostRestriction(restriction, commitment);
   }
 
   async setPostSpecificRestriction(
-    post: postbox.InteractablePost, restriction: postbox.PostRestriction
-    ): Promise<web3.TransactionSignature> {
+    post: postbox.InteractablePost,
+    restriction: postbox.PostRestriction,
+  ): Promise<web3.TransactionSignature> {
     return this._postbox.setPostSpecificRestriction(post, restriction);
   }
 
