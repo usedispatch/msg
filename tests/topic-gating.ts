@@ -1,17 +1,8 @@
-import {
-  Connection,
-  Keypair,
-  PublicKey,
-} from '@solana/web3.js';
+import { Connection, Keypair, PublicKey } from '@solana/web3.js';
 import { strict as assert } from 'assert';
 import { decode } from 'bs58';
 import { config } from 'dotenv';
-import {
-  DispatchConnection,
-  Forum,
-  KeyPairWallet,
-  ForumPost
-} from '../usedispatch_client/src';
+import { DispatchConnection, Forum, KeyPairWallet, ForumPost } from '../usedispatch_client/src';
 import * as anchor from '@project-serum/anchor';
 
 describe('Topic gating', () => {
@@ -55,22 +46,16 @@ describe('Topic gating', () => {
       !process.env.USER_WITH_ASSOCIATED_ACCOUNT_WITH_ZERO_BALANCE_KEY
     ) {
       assert.fail(
-        'Secret keys not found. If running locally, fetch secret keys from https://www.notion.so/usedispatch/Secret-Keys-for-Testing-c468d260f9514c16aa0e227b6b693421 and write them to a file called .env in the project root'
+        'Secret keys not found. If running locally, fetch secret keys from https://www.notion.so/usedispatch/Secret-Keys-for-Testing-c468d260f9514c16aa0e227b6b693421 and write them to a file called .env in the project root',
       );
     }
 
     // Initialize the two parties
-    ownerKeypair = Keypair.fromSecretKey(
-      decode(process.env.OWNER_KEY)
-    );
-    userKeypair = Keypair.fromSecretKey(
-      decode(process.env.USER_KEY)
-    );
-    unauthorizedUserKeypair = Keypair.fromSecretKey(
-      decode(process.env.UNAUTHORIZED_USER_KEY)
-    );
+    ownerKeypair = Keypair.fromSecretKey(decode(process.env.OWNER_KEY));
+    userKeypair = Keypair.fromSecretKey(decode(process.env.USER_KEY));
+    unauthorizedUserKeypair = Keypair.fromSecretKey(decode(process.env.UNAUTHORIZED_USER_KEY));
     zeroBalanceUserKeypair = Keypair.fromSecretKey(
-      decode(process.env.USER_WITH_ASSOCIATED_ACCOUNT_WITH_ZERO_BALANCE_KEY)
+      decode(process.env.USER_WITH_ASSOCIATED_ACCOUNT_WITH_ZERO_BALANCE_KEY),
     );
 
     // Initiate wallets for the keypairs
@@ -98,24 +83,27 @@ describe('Topic gating', () => {
       collectionId,
       owners: [owner.publicKey],
       moderators: [owner.publicKey],
-      title: "Test Forum",
-      description: "A forum for the test suite",
+      title: 'Test Forum',
+      description: 'A forum for the test suite',
     });
     await Promise.all(txs.map((t) => conn.confirmTransaction(t)));
 
-    const desc = await forumAsOwner.getDescription()
+    const desc = await forumAsOwner.getDescription();
     assert.notEqual(desc, undefined);
     assert.equal(desc.title, 'Test Forum');
     assert.equal(desc.desc, 'A forum for the test suite');
 
-    await forumAsUser.createTopic({
-      subj: 'restricted subject',
-      body: 'restricted body'
-    }, {
-      nftOwnership: {
-        collectionId: new PublicKey('GcMPukzjZWfY4y4KVM3HNdqtZTf5WyTWPvL4YXznoS9c')
-      }
-    });
+    await forumAsUser.createTopic(
+      {
+        subj: 'restricted subject',
+        body: 'restricted body',
+      },
+      {
+        nftOwnership: {
+          collectionId: new PublicKey('GcMPukzjZWfY4y4KVM3HNdqtZTf5WyTWPvL4YXznoS9c'),
+        },
+      },
+    );
 
     const topics = await forumAsUser.getTopicsForForum();
     assert.equal(topics.length, 1);
@@ -123,20 +111,25 @@ describe('Topic gating', () => {
   });
 
   it('Enforces topic gating', async () => {
-
     assert.equal(await forumAsUser.canPost(topic), true);
     assert.equal(await forumAsUnauthorizedUser.canPost(topic), false);
 
-    await forumAsUser.createForumPost({
-      subj: 'reply',
-      body: 'authorized reply to topic'
-    }, topic);
+    await forumAsUser.createForumPost(
+      {
+        subj: 'reply',
+        body: 'authorized reply to topic',
+      },
+      topic,
+    );
 
     try {
-      await forumAsUnauthorizedUser.createForumPost({
-        subj: 'reply',
-        body: 'unauthorized reply to topic'
-      }, topic);
+      await forumAsUnauthorizedUser.createForumPost(
+        {
+          subj: 'reply',
+          body: 'unauthorized reply to topic',
+        },
+        topic,
+      );
       assert.fail();
     } catch (e) {
       const expectedError = 'custom program error: 0x1840';
@@ -145,10 +138,13 @@ describe('Topic gating', () => {
     }
 
     try {
-      await forumAsZeroBalanceUser.createForumPost({
-        subj: 'reply',
-        body: 'unauthorized reply to topic'
-      }, topic);
+      await forumAsZeroBalanceUser.createForumPost(
+        {
+          subj: 'reply',
+          body: 'unauthorized reply to topic',
+        },
+        topic,
+      );
       assert.fail();
     } catch (e) {
       const expectedError = 'custom program error: 0x1840';
@@ -188,33 +184,41 @@ describe('Topic gating', () => {
   });
 
   it('Uses or restrictions', async () => {
-
     assert.equal(await forumAsUser.canPost(topic), true);
     assert.equal(await forumAsUnauthorizedUser.canPost(topic), false);
-    await forumAsUser.createTopic({
-      subj: 'restricted subject',
-      body: 'restricted body'
-    }, {
-      tokenOrNftAnyOwnership: {
-        mints: [{mint: await forumAsUser.getModeratorMint(), amount: 2}],
-        collectionIds: [new PublicKey('GcMPukzjZWfY4y4KVM3HNdqtZTf5WyTWPvL4YXznoS9c')],
-      }
-    });
+    await forumAsUser.createTopic(
+      {
+        subj: 'restricted subject',
+        body: 'restricted body',
+      },
+      {
+        tokenOrNftAnyOwnership: {
+          mints: [{ mint: await forumAsUser.getModeratorMint(), amount: 2 }],
+          collectionIds: [new PublicKey('GcMPukzjZWfY4y4KVM3HNdqtZTf5WyTWPvL4YXznoS9c')],
+        },
+      },
+    );
 
     const topics = await forumAsUser.getTopicsForForum();
     assert.equal(topics.length, 2);
     topic = topics[1];
 
-    await forumAsUser.createForumPost({
-      subj: 'reply',
-      body: 'authorized reply to topic'
-    }, topic);
+    await forumAsUser.createForumPost(
+      {
+        subj: 'reply',
+        body: 'authorized reply to topic',
+      },
+      topic,
+    );
 
     try {
-      await forumAsUnauthorizedUser.createForumPost({
-        subj: 'reply',
-        body: 'unauthorized reply to topic'
-      }, topic);
+      await forumAsUnauthorizedUser.createForumPost(
+        {
+          subj: 'reply',
+          body: 'unauthorized reply to topic',
+        },
+        topic,
+      );
       assert.fail();
     } catch (e) {
       const expectedError = 'custom program error: 0x1840';
@@ -224,17 +228,17 @@ describe('Topic gating', () => {
 
     await forumAsOwner.setForumPostRestriction({
       tokenOrNftAnyOwnership: {
-        mints: [{mint: await forumAsUser.getModeratorMint(), amount: 2}],
+        mints: [{ mint: await forumAsUser.getModeratorMint(), amount: 2 }],
         collectionIds: [new PublicKey('GcMPukzjZWfY4y4KVM3HNdqtZTf5WyTWPvL4YXznoS9c')],
-      }
+      },
     });
     const restriction = await forumAsOwner.getForumPostRestriction();
     assert.equal(restriction.tokenOrNftAnyOwnership.mints[0].amount, 2);
   });
 
-  it('Allows moderator to edit post restrictions on another user\'s post', async () => {
+  it("Allows moderator to edit post restrictions on another user's post", async () => {
     assert.equal(topic.settings.length, 1);
-    await forumAsOwner.setPostSpecificRestriction(topic, {null: {}});
+    await forumAsOwner.setPostSpecificRestriction(topic, { null: {} });
     const topicAgain = (await forumAsUser.getTopicsForForum())[1];
     assert.equal(topicAgain.settings.length, 1);
     assert.ok(topicAgain.settings[0].postRestriction.postRestriction.null);

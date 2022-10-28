@@ -6,7 +6,7 @@
     "test": "jest --config jestconfig.json",
     "clean": "rm -rf dist",
     "build": "yarn clean && parcel build",
-    "format": "prettier --write \"src/*.ts\"",
+    "format": "prettier --write \"src/*.ts\" \"tests/*.ts\"",
     "idl": "mkdir -p lib/target/idl && mkdir -p lib/target/types && cp ../target/idl/* ./lib/target/idl/ && cp ../target/types/* ./lib/target/types/",
     "lint": "tslint -p tsconfig.json",
     "prepare": "yarn build && echo 'Please run the tests manually before publish'",

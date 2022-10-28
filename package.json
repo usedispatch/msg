@@ -35,7 +35,7 @@
     "version": "0.2.1",
     "packageManager": "yarn@3.2.3",
     "scripts": {
-        "format": "prettier --write \"src/*.ts\"",
+        "format": "prettier --write \"tests/*.ts\" \"scripts/*.ts\"",
         "lint": "tslint -p tsconfig.json"
     }
 }

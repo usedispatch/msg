@@ -1,16 +1,8 @@
-import {
-  Connection,
-  Keypair,
-  PublicKey,
-} from '@solana/web3.js';
+import { Connection, Keypair, PublicKey } from '@solana/web3.js';
 import { strict as assert } from 'assert';
 import { decode } from 'bs58';
 import { config } from 'dotenv';
-import {
-  DispatchConnection,
-  Forum,
-  KeyPairWallet
-} from '../usedispatch_client/src';
+import { DispatchConnection, Forum, KeyPairWallet } from '../usedispatch_client/src';
 import * as anchor from '@project-serum/anchor';
 
 describe('Token gating', () => {
@@ -52,22 +44,16 @@ describe('Token gating', () => {
       !process.env.USER_WITH_ASSOCIATED_ACCOUNT_WITH_ZERO_BALANCE_KEY
     ) {
       assert.fail(
-        'Secret keys not found. If running locally, fetch secret keys from https://www.notion.so/usedispatch/Secret-Keys-for-Testing-c468d260f9514c16aa0e227b6b693421 and write them to a file called .env in the project root'
+        'Secret keys not found. If running locally, fetch secret keys from https://www.notion.so/usedispatch/Secret-Keys-for-Testing-c468d260f9514c16aa0e227b6b693421 and write them to a file called .env in the project root',
       );
     }
 
     // Initialize the two parties
-    ownerKeypair = Keypair.fromSecretKey(
-      decode(process.env.OWNER_KEY)
-    );
-    userKeypair = Keypair.fromSecretKey(
-      decode(process.env.USER_KEY)
-    );
-    unauthorizedUserKeypair = Keypair.fromSecretKey(
-      decode(process.env.UNAUTHORIZED_USER_KEY)
-    );
+    ownerKeypair = Keypair.fromSecretKey(decode(process.env.OWNER_KEY));
+    userKeypair = Keypair.fromSecretKey(decode(process.env.USER_KEY));
+    unauthorizedUserKeypair = Keypair.fromSecretKey(decode(process.env.UNAUTHORIZED_USER_KEY));
     zeroBalanceUserKeypair = Keypair.fromSecretKey(
-      decode(process.env.USER_WITH_ASSOCIATED_ACCOUNT_WITH_ZERO_BALANCE_KEY!)
+      decode(process.env.USER_WITH_ASSOCIATED_ACCOUNT_WITH_ZERO_BALANCE_KEY!),
     );
 
     // Initiate wallets for the keypairs
@@ -95,12 +81,12 @@ describe('Token gating', () => {
       collectionId,
       owners: [owner.publicKey],
       moderators: [owner.publicKey],
-      title: "Test Forum",
-      description: "A forum for the test suite",
+      title: 'Test Forum',
+      description: 'A forum for the test suite',
     });
     await Promise.all(txs.map((t) => conn.confirmTransaction(t)));
 
-    const desc = await forumAsOwner.getDescription()
+    const desc = await forumAsOwner.getDescription();
     assert.notEqual(desc, undefined);
     assert.equal(desc.title, 'Test Forum');
     assert.equal(desc.desc, 'A forum for the test suite');
@@ -110,15 +96,14 @@ describe('Token gating', () => {
     await forumAsOwner.setForumPostRestriction(
       {
         nftOwnership: {
-          collectionId: new PublicKey('GcMPukzjZWfY4y4KVM3HNdqtZTf5WyTWPvL4YXznoS9c')
-        }
+          collectionId: new PublicKey('GcMPukzjZWfY4y4KVM3HNdqtZTf5WyTWPvL4YXznoS9c'),
+        },
       },
-      'max'
+      'max',
     );
 
     const restriction = await forumAsOwner.getForumPostRestriction();
     assert.notEqual(restriction, null);
-
 
     const authorizedUserCanCreateTopic = await forumAsUser.canCreateTopic();
     const unauthorizedUserCanCreateTopic = await forumAsUnauthorizedUser.canCreateTopic();
@@ -132,14 +117,14 @@ describe('Token gating', () => {
   it('Attempts to create a topic', async () => {
     const tx0 = await forumAsUser.createTopic({
       subj: 'Subject title',
-      body: 'body'
+      body: 'body',
     });
     await conn.confirmTransaction(tx0);
 
     try {
       const tx = await forumAsUnauthorizedUser.createTopic({
         body: 'body',
-        subj: 'subj'
+        subj: 'subj',
       });
       await conn.confirmTransaction(tx);
       assert.fail();
@@ -152,7 +137,7 @@ describe('Token gating', () => {
     try {
       const tx = await forumAsZeroBalanceUser.createTopic({
         body: 'body',
-        subj: 'subj'
+        subj: 'subj',
       });
       await conn.confirmTransaction(tx);
       assert.fail();
@@ -161,25 +146,24 @@ describe('Token gating', () => {
       assert.ok(e instanceof Error);
       assert.ok(e.message.includes(expectedError));
     }
-
   });
 
   it('Topics without explicit permissions inherit permissions from forum', async () => {
     // forum permissions should be set before this happens
     await forumAsUser.createTopic({
       subj: 'Topic without permissions',
-      body: 'body'
+      body: 'body',
     });
 
     const topics = await forumAsUser.getTopicsForForum();
-    const topic = topics.find(topicI => topicI.data.subj === 'Topic without permissions');
+    const topic = topics.find((topicI) => topicI.data.subj === 'Topic without permissions');
 
     assert.notEqual(topic, null);
 
     assert.equal(await forumAsUser.canPost(topic), true);
     assert.equal(await forumAsUnauthorizedUser.canPost(topic), false);
 
-    await forumAsUser.replyToForumPost(topic, { subj: 'reply', body: 'unauthorized reply' })
+    await forumAsUser.replyToForumPost(topic, { subj: 'reply', body: 'unauthorized reply' });
     try {
       await forumAsUnauthorizedUser.replyToForumPost(topic, { subj: 'unauthorized reply', body: 'unauthorized reply' });
       assert.fail();
@@ -194,13 +178,10 @@ describe('Token gating', () => {
     await forumAsOwner.setForumPostRestriction(
       {
         nftListAnyOwnership: {
-          collectionIds: [
-            PublicKey.default,
-            new PublicKey('GcMPukzjZWfY4y4KVM3HNdqtZTf5WyTWPvL4YXznoS9c'),
-          ]
-        }
+          collectionIds: [PublicKey.default, new PublicKey('GcMPukzjZWfY4y4KVM3HNdqtZTf5WyTWPvL4YXznoS9c')],
+        },
       },
-      'max'
+      'max',
     );
 
     const restriction = await forumAsOwner.getForumPostRestriction();
@@ -208,10 +189,10 @@ describe('Token gating', () => {
 
     await forumAsUser.createTopic({
       subj: 'Topic without permissions',
-      body: 'body'
+      body: 'body',
     });
     const topics = await forumAsUser.getTopicsForForum();
-    const topic = topics.find(topicI => topicI.data.subj === 'Topic without permissions');
+    const topic = topics.find((topicI) => topicI.data.subj === 'Topic without permissions');
     assert.notEqual(topic, null);
 
     const authorizedUserCanCreateTopic = await forumAsUser.canCreateTopic();

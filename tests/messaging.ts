@@ -7,13 +7,12 @@ import { Messaging } from '../target/types/messaging';
 import { Mailbox, clusterAddresses, seeds } from '../usedispatch_client/src';
 
 describe('messaging', () => {
-
   // Configure the client to use the local cluster.
   anchor.setProvider(anchor.AnchorProvider.env());
 
   const program = anchor.workspace.Messaging as Program<Messaging>;
   const conn = anchor.getProvider().connection;
-  const TREASURY = clusterAddresses.get("devnet").treasuryAddress;
+  const TREASURY = clusterAddresses.get('devnet').treasuryAddress;
 
   it('Basic test', async () => {
     const receiver = anchor.web3.Keypair.generate();
@@ -24,23 +23,20 @@ describe('messaging', () => {
     await conn.confirmTransaction(await conn.requestAirdrop(TREASURY, 1 * anchor.web3.LAMPORTS_PER_SOL));
 
     // send a couple of messages
-    const [mailbox] = await anchor.web3.PublicKey.findProgramAddress([
-      seeds.protocolSeed,
-      seeds.mailboxSeed,
-      receiver.publicKey.toBuffer(),
-    ], program.programId)
+    const [mailbox] = await anchor.web3.PublicKey.findProgramAddress(
+      [seeds.protocolSeed, seeds.mailboxSeed, receiver.publicKey.toBuffer()],
+      program.programId,
+    );
 
     // Send first message
     const msgCountBuf0 = Buffer.allocUnsafe(4);
     msgCountBuf0.writeInt32LE(0);
-    const [message0] = await anchor.web3.PublicKey.findProgramAddress([
-      seeds.protocolSeed,
-      seeds.messageSeed,
-      mailbox.toBuffer(),
-      msgCountBuf0,
-    ], program.programId);
+    const [message0] = await anchor.web3.PublicKey.findProgramAddress(
+      [seeds.protocolSeed, seeds.messageSeed, mailbox.toBuffer(), msgCountBuf0],
+      program.programId,
+    );
 
-    const tx0 = await program.rpc.sendMessage("text0", {
+    const tx0 = await program.rpc.sendMessage('text0', {
       accounts: {
         mailbox,
         receiver: receiver.publicKey,
@@ -50,23 +46,19 @@ describe('messaging', () => {
         feeReceiver: TREASURY,
         systemProgram: anchor.web3.SystemProgram.programId,
       },
-      signers: [
-        payer, sender,
-      ],
+      signers: [payer, sender],
     });
     await conn.confirmTransaction(tx0);
 
     // Send second message
     const msgCountBuf1 = Buffer.allocUnsafe(4);
     msgCountBuf1.writeInt32LE(1);
-    const [message1] = await anchor.web3.PublicKey.findProgramAddress([
-      seeds.protocolSeed,
-      seeds.messageSeed,
-      mailbox.toBuffer(),
-      msgCountBuf1,
-    ], program.programId);
+    const [message1] = await anchor.web3.PublicKey.findProgramAddress(
+      [seeds.protocolSeed, seeds.messageSeed, mailbox.toBuffer(), msgCountBuf1],
+      program.programId,
+    );
 
-    const tx1 = await program.rpc.sendMessage("text1", {
+    const tx1 = await program.rpc.sendMessage('text1', {
       accounts: {
         mailbox,
         receiver: receiver.publicKey,
@@ -76,9 +68,7 @@ describe('messaging', () => {
         feeReceiver: TREASURY,
         systemProgram: anchor.web3.SystemProgram.programId,
       },
-      signers: [
-        payer, sender,
-      ],
+      signers: [payer, sender],
     });
     await conn.confirmTransaction(tx1);
 
@@ -89,12 +79,12 @@ describe('messaging', () => {
 
     const messageAccount0 = await program.account.message.fetch(message0);
 
-    assert.ok(messageAccount0.sender.equals(sender.publicKey))
-    assert.ok(messageAccount0.data === "text0");
+    assert.ok(messageAccount0.sender.equals(sender.publicKey));
+    assert.ok(messageAccount0.data === 'text0');
 
     const messageAccount1 = await program.account.message.fetch(message1);
-    assert.ok(messageAccount1.sender.equals(sender.publicKey))
-    assert.ok(messageAccount1.data === "text1");
+    assert.ok(messageAccount1.sender.equals(sender.publicKey));
+    assert.ok(messageAccount1.data === 'text1');
 
     // delete messages
     const tx2 = await program.rpc.deleteMessage(0, {
@@ -106,9 +96,7 @@ describe('messaging', () => {
         rentDestination: payer.publicKey,
         systemProgram: anchor.web3.SystemProgram.programId,
       },
-      signers: [
-        receiver,
-      ],
+      signers: [receiver],
     });
     await conn.confirmTransaction(tx2);
 
@@ -121,9 +109,7 @@ describe('messaging', () => {
         rentDestination: payer.publicKey,
         systemProgram: anchor.web3.SystemProgram.programId,
       },
-      signers: [
-        receiver,
-      ],
+      signers: [receiver],
     });
     await conn.confirmTransaction(tx3);
 
@@ -148,7 +134,7 @@ describe('messaging', () => {
     const receiverMailbox = new Mailbox(conn, receiver);
 
     assert.ok((await receiverMailbox.fetchMessages()).length === 0);
-    assert.ok(await receiverMailbox.count() === 0);
+    assert.ok((await receiverMailbox.count()) === 0);
 
     const emptyCountEx = await receiverMailbox.countEx();
     assert.ok(emptyCountEx.messageCount === 0);
@@ -156,13 +142,13 @@ describe('messaging', () => {
 
     const treasuryBalance = await conn.getBalance(TREASURY);
 
-    await senderMailbox.send("text0", receiver.publicKey);
-    await senderMailbox.send("text1", receiver.publicKey);
+    await senderMailbox.send('text0', receiver.publicKey);
+    await senderMailbox.send('text1', receiver.publicKey);
 
     const endTreasuryBalance = await conn.getBalance(TREASURY);
     assert.equal(endTreasuryBalance, treasuryBalance + 2 * 50_000);
 
-    assert.ok(await receiverMailbox.count() === 2);
+    assert.ok((await receiverMailbox.count()) === 2);
 
     const fullCountEx1 = await receiverMailbox.countEx();
     assert.ok(fullCountEx1.messageCount === 2);
@@ -170,29 +156,29 @@ describe('messaging', () => {
 
     const firstMessage = await receiverMailbox.fetchMessageById(1);
     assert.ok(firstMessage.messageId === 1);
-    assert.ok(firstMessage.data.body === "text1");
+    assert.ok(firstMessage.data.body === 'text1');
     assert.ok(firstMessage.incentiveMint === undefined);
 
     let messages = await receiverMailbox.fetchMessages();
     assert.ok(messages.length === 2);
 
-    assert.ok(messages[0].sender.equals(sender.publicKey))
-    assert.ok(messages[0].data.body === "text0");
+    assert.ok(messages[0].sender.equals(sender.publicKey));
+    assert.ok(messages[0].data.body === 'text0');
 
-    assert.ok(messages[1].sender.equals(sender.publicKey))
-    assert.ok(messages[1].data.body === "text1");
+    assert.ok(messages[1].sender.equals(sender.publicKey));
+    assert.ok(messages[1].data.body === 'text1');
 
     await receiverMailbox.pop();
-    assert.ok(await receiverMailbox.count() === 1);
+    assert.ok((await receiverMailbox.count()) === 1);
 
     messages = await receiverMailbox.fetchMessages();
     assert.ok(messages.length === 1);
 
-    assert.ok(messages[0].sender.equals(sender.publicKey))
-    assert.ok(messages[0].data.body === "text1");
+    assert.ok(messages[0].sender.equals(sender.publicKey));
+    assert.ok(messages[0].data.body === 'text1');
 
     await receiverMailbox.pop();
-    assert.ok(await receiverMailbox.count() === 0);
+    assert.ok((await receiverMailbox.count()) === 0);
 
     const fullCountEx2 = await receiverMailbox.countEx();
     assert.ok(fullCountEx2.messageCount === 2);
@@ -210,28 +196,28 @@ describe('messaging', () => {
 
     // Mailbox usage
     const senderMailbox = new Mailbox(conn, new anchor.Wallet(payer));
-    const receiverMailbox = new Mailbox(conn, new anchor.Wallet(receiver), {payer: payer.publicKey});
+    const receiverMailbox = new Mailbox(conn, new anchor.Wallet(receiver), { payer: payer.publicKey });
 
     // Send a message
-    const sendTx = await senderMailbox.makeSendTx("test1", receiver.publicKey);
+    const sendTx = await senderMailbox.makeSendTx('test1', receiver.publicKey);
 
     sendTx.feePayer = payer.publicKey;
     const sendSig = await conn.sendTransaction(sendTx, [payer]);
-    await conn.confirmTransaction(sendSig, "recent");
+    await conn.confirmTransaction(sendSig, 'recent');
 
     // Fetch messages
     let messages = await receiverMailbox.fetchMessages();
     assert.ok(messages.length === 1);
 
-    assert.ok(messages[0].sender.equals(payer.publicKey))
-    assert.ok(messages[0].data.body === "test1");
+    assert.ok(messages[0].sender.equals(payer.publicKey));
+    assert.ok(messages[0].data.body === 'test1');
 
     // Free message account and send rent to receiver
     const popTx = await receiverMailbox.makePopTx();
 
     popTx.feePayer = payer.publicKey;
     const popSig = await conn.sendTransaction(popTx, [payer, receiver]);
-    await conn.confirmTransaction(popSig, "recent");
+    await conn.confirmTransaction(popSig, 'recent');
 
     // Fetch messages
     messages = await receiverMailbox.fetchMessages();
@@ -245,23 +231,20 @@ describe('messaging', () => {
     await conn.confirmTransaction(await conn.requestAirdrop(payer.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
 
     // Get mailbox address
-    const [mailbox] = await anchor.web3.PublicKey.findProgramAddress([
-      seeds.protocolSeed,
-      seeds.mailboxSeed,
-      receiver.publicKey.toBuffer(),
-    ], program.programId)
+    const [mailbox] = await anchor.web3.PublicKey.findProgramAddress(
+      [seeds.protocolSeed, seeds.mailboxSeed, receiver.publicKey.toBuffer()],
+      program.programId,
+    );
 
     // Send first message
     const msgCountBuf0 = Buffer.allocUnsafe(4);
     msgCountBuf0.writeInt32LE(0);
-    const [message0] = await anchor.web3.PublicKey.findProgramAddress([
-      seeds.protocolSeed,
-      seeds.messageSeed,
-      mailbox.toBuffer(),
-      msgCountBuf0,
-    ], program.programId);
+    const [message0] = await anchor.web3.PublicKey.findProgramAddress(
+      [seeds.protocolSeed, seeds.messageSeed, mailbox.toBuffer(), msgCountBuf0],
+      program.programId,
+    );
 
-    const tx0 = await program.rpc.sendMessage("text0", {
+    const tx0 = await program.rpc.sendMessage('text0', {
       accounts: {
         mailbox,
         receiver: receiver.publicKey,
@@ -271,9 +254,7 @@ describe('messaging', () => {
         feeReceiver: TREASURY,
         systemProgram: anchor.web3.SystemProgram.programId,
       },
-      signers: [
-        payer,
-      ],
+      signers: [payer],
     });
     await conn.confirmTransaction(tx0);
 
@@ -289,15 +270,15 @@ describe('messaging', () => {
           receiver: receiver.publicKey,
           authorizedDeleter: receiver.publicKey,
           message: message0,
-          rentDestination: receiver.publicKey,  // Intentionally wrong
+          rentDestination: receiver.publicKey, // Intentionally wrong
           systemProgram: anchor.web3.SystemProgram.programId,
         },
-        signers: [
-          receiver,
-        ],
+        signers: [receiver],
       });
     } catch (e) {
-      assert.ok(String(e).startsWith("AnchorError caused by account: rent_destination. Error Code: ConstraintAddress."));
+      assert.ok(
+        String(e).startsWith('AnchorError caused by account: rent_destination. Error Code: ConstraintAddress.'),
+      );
     }
     console.log = oldConsoleLog;
     console.error = oldConsoleError;
@@ -309,34 +290,31 @@ describe('messaging', () => {
     const payer = anchor.web3.Keypair.generate();
     await conn.confirmTransaction(await conn.requestAirdrop(payer.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
 
-    let eventEmitted = false
-    const eventListener = program.addEventListener("DispatchMessage", async (event, slot) => {
+    let eventEmitted = false;
+    const eventListener = program.addEventListener('DispatchMessage', async (event, slot) => {
       await program.removeEventListener(eventListener);
       assert.ok(receiver.publicKey.equals(event.receiverPubkey));
       assert.ok(payer.publicKey.equals(event.senderPubkey));
       assert.ok(event.messageIndex === 0);
-      assert.ok(event.message === "text0");
+      assert.ok(event.message === 'text0');
       eventEmitted = true;
     });
 
     // Get mailbox address
-    const [mailbox] = await anchor.web3.PublicKey.findProgramAddress([
-      seeds.protocolSeed,
-      seeds.mailboxSeed,
-      receiver.publicKey.toBuffer(),
-    ], program.programId)
+    const [mailbox] = await anchor.web3.PublicKey.findProgramAddress(
+      [seeds.protocolSeed, seeds.mailboxSeed, receiver.publicKey.toBuffer()],
+      program.programId,
+    );
 
     // Send first message
     const msgCountBuf0 = Buffer.allocUnsafe(4);
     msgCountBuf0.writeInt32LE(0);
-    const [message0] = await anchor.web3.PublicKey.findProgramAddress([
-      seeds.protocolSeed,
-      seeds.messageSeed,
-      mailbox.toBuffer(),
-      msgCountBuf0,
-    ], program.programId);
+    const [message0] = await anchor.web3.PublicKey.findProgramAddress(
+      [seeds.protocolSeed, seeds.messageSeed, mailbox.toBuffer(), msgCountBuf0],
+      program.programId,
+    );
 
-    const tx0 = await program.rpc.sendMessage("text0", {
+    const tx0 = await program.rpc.sendMessage('text0', {
       accounts: {
         mailbox,
         receiver: receiver.publicKey,
@@ -346,9 +324,7 @@ describe('messaging', () => {
         feeReceiver: TREASURY,
         systemProgram: anchor.web3.SystemProgram.programId,
       },
-      signers: [
-        payer,
-      ],
+      signers: [payer],
     });
     await conn.confirmTransaction(tx0);
 
@@ -363,7 +339,7 @@ describe('messaging', () => {
     const senderMailbox = new Mailbox(conn, senderWallet);
     const receiverMailbox = new Mailbox(conn, receiverWallet);
 
-    const payload = "Test Message";
+    const payload = 'Test Message';
 
     let eventEmitted = false;
     const subscriptionId = receiverMailbox.addMessageListener((message) => {
@@ -386,7 +362,7 @@ describe('messaging', () => {
 
     const senderMailbox = new Mailbox(conn, senderWallet);
 
-    const payload = "Test Message";
+    const payload = 'Test Message';
 
     let eventEmitted = false;
     const subscriptionId = senderMailbox.addSentMessageListener((message) => {
@@ -408,8 +384,8 @@ describe('messaging', () => {
     const sender = new anchor.Wallet(anchor.web3.Keypair.generate());
     await conn.confirmTransaction(await conn.requestAirdrop(sender.publicKey, 2 * anchor.web3.LAMPORTS_PER_SOL));
 
-    const senderMailbox = new Mailbox(conn, sender, {sendObfuscated: true});
-    const testMessage = "text0";
+    const senderMailbox = new Mailbox(conn, sender, { sendObfuscated: true });
+    const testMessage = 'text0';
     await senderMailbox.send(testMessage, receiver.publicKey);
 
     const receiverMailbox = new Mailbox(conn, receiver);
@@ -432,7 +408,7 @@ describe('messaging', () => {
     const receiverMailbox = new Mailbox(conn, receiver);
     const senderMailbox = new Mailbox(conn, sender);
 
-    const testMessages = ["text0", "text1", "text2", "text3", "text4", "text5"];
+    const testMessages = ['text0', 'text1', 'text2', 'text3', 'text4', 'text5'];
     for (const testMessage of testMessages) {
       await senderMailbox.send(testMessage, receiver.publicKey);
     }
@@ -444,9 +420,9 @@ describe('messaging', () => {
 
     const messages = await receiverMailbox.fetchMessages();
     const messageTexts = messages.map((m) => m.data.body);
-    assert.deepEqual(messageTexts, ["text3", "text5"]);
+    assert.deepEqual(messageTexts, ['text3', 'text5']);
 
-    const {messageCount, readMessageCount} = await receiverMailbox.countEx();
+    const { messageCount, readMessageCount } = await receiverMailbox.countEx();
     assert.equal(messageCount, 6);
     assert.equal(readMessageCount, 2);
   });
@@ -466,18 +442,20 @@ describe('messaging', () => {
     const senderMailbox = new Mailbox(conn, sender);
 
     const incentiveAmount = 500_000;
-    const sendOpts = {incentive: {
-      mint,
-      amount: incentiveAmount,
-      payerAccount: ata,
-    }};
-    await senderMailbox.send("message with incentive", receiver.publicKey, sendOpts);
+    const sendOpts = {
+      incentive: {
+        mint,
+        amount: incentiveAmount,
+        payerAccount: ata,
+      },
+    };
+    await senderMailbox.send('message with incentive', receiver.publicKey, sendOpts);
     const messageAccount = await receiverMailbox.fetchMessageById(0);
     assert.ok(messageAccount.incentiveMint.equals(mint));
     assert.equal((await receiverMailbox.fetchIncentiveTokenAccount(messageAccount)).amount, BigInt(incentiveAmount));
 
     let eventEmitted = false;
-    const subscriptionId = program.addEventListener("IncentiveClaimed", (event: any, _slot: number) => {
+    const subscriptionId = program.addEventListener('IncentiveClaimed', (event: any, _slot: number) => {
       program.removeEventListener(subscriptionId);
       eventEmitted = true;
       assert.ok(event.senderPubkey.equals(sender.publicKey));
@@ -506,7 +484,7 @@ describe('messaging', () => {
 
     const senderMailbox = new Mailbox(conn, sender);
 
-    const messagesToSend = ["msg0", "msg1", "msg2", "msg3"];
+    const messagesToSend = ['msg0', 'msg1', 'msg2', 'msg3'];
     for (const msg of messagesToSend) {
       await senderMailbox.send(msg, receiver.publicKey);
     }
@@ -518,7 +496,7 @@ describe('messaging', () => {
     const sentMessages2 = await senderMailbox.fetchSentMessagesTo(receiver.publicKey);
     assert.equal(sentMessages2.length, messagesToSend.length - 1);
     const sentMessages2Text = sentMessages2.map((m) => m.data.body);
-    assert.deepEqual(sentMessages2Text, ["msg0", "msg1", "msg3"]);
+    assert.deepEqual(sentMessages2Text, ['msg0', 'msg1', 'msg3']);
   });
 
   it('Sends an enhanced message and fetches it', async () => {
@@ -528,9 +506,9 @@ describe('messaging', () => {
 
     const senderMailbox = new Mailbox(conn, sender);
 
-    const testSubj = "test";
-    const testBody = "msg";
-    const testMeta = {demo: "hi"};
+    const testSubj = 'test';
+    const testBody = 'msg';
+    const testMeta = { demo: 'hi' };
     const testNow = new Date().getTime();
     await senderMailbox.sendMessage(testSubj, testBody, receiver.publicKey, {}, testMeta);
 
@@ -555,19 +533,23 @@ describe('messaging', () => {
     const ata = await splToken.getAssociatedTokenAddress(mint, sender.publicKey);
 
     const incentiveAmount = 500_000;
-    const sendOpts = {incentive: {
-      mint,
-      amount: incentiveAmount,
-      payerAccount: ata,
-    }};
+    const sendOpts = {
+      incentive: {
+        mint,
+        amount: incentiveAmount,
+        payerAccount: ata,
+      },
+    };
 
     const sendTx = new anchor.web3.Transaction();
-    if (!await conn.getAccountInfo(ata)) {
+    if (!(await conn.getAccountInfo(ata))) {
       sendTx.add(splToken.createAssociatedTokenAccountInstruction(sender.publicKey, ata, sender.publicKey, mint));
     }
-    sendTx.add(anchor.web3.SystemProgram.transfer({fromPubkey: sender.publicKey, toPubkey: ata, lamports: incentiveAmount}));
+    sendTx.add(
+      anchor.web3.SystemProgram.transfer({ fromPubkey: sender.publicKey, toPubkey: ata, lamports: incentiveAmount }),
+    );
     sendTx.add(splToken.createSyncNativeInstruction(ata));
-    sendTx.add(await senderMailbox.makeSendTx("message with incentive", receiver.publicKey, sendOpts));
+    sendTx.add(await senderMailbox.makeSendTx('message with incentive', receiver.publicKey, sendOpts));
 
     const tx1 = await conn.sendTransaction(sendTx, [sender.payer]);
     await conn.confirmTransaction(tx1);
@@ -589,7 +571,7 @@ describe('messaging', () => {
     const senderMailbox = new Mailbox(conn, sender);
     const receiverMailbox = new Mailbox(conn, receiver);
 
-    const message = "test";
+    const message = 'test';
     await senderMailbox.send(message, receiver.publicKey);
 
     const sentMessage = (await receiverMailbox.fetch())[0];
