@@ -39,7 +39,6 @@
     "@solana/wallet-adapter-base": "^0.9.18",
     "@testing-library/jest-dom": "^5.16.2",
     "@testing-library/react": "^13.4.0",
-    "@types/axios": "^0.14.0",
     "@types/bs58": "^4.0.1",
     "@types/crypto-js": "^4.1.1",
     "@types/jest": "^27.0.3",
@@ -64,7 +63,6 @@
   "dependencies": {
     "@metaplex-foundation/mpl-token-metadata": "^2.2.2",
     "@project-serum/anchor": "^0.24.2",
-    "@solana/buffer-layout": "^4.0.0",
     "@solana/spl-token": "^0.2.0",
     "@solana/web3.js": "^1.50.1",
     "@supabase/supabase-js": "^1.35.7",

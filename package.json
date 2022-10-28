@@ -4,7 +4,6 @@
     },
     "devDependencies": {
         "@metaplex-foundation/mpl-token-metadata": "^2.2.2",
-        "@solana/buffer-layout": "^4.0.0",
         "@solana/spl-token": "^0.2.0",
         "@solana/wallet-adapter-base": "^0.9.18",
         "@solana/web3.js": "^1.44.0",
@@ -17,7 +16,6 @@
         "@types/mocha": "^9.0.0",
         "@types/node": "^18.11.0",
         "@types/react": "^18.0.24",
-        "axios": "^0.27.2",
         "bs58": "^5.0.0",
         "chai": "^4.3.4",
         "crypto-js": "^4.1.1",
