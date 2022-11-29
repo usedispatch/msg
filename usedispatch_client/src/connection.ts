@@ -1,17 +1,19 @@
-import * as web3 from '@solana/web3.js';
 import * as anchor from '@project-serum/anchor';
-import { Messaging } from '../../target/types/messaging';
-import messagingProgramIdl from '../../target/idl/messaging.json';
-import { Postbox } from '../../target/types/postbox';
-import postboxProgramIdl from '../../target/idl/postbox.json';
+import * as web3 from '@solana/web3.js';
+
+import { AnchorExpectedWalletInterface, AnchorNodeWalletInterface, WalletInterface } from './wallets';
 import {
+  DispatchAddresses,
+  SOLANA_CONNECTION_MAX_RETRIES,
+  TXN_COMMITMENT,
   clusterAddresses,
   defaultCluster,
-  DispatchAddresses,
-  TXN_COMMITMENT,
-  SOLANA_CONNECTION_MAX_RETRIES,
 } from './constants';
-import { WalletInterface, AnchorExpectedWalletInterface, AnchorNodeWalletInterface } from './wallets';
+
+import { Messaging } from '../../target/types/messaging';
+import { Postbox } from '../../target/types/postbox';
+import messagingProgramIdl from '../../target/idl/messaging.json';
+import postboxProgramIdl from '../../target/idl/postbox.json';
 
 export type DispatchConnectionOpts = {
   skipAnchorProvider?: boolean;
@@ -23,11 +25,14 @@ export class DispatchConnection {
   public messagingProgram: anchor.Program<Messaging>;
   public postboxProgram: anchor.Program<Postbox>;
   public cluster: web3.Cluster;
+  public APIServer: string;
 
+  // TODO: replace public wallet with public user object, then use user.wallet everywhere
   constructor(public conn: web3.Connection, public wallet: WalletInterface, opts?: DispatchConnectionOpts) {
     if (!wallet.publicKey) {
       throw new Error('Provided wallet must have a public key defined');
     }
+    this.APIServer = 'https://api.dispatch.forum';
     this.addresses = clusterAddresses.get(opts?.cluster ?? defaultCluster)!;
     this.cluster = opts?.cluster ?? defaultCluster;
     // Initialize anchor

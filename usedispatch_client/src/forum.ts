@@ -3,6 +3,7 @@ import { createNewForum } from './api';
 import { DispatchConnection } from './connection';
 import { TXN_COMMITMENT } from './constants';
 import * as postbox from './postbox';
+import { WalletInterface } from './wallets';
 
 export type ForumInfo = {
   collectionId: web3.PublicKey;
@@ -110,7 +111,60 @@ export interface IForum {
  */
 
  class User {
+  public did: string;
+  public wallet: WalletInterface;
+  public userType: 'anonymous' | 'loggedIn';
 
+  constructor(wallet: WalletInterface) {
+    this.userType = 'anonymous';
+  }
+
+  setWallet(wallet: WalletInterface) {
+    this.wallet = wallet;
+  }
+
+  unsetWallet() {
+    this.wallet = undefined;
+  }
+
+  setDID(did: string) {
+    this.did = did;
+  }
+
+  unsetDID() {
+    this.did = undefined;
+  }
+
+ }
+
+ /**
+  * when user visits for first time, create basic user object and set as anonymous 
+  * when user clicks wallet connect button, call authService.login(user) and sets user as loggedIn
+  * when user clicks logout, call authService.logout(user) and sets user as anonymous
+  */
+ class AuthService {
+  public user: User;
+
+  constructor() {
+    this.user = new User();
+  }
+
+  // TODO: use ts user management system at some point
+  async login(wallet: WalletInterface) {
+    // register user if user doesn't exist
+    this.user.wallet = wallet;
+    this.user.did = getDID(wallet);
+  }
+
+  async logout() {
+
+  }
+
+  async register() {
+  }
+
+  async getCurrentUser() {
+  }
  }
  export class APIForum implements IForum {
     // update dispatch connection to include api connection object & ServerTransactionSignature
