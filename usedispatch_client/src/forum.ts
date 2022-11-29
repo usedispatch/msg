@@ -99,8 +99,43 @@ export interface IForum {
 /**
  * - A forum object is initialized around one postbox
  * - We should cache messages within forums not postboxes
+ * 
+ * 1. Client sends action to server
+ * 2. Server sends back action in signed envelope data structure
+ * 3. Client takes signed envelope and invokes chain broadcast via wallet
+ * 1a. follow forum
+ * * invoke apiEndpoint/followForum (forum, user) -> ServerTxnSig
+ * b. create forum
+ * * 
  */
-export class Forum implements IForum {
+
+ class User {
+
+ }
+ export class APIForum implements IForum {
+    // update dispatch connection to include api connection object & ServerTransactionSignature
+    // constructor()
+    // createForum() using axios
+    // createActionPost()
+    // creat
+    protected _apiPostbox: APIPostbox.Postbox;
+
+    constructor(public dispatchConn: DispatchConnection, public collectionId: web3.PublicKey) {
+      // Create a third party postbox for this forum
+      this._apiPostbox = new APIPostbox.Postbox(dispatchConn, {...});
+    }
+    //TODO: make server transaction signature a subtype/class of TransactionSignature
+    // 1. define dispatch.transactionSignature as a super class of web3.TransactionSignature
+    // 2. replace all instances of web3.TransactionSignature with dispatch.transactionSignature
+    // 3. define apiServer.transactionSignature as a subclass of dispatch.transactionSignature
+    // 4. replace all instances of chainForum with apiForum
+    async followForum(forum: ForumInfo, user: User): Promise<dispatch.TransactionSignature> {
+      const signedAction = await axios.post(`${this.dispatchConn.apiEndpoint}/followForum`, { forum, user });
+      return this._apiPostbox.dispatchConn.wallet.signTransaction(signedAction);
+    }
+ }
+
+export class ChainForum implements IForum {
   protected _postbox: postbox.Postbox;
 
   constructor(public dispatchConn: DispatchConnection, public collectionId: web3.PublicKey) {
@@ -109,6 +144,8 @@ export class Forum implements IForum {
       key: collectionId,
       str: 'Public',
     });
+
+    this._apiPostbox = new apiPostbox.Postbox(dispatchConn, {...this._postbox});
   }
 
   async exists(): Promise<boolean> {
@@ -122,6 +159,11 @@ export class Forum implements IForum {
     await createNewForum(this.dispatchConn.cluster, info);
     await this._postbox.dispatch.conn.confirmTransaction(tx);
     return [tx];
+  }
+
+  async createApiForum(info: ForumInfo): Promise<DispatchConnection.APITransactionSignature> {
+    const endpoint = this.dispatchConn.APIServer;
+    axios.post(`${endpoint}/createForum`, info);
   }
 
   async createForumIx(info: ForumInfo): Promise<web3.Transaction> {
