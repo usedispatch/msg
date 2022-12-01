@@ -1,9 +1,12 @@
-import * as web3 from '@solana/web3.js';
-import { createNewForum } from './api';
-import { DispatchConnection } from './connection';
-import { TXN_COMMITMENT } from './constants';
 import * as postbox from './postbox';
+import * as web3 from '@solana/web3.js';
+
+import { DispatchConnection, ServerTransactionSignature } from './connection';
+
+import { TXN_COMMITMENT } from './constants';
 import { WalletInterface } from './wallets';
+import axios from 'axios';
+import { createNewForum } from './api';
 
 export type ForumInfo = {
   collectionId: web3.PublicKey;
@@ -28,6 +31,9 @@ export interface IForum {
 
   // Create a postbox for a given collection ID. This might require multiple signatures
   createForumIx(forum: ForumInfo): Promise<web3.Transaction>;
+
+  // Follow forum (add to user's list of followed forums)
+  followForum(forum: web3.PublicKey, user: web3.PublicKey): Promise<ServerTransactionSignature>;
 
   // Get topics for a forum
   // topics are the same as a post but with topic=true set
@@ -111,29 +117,30 @@ export interface IForum {
  */
 
  class User {
-  public did: string;
+  // public did: string;
   public wallet: WalletInterface;
   public userType: 'anonymous' | 'loggedIn';
 
   constructor(wallet: WalletInterface) {
     this.userType = 'anonymous';
-  }
-
-  setWallet(wallet: WalletInterface) {
     this.wallet = wallet;
   }
 
-  unsetWallet() {
-    this.wallet = undefined;
-  }
+  // setWallet(wallet: WalletInterface) {
+  //   this.wallet = wallet;
+  // }
 
-  setDID(did: string) {
-    this.did = did;
-  }
+  // unsetWallet() {
+  //   this.wallet = undefined;
+  // }
 
-  unsetDID() {
-    this.did = undefined;
-  }
+  // setDID(did: string) {
+  //   this.did = did;
+  // }
+
+  // unsetDID() {
+  //   this.did = undefined;
+  // }
 
  }
 
@@ -142,54 +149,135 @@ export interface IForum {
   * when user clicks wallet connect button, call authService.login(user) and sets user as loggedIn
   * when user clicks logout, call authService.logout(user) and sets user as anonymous
   */
- class AuthService {
-  public user: User;
+//  class AuthService {
+//   public user: User;
 
-  constructor() {
-    this.user = new User();
-  }
+//   constructor() {
+//     this.user = new User();
+//   }
 
-  // TODO: use ts user management system at some point
-  async login(wallet: WalletInterface) {
-    // register user if user doesn't exist
-    this.user.wallet = wallet;
-    this.user.did = getDID(wallet);
-  }
+//   // TODO: use ts user management system at some point
+//   async login(wallet: WalletInterface) {
+//     // register user if user doesn't exist
+//     this.user.wallet = wallet;
+//     this.user.did = getDID(wallet);
+//   }
 
-  async logout() {
+//   async logout() {
 
-  }
+//   }
 
-  async register() {
-  }
+//   async register() {
+//   }
 
-  async getCurrentUser() {
-  }
- }
+//   async getCurrentUser() {
+//   }
+//  }
  export class APIForum implements IForum {
     // update dispatch connection to include api connection object & ServerTransactionSignature
     // constructor()
     // createForum() using axios
     // createActionPost()
     // creat
-    protected _apiPostbox: APIPostbox.Postbox;
+    // protected _apiPostbox: APIPostbox.Postbox;
+    public dispatchConn: DispatchConnection;
+    private _forumId: web3.PublicKey;
 
-    constructor(public dispatchConn: DispatchConnection, public collectionId: web3.PublicKey) {
+    constructor(public connection: DispatchConnection, public forumId: web3.PublicKey) {
       // Create a third party postbox for this forum
-      this._apiPostbox = new APIPostbox.Postbox(dispatchConn, {...});
+      // this._apiPostbox = new APIPostbox.Postbox(dispatchConn, {...});
+      this.dispatchConn = connection;
+      this._forumId = forumId;
+
     }
-    //TODO: make server transaction signature a subtype/class of TransactionSignature
+
+        //TODO: make server transaction signature a subtype/class of TransactionSignature
     // 1. define dispatch.transactionSignature as a super class of web3.TransactionSignature
     // 2. replace all instances of web3.TransactionSignature with dispatch.transactionSignature
     // 3. define apiServer.transactionSignature as a subclass of dispatch.transactionSignature
-    // 4. replace all instances of chainForum with apiForum
-    async followForum(forum: ForumInfo, user: User): Promise<dispatch.TransactionSignature> {
-      const signedAction = await axios.post(`${this.dispatchConn.apiEndpoint}/followForum`, { forum, user });
-      return this._apiPostbox.dispatchConn.wallet.signTransaction(signedAction);
+    // 4. replace all instances of Forum with apiForum
+    async followForum(forum: web3.PublicKey, user: web3.PublicKey): Promise<ServerTransactionSignature> {
+      const signedAction = await axios.post(`${this.dispatchConn.APIServerEndpoint}/followForum`, { forum, user });
+      console.log(signedAction);
+      return this.dispatchConn.wallet.signMessage(signedAction);
     }
+
+   exists(): Promise<boolean> {
+     throw new Error('Method not implemented.');
+   }
+   createForum(forum: ForumInfo): Promise<string[]> {
+     throw new Error('Method not implemented.');
+   }
+   createForumIx(forum: ForumInfo): Promise<web3.Transaction> {
+     throw new Error('Method not implemented.');
+   }
+   getTopicsForForum(forum: Forum): Promise<ForumPost[]> {
+     throw new Error('Method not implemented.');
+   }
+   getPostsForForum(forum: Forum): Promise<ForumPost[]> {
+     throw new Error('Method not implemented.');
+   }
+   getTopicMessages(topic: ForumPost): Promise<ForumPost[]> {
+     throw new Error('Method not implemented.');
+   }
+   createTopic(forumPost: postbox.InputPostData, postRestriction?: postbox.PostRestriction | undefined): Promise<string> {
+     throw new Error('Method not implemented.');
+   }
+   createForumPost(forumPost: postbox.InputPostData, topic: ForumPost): Promise<string> {
+     throw new Error('Method not implemented.');
+   }
+   deleteForumPost(forumPost: ForumPost): Promise<string> {
+     throw new Error('Method not implemented.');
+   }
+   replyToForumPost(replyToPost: ForumPost, post: postbox.InputPostData): Promise<string> {
+     throw new Error('Method not implemented.');
+   }
+   getReplies(topic: ForumPost): Promise<ForumPost[]> {
+     throw new Error('Method not implemented.');
+   }
+   voteUpForumPost(post: ForumPost): Promise<string> {
+     throw new Error('Method not implemented.');
+   }
+   voteDownForumPost(post: ForumPost): Promise<string> {
+     throw new Error('Method not implemented.');
+   }
+   getVote(post: ForumPost): Promise<postbox.VoteType | undefined> {
+     throw new Error('Method not implemented.');
+   }
+   getVotes(): Promise<postbox.ChainVoteEntry[] | undefined> {
+     throw new Error('Method not implemented.');
+   }
+   getOwners(): Promise<web3.PublicKey[]> {
+     throw new Error('Method not implemented.');
+   }
+   getDescription(): Promise<postbox.Description | undefined> {
+     throw new Error('Method not implemented.');
+   }
+   setDescription(desc: postbox.Description): Promise<string> {
+     throw new Error('Method not implemented.');
+   }
+   getForumPostRestriction(): Promise<postbox.PostRestriction | null> {
+     throw new Error('Method not implemented.');
+   }
+   setForumPostRestriction(restriction: postbox.PostRestriction): Promise<string> {
+     throw new Error('Method not implemented.');
+   }
+   addModerator(newMod: web3.PublicKey): Promise<string> {
+     throw new Error('Method not implemented.');
+   }
+   addModeratorIx(newMod: web3.PublicKey): Promise<web3.Transaction> {
+     throw new Error('Method not implemented.');
+   }
+   getModeratorMint(): Promise<web3.PublicKey> {
+     throw new Error('Method not implemented.');
+   }
+   getModerators(): Promise<web3.PublicKey[]> {
+     throw new Error('Method not implemented.');
+   }
+
  }
 
-export class ChainForum implements IForum {
+export class Forum implements IForum {
   protected _postbox: postbox.Postbox;
 
   constructor(public dispatchConn: DispatchConnection, public collectionId: web3.PublicKey) {
@@ -199,7 +287,10 @@ export class ChainForum implements IForum {
       str: 'Public',
     });
 
-    this._apiPostbox = new apiPostbox.Postbox(dispatchConn, {...this._postbox});
+  }
+
+  async followForum(forum: web3.PublicKey, user: web3.PublicKey): Promise<ServerTransactionSignature> {
+    return 'success'
   }
 
   async exists(): Promise<boolean> {
@@ -215,10 +306,10 @@ export class ChainForum implements IForum {
     return [tx];
   }
 
-  async createApiForum(info: ForumInfo): Promise<DispatchConnection.APITransactionSignature> {
-    const endpoint = this.dispatchConn.APIServer;
-    axios.post(`${endpoint}/createForum`, info);
-  }
+  // async createApiForum(info: ForumInfo): Promise<DispatchConnection.APITransactionSignature> {
+  //   const endpoint = this.dispatchConn.APIServer;
+  //   axios.post(`${endpoint}/createForum`, info);
+  // }
 
   async createForumIx(info: ForumInfo): Promise<web3.Transaction> {
     if (!this.collectionId.equals(info.collectionId)) {

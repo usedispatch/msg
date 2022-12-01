@@ -20,21 +20,26 @@ export type DispatchConnectionOpts = {
   cluster?: web3.Cluster;
 };
 
+export type ServerTransactionSignature = web3.TransactionSignature & {
+  
+}
+
 export class DispatchConnection {
   public addresses: DispatchAddresses;
   public messagingProgram: anchor.Program<Messaging>;
   public postboxProgram: anchor.Program<Postbox>;
   public cluster: web3.Cluster;
-  public APIServer: string;
+  public APIServerEndpoint: string;
 
   // TODO: replace public wallet with public user object, then use user.wallet everywhere
-  constructor(public conn: web3.Connection, public wallet: WalletInterface, opts?: DispatchConnectionOpts) {
+  constructor(public conn: web3.Connection, public wallet: WalletInterface, opts?: DispatchConnectionOpts,) {
     if (!wallet.publicKey) {
       throw new Error('Provided wallet must have a public key defined');
     }
-    this.APIServer = 'https://api.dispatch.forum';
+    this.APIServerEndpoint = 'https://api.dispatch.forum';
     this.addresses = clusterAddresses.get(opts?.cluster ?? defaultCluster)!;
     this.cluster = opts?.cluster ?? defaultCluster;
+    
     // Initialize anchor
     if (!opts?.skipAnchorProvider) {
       if (this.wallet.signTransaction && this.wallet.signAllTransactions) {
