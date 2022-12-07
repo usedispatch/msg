@@ -36,7 +36,7 @@ export class DispatchConnection {
     if (!wallet.publicKey) {
       throw new Error('Provided wallet must have a public key defined');
     }
-    this.APIServerEndpoint = 'https://api.dispatch.forum';
+    this.APIServerEndpoint = 'http://localhost:3001';
     this.addresses = clusterAddresses.get(opts?.cluster ?? defaultCluster)!;
     this.cluster = opts?.cluster ?? defaultCluster;
     

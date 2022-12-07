@@ -1,8 +1,10 @@
 import * as postbox from './postbox';
 import * as web3 from '@solana/web3.js';
 
+import { Crud, createAction } from '@dispatch-services/db-forum-common/actions'
 import { DispatchConnection, ServerTransactionSignature } from './connection';
 
+import { EntityType } from '@dispatch-services/db-forum-common/entities';
 import { TXN_COMMITMENT } from './constants';
 import { WalletInterface } from './wallets';
 import axios from 'axios';
@@ -205,8 +207,10 @@ export interface IForum {
    exists(): Promise<boolean> {
      throw new Error('Method not implemented.');
    }
-   createForum(forum: ForumInfo): Promise<string[]> {
-     throw new Error('Method not implemented.');
+   async createForum(forum: ForumInfo): Promise<string[]> {
+    const action = createAction(EntityType.Forum, Crud.Post, { title: forum.title, body: forum.description } );
+    const signedAction = await axios.post(`${this.dispatchConn.APIServerEndpoint}/createAction`, action);
+    return this.dispatchConn.wallet.signMessage(signedAction);
    }
    createForumIx(forum: ForumInfo): Promise<web3.Transaction> {
      throw new Error('Method not implemented.');
