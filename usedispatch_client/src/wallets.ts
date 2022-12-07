@@ -3,9 +3,8 @@ import { WalletContextState } from '@solana/wallet-adapter-react';
 
 export type WalletInterface = Pick<
   WalletContextState,
-  'signTransaction' | 'signAllTransactions' | 'publicKey' | 'wallet' | 'sendTransaction'
+  'signTransaction' | 'signAllTransactions' | 'publicKey' | 'wallet' | 'sendTransaction' | 'signMessage'
 >;
-
 export interface SendTransactionOptions extends web3.SendOptions {
   signers?: web3.Signer[];
 }
