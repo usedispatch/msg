@@ -23,9 +23,11 @@ export const getMaxChildId = async (cluster: web3.Cluster, forumID: web3.PublicK
 };
 
 export const updateAndGetNewChildId = async (cluster: web3.Cluster, forumID: web3.PublicKey): Promise<number> => {
-  const { data, error } = await supabase.rpc(`increment_max_child_${getNormalizedCluster(cluster)}`, {
-    forum_id_key: forumID.toBase58(),
-  }).single();
+  const { data, error } = await supabase
+    .rpc(`increment_max_child_${getNormalizedCluster(cluster)}`, {
+      forum_id_key: forumID.toBase58(),
+    })
+    .single();
   return data as number;
 };
 
@@ -70,4 +72,5 @@ export const getForumIdFromSolanartId = async (cluster: web3.Cluster, solanartID
   } else if (error !== undefined && error !== null) {
     return error.message;
   }
+  return 'Unkown error';
 };

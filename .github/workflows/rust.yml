@@ -55,5 +55,3 @@ jobs:
         run: |
           yarn install
           yarn build
-      - name: Build Dispatch CLI (no tests yet)
-        run: cd usedispatch_cli && npm install && cd ..

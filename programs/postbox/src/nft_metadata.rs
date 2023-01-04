@@ -1,5 +1,3 @@
-// TODO: contribute this to anchor
-
 use anchor_lang::prelude::*;
 use std::ops::Deref;
 use mpl_token_metadata;

@@ -1,12 +1,7 @@
 import * as web3 from '@solana/web3.js';
-import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
-import { Key, Metadata, TokenStandard } from '@metaplex-foundation/mpl-token-metadata';
+import { Key, Metadata } from '@metaplex-foundation/mpl-token-metadata';
 import { Error } from '../src/types';
-import {
-  getMintsForOwner,
-  getMetadataForOwner,
-  getMetadataForMint
-} from '../src/utils';
+import { getMintsForOwner, getMetadataForOwner, getMetadataForMint } from '../src/utils';
 
 describe('Test helper functions', () => {
   let conn: web3.Connection;
@@ -16,7 +11,6 @@ describe('Test helper functions', () => {
   });
 
   test('Get V1 metadata for user', async () => {
-
     // A trash panda holder I found. TODO replace this with a
     // test wallet under our control
     const publicKey = new web3.PublicKey('7ycUFfnspMwnjp2DfSjAvZgf7g7T6nugrGv2kpzogrNC');
@@ -27,8 +21,8 @@ describe('Test helper functions', () => {
     expect(mints).toEqual(
       expect.arrayContaining([
         new web3.PublicKey('9pSeEsGdnHCdUF9328Xdn88nMmzWUSLAVEC5dWgPvM3Q'),
-        new web3.PublicKey('DTPMARh15YSqggNbMLECj8RxVoxfhtobyyCLiwEeVwZu')
-      ])
+        new web3.PublicKey('DTPMARh15YSqggNbMLECj8RxVoxfhtobyyCLiwEeVwZu'),
+      ]),
     );
 
     // Now, get the Metadata for the user...
@@ -36,8 +30,9 @@ describe('Test helper functions', () => {
     // collection
     const metadata = await getMetadataForOwner(conn, publicKey);
     // Assert that the raccon mint can be found
-    const raccoonOrUndefined = metadata.find(({ mint }) =>
-      mint.toBase58() === '9pSeEsGdnHCdUF9328Xdn88nMmzWUSLAVEC5dWgPvM3Q');
+    const raccoonOrUndefined = metadata.find(
+      ({ mint }) => mint.toBase58() === '9pSeEsGdnHCdUF9328Xdn88nMmzWUSLAVEC5dWgPvM3Q',
+    );
     // Raccoon should be defined
     expect(raccoonOrUndefined).not.toBeUndefined();
     // Now assert we have it
@@ -48,9 +43,7 @@ describe('Test helper functions', () => {
     expect(raccoon.collection).not.toBeNull();
     const collection = raccoon.collection!;
     expect(collection.verified).toBe(true);
-    expect(collection.key).toEqual(
-      new web3.PublicKey('GoLMLLR6iSUrA6KsCrFh7f45Uq5EHFQ3p8RmzPoUH9mb')
-    );
+    expect(collection.key).toEqual(new web3.PublicKey('GoLMLLR6iSUrA6KsCrFh7f45Uq5EHFQ3p8RmzPoUH9mb'));
   });
 
   test('Test cardinal.so metadata', async () => {
@@ -82,8 +75,9 @@ describe('Test helper functions', () => {
     // Should have at least one metadata
     expect(metadataList.length).toBeGreaterThan(0);
 
-    const nftOrUndefined = metadataList.find(({ mint }) =>
-      mint.toBase58() === '3MZRqiVc8AxsFwsnySkwmeT1RWxz8sUDHBSzgeZB7bRc' );
+    const nftOrUndefined = metadataList.find(
+      ({ mint }) => mint.toBase58() === '3MZRqiVc8AxsFwsnySkwmeT1RWxz8sUDHBSzgeZB7bRc',
+    );
 
     expect(nftOrUndefined).not.toBeUndefined();
 
@@ -92,19 +86,13 @@ describe('Test helper functions', () => {
     expect(nft.collection).toBeNull();
     expect(nft.tokenStandard).toBeNull();
     expect(nft.collection).toBeNull();
-    expect(nft.data.symbol.replace(/\0/g, ''))
-      .toEqual('NAME');
-    expect(nft.data.name.replace(/\0/g, ''))
-      .toEqual('usedispatch.twitter');
+    expect(nft.data.symbol.replace(/\0/g, '')).toEqual('NAME');
+    expect(nft.data.name.replace(/\0/g, '')).toEqual('usedispatch.twitter');
   });
 
   afterAll(() => {
     // Wait for six seconds, for the connection to close down
     // TODO remove this waiting when https://github.com/solana-labs/solana/issues/25069 is resolved
-    Atomics.wait(
-      new Int32Array(new SharedArrayBuffer(4)),
-      0, 0,
-      6 * 1000
-    );
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 6 * 1000);
   });
 });

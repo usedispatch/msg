@@ -1,4 +1,3 @@
-// TODO: codegen this file
 import * as web3 from '@solana/web3.js';
 
 export type DispatchAddresses = {

@@ -9,8 +9,6 @@ const PROGRAM_ID = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
 export async function deriveMetadataAccount(mint: PublicKey) {
   // This key derivation is based on the fields describe here:
   // https://github.com/metaplex-foundation/metaplex-program-library/blob/0d63c8b3c6ac077dba63519c78a8da7a58b285a1/token-metadata/js/src/generated/instructions/MintNewEditionFromMasterEditionViaToken.ts#L46
-  // TODO confirm with Metaplex team that this is the correct
-  // derivation
   const [key] = await PublicKey.findProgramAddress(
     [Buffer.from('metadata'), PROGRAM_ID.toBuffer(), mint.toBuffer()],
     PROGRAM_ID,
@@ -54,13 +52,7 @@ export async function getMetadataForMints(connection: Connection, mints: PublicK
   const accountInfoOrNullList = await getAccountsInfoPaginated(connection, derivedAddresses);
   // Filter out nulls
   const accountInfoList = accountInfoOrNullList.filter((acct) => acct !== null) as AccountInfo<Buffer>[];
-  return (
-    accountInfoList
-      // TODO check if Metadata.fromAccountInfo throws errors and
-      // implement try/catch block here if they do
-      .map((accountInfo) => Metadata.fromAccountInfo(accountInfo))
-      .map(([metadata]) => metadata)
-  );
+  return accountInfoList.map((accountInfo) => Metadata.fromAccountInfo(accountInfo)).map(([metadata]) => metadata);
 }
 
 /**
